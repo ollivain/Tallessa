@@ -55,6 +55,8 @@ let state = loadState();
 let visibleMonth = new Date();
 let imageDrag = null;
 let suppressImageToggle = false;
+let memoryDraft = null;
+let memorialSkyTimer = null;
 
 const screens = [...document.querySelectorAll("[data-screen]")];
 const navButtons = [...document.querySelectorAll("[data-nav]")];
@@ -66,6 +68,8 @@ const elements = {
   memoryForm: document.querySelector("[data-memory-form]"),
   memoryMedia: document.querySelector("[data-memory-media]"),
   memoryMessage: document.querySelector("[data-memory-message]"),
+  draftPicker: document.querySelector("[data-draft-picker]"),
+  draftPreview: document.querySelector("[data-draft-preview]"),
   memoryList: document.querySelector("[data-memory-list]"),
   letterForm: document.querySelector("[data-letter-form]"),
   letterList: document.querySelector("[data-letter-list]"),
@@ -105,11 +109,13 @@ document.addEventListener("pointercancel", stopImageCompose);
 document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
 
 renderAll();
+updateMemorialSky();
+memorialSkyTimer = window.setInterval(updateMemorialSky, 60 * 1000);
 
 function handleClick(event) {
   if (event.target.closest("[data-image-change]")) return;
 
-  const imagePicker = event.target.closest("[data-image-picker]");
+  const imagePicker = event.target.closest("[data-image-picker], [data-draft-picker]");
   const imageSurface = event.target.closest(".hero-image, .month-cover, .memorial-image, .media-preview");
   const isHeroTap = imagePicker?.classList.contains("hero");
   if (imagePicker && (imageSurface || isHeroTap)) {
@@ -195,6 +201,7 @@ function hideImagePickers() {
   document.querySelectorAll("[data-image-picker]").forEach((picker) => {
     picker.classList.remove("is-composing", "is-dragging");
   });
+  elements.draftPicker.classList.remove("is-dragging");
 }
 
 function openCard(name) {
@@ -214,6 +221,7 @@ function closeCard(name) {
 
   panel.classList.add("is-collapsed");
   button.classList.remove("is-hidden");
+  if (name === "memory") resetMemoryDraft();
 }
 
 function toggleDeleteAction(card) {
@@ -273,8 +281,9 @@ function handleDeleteAction(button) {
 
 function startImageCompose(event) {
   const surface = event.target.closest(".hero-image, .month-cover, .memorial-image, .media-preview");
-  const picker = event.target.closest("[data-image-picker]");
-  if (!surface || !picker || picker.querySelector("[data-image-change]")?.hidden) return;
+  const picker = event.target.closest("[data-image-picker], [data-draft-picker]");
+  if (!surface || !picker) return;
+  if (picker.matches("[data-image-picker]") && picker.querySelector("[data-image-change]")?.hidden) return;
 
   if (imageDrag?.surface === surface) {
     imageDrag.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -391,6 +400,26 @@ function showScreen(name) {
 
   window.scrollTo({ top: 0, behavior: "smooth" });
   hideImagePickers();
+  if (name === "memorial") updateMemorialSky();
+}
+
+function updateMemorialSky() {
+  const memorialScreen = document.querySelector('[data-screen="memorial"]');
+  if (!memorialScreen) return;
+
+  const nextClass = `memorial-sky-${getMemorialSkyPhase(new Date())}`;
+  const classes = ["memorial-sky-morning", "memorial-sky-day", "memorial-sky-evening", "memorial-sky-night"];
+  classes.forEach((className) => {
+    memorialScreen.classList.toggle(className, className === nextClass);
+  });
+}
+
+function getMemorialSkyPhase(date) {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 11) return "morning";
+  if (hour >= 11 && hour < 17) return "day";
+  if (hour >= 17 && hour < 22) return "evening";
+  return "night";
 }
 
 async function addMemory(event) {
@@ -402,20 +431,14 @@ async function addMemory(event) {
   if (!text && !(file instanceof File && file.size)) return;
 
   setMemoryMessage("Tallennetaan muistoa...");
-  let media = "";
-  try {
-    media = file instanceof File && file.size ? await prepareMediaFile(file) : "";
-  } catch {
-    setMemoryMessage("Tiedostoa ei voitu lukea. Kokeile toista kuvaa tai pienempää tiedostoa.", true);
-    return;
-  }
-  const type = file instanceof File && file.type.startsWith("video") ? "video" : "image";
+  const media = memoryDraft?.media || "";
+  const type = memoryDraft?.type || (file instanceof File && file.type.startsWith("video") ? "video" : "image");
 
   state.memories.unshift({
     id: crypto.randomUUID(),
     type,
     media,
-    imagePosition: { x: 50, y: 50, zoom: 1 },
+    imagePosition: memoryDraft?.position || { x: 50, y: 50, zoom: 1 },
     text: text || "Muisto ilman sanoja.",
     createdAt: new Date().toISOString(),
   });
@@ -430,29 +453,72 @@ async function addMemory(event) {
   }
 
   event.currentTarget.reset();
+  resetMemoryDraft();
   setMemoryMessage("");
   closeCard("memory");
   renderHome();
   renderMemories();
 }
 
-function updateMemoryFileMessage(event) {
+async function updateMemoryFileMessage(event) {
   const file = event.target.files?.[0];
   if (!file) {
-    setMemoryMessage("");
+    resetMemoryDraft();
     return;
   }
 
   const size = `${(file.size / 1024 / 1024).toFixed(1)} Mt`;
   const note = file.type.startsWith("image/")
-    ? "Kuva pakataan sopivaksi ennen tallennusta."
+    ? "Kuva avataan alle sommittelua varten."
     : "Video tallennetaan vain, jos se mahtuu selaimen paikalliseen muistiin.";
   setMemoryMessage(`${file.name} (${size}). ${note}`);
+
+  try {
+    const type = file.type.startsWith("video") ? "video" : "image";
+    const media = type === "image" ? await prepareImageFile(file) : await fileToDataUrl(file);
+    memoryDraft = {
+      type,
+      media,
+      position: { x: 50, y: 50, zoom: 1 },
+    };
+    renderMemoryDraft();
+    setMemoryMessage(
+      type === "image"
+        ? "Kuva valmis. Voit sommitella sitä ennen tallennusta."
+        : "Video valmis tallennettavaksi.",
+    );
+  } catch {
+    resetMemoryDraft();
+    setMemoryMessage("Tiedostoa ei voitu lukea. Kokeile toista kuvaa tai pienempää tiedostoa.", true);
+  }
 }
 
 function setMemoryMessage(text, isError = false) {
   elements.memoryMessage.textContent = text;
   elements.memoryMessage.classList.toggle("is-error", isError);
+}
+
+function renderMemoryDraft() {
+  if (!memoryDraft?.media || memoryDraft.type !== "image") {
+    elements.draftPicker.hidden = true;
+    elements.draftPreview.style.backgroundImage = "";
+    return;
+  }
+
+  elements.draftPicker.hidden = false;
+  elements.draftPicker.classList.add("is-composing");
+  elements.draftPreview.style.backgroundImage = `url('${memoryDraft.media}')`;
+  applyImagePosition(elements.draftPreview, memoryDraft.position);
+}
+
+function resetMemoryDraft() {
+  memoryDraft = null;
+  elements.draftPicker.hidden = true;
+  elements.draftPicker.classList.remove("is-composing", "is-dragging");
+  elements.draftPreview.style.backgroundImage = "";
+  elements.draftPreview.style.backgroundPosition = "";
+  elements.draftPreview.style.backgroundSize = "";
+  setMemoryMessage("");
 }
 
 function addLetter(event) {
@@ -811,6 +877,7 @@ function buildMemorialText(source) {
 }
 
 function getImagePositionKey(surface) {
+  if (surface.matches("[data-draft-preview]")) return "draft";
   if (surface.matches("[data-hero-image]")) return "hero";
   if (surface.matches("[data-month-cover]")) return `month:${getMonthKey(visibleMonth)}`;
   if (surface.matches("[data-memorial-image]")) return "memorial";
@@ -819,6 +886,7 @@ function getImagePositionKey(surface) {
 }
 
 function getImagePosition(key) {
+  if (key === "draft") return normalizePosition(memoryDraft?.position);
   if (key === "hero") return normalizePosition(state.heroImagePosition);
   if (key === "memorial") return normalizePosition(state.memorialImagePosition);
   if (key.startsWith("month:")) return normalizePosition(state.monthPhotoPositions[key.replace("month:", "")]);
@@ -828,6 +896,7 @@ function getImagePosition(key) {
 
 function setImagePosition(key, position) {
   const normalized = normalizePosition(position);
+  if (key === "draft" && memoryDraft) memoryDraft.position = normalized;
   if (key === "hero") state.heroImagePosition = normalized;
   if (key === "memorial") state.memorialImagePosition = normalized;
   if (key.startsWith("month:")) {
