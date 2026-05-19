@@ -1,1026 +1,1015 @@
-const STORAGE_KEY = "partydeck.players";
-const WATER_BREAK_STORAGE_KEY = "partydeck.waterBreaksEnabled";
-const WATER_BREAK_CHANCE = 0.12;
+const STORAGE_KEY = "tallessa.prototype.v1";
 
-const suits = [
-  { id: "hearts", symbol: "♥", name: "hertta", color: "red" },
-  { id: "diamonds", symbol: "♦", name: "ruutu", color: "red" },
-  { id: "clubs", symbol: "♣", name: "risti", color: "black" },
-  { id: "spades", symbol: "♠", name: "pata", color: "black" },
+const monthNames = [
+  "tammikuu",
+  "helmikuu",
+  "maaliskuu",
+  "huhtikuu",
+  "toukokuu",
+  "kesäkuu",
+  "heinäkuu",
+  "elokuu",
+  "syyskuu",
+  "lokakuu",
+  "marraskuu",
+  "joulukuu",
 ];
 
-const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const valueRank = Object.fromEntries(values.map((value, index) => [value, index + 1]));
-
-const waterBreaks = [
-  "Vesitauko. Kaikki ottavat hörpyn vettä.",
-  "Pieni hengähdys. Täytä lasi vedellä ennen seuraavaa kierrosta.",
-  "Taukokortti. Kysy vieruskaverilta, tarvitseeko hän vettä.",
-  "Vesikierros. Hyvä hetki venytellä ja pitää pieni paussi.",
-];
-
-const kingsCupRules = {
-  A: "Waterfall / Vesiputous: Kaikki aloittavat, eikä kukaan saa lopettaa ennen oikealla olevaa.",
-  2: "You: Valitse joku ottamaan rangaistus.",
-  3: "Me: Sinä otat rangaistuksen.",
-  4: "Floor: Viimeinen, joka koskee lattiaa, häviää.",
-  5: "Guys: Kaikki pojat ottavat rangaistuksen.",
-  6: "Chicks: Kaikki tytöt ottavat rangaistuksen.",
-  7: "Heaven: Viimeinen, joka nostaa käden ylös, häviää.",
-  8: "Mate: Valitse juomapari.",
-  9: "Rhyme: Sano sana, muut keksivät riimejä.",
-  10: "Categories: Valitse kategoria, muut jatkavat.",
-  J: "Rule: Keksi uusi sääntö.",
-  Q: "Question Master: Saat kysellä, ja jos joku vastaa, hän häviää.",
-  K: "King’s Cup: Lisää sääntö / kuningaskortti. Neljäs kuningas lopettaa kierroksen.",
+const defaultState = {
+  horseName: "Pepe",
+  petType: "horse",
+  petTypeCustom: "",
+  memorialName: "Pepen päivä",
+  memorialDate: "2026-05-19",
+  heroImage: "",
+  heroImagePosition: { x: 50, y: 50, zoom: 1 },
+  memorialNote: "",
+  memorialText: "",
+  memorialImage: "",
+  memorialImagePosition: { x: 50, y: 50, zoom: 1 },
+  candleLit: false,
+  memories: [
+    {
+      id: crypto.randomUUID(),
+      type: "image",
+      media:
+        "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=900&q=80",
+      text: "Aamu, jolloin laitumen valo tuntui pysähtyvän hetkeksi.",
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  letters: [
+    {
+      id: crypto.randomUUID(),
+      title: "Rakas Pepe",
+      body: "Kirjoitan tämän, jotta muistan hengittää hitaammin. Sinä olet yhä mukana pienissä paikoissa: tallin hiljaisuudessa, käsissäni ja niissä päivissä, joihin palaan lempeästi.",
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  importantDays: [],
+  monthPhotos: {},
+  monthPhotoPositions: {},
 };
 
-const diceRules = {
-  1: "Ota itse yksi rangaistus.",
-  2: "Valitse joku ottamaan yksi rangaistus.",
-  3: "Kaikki ottavat yhden.",
-  4: "Vasemmalla oleva ottaa.",
-  5: "Oikealla oleva ottaa.",
-  6: "Keksi sääntö seuraavalle kierrokselle.",
-};
+let state = loadState();
+let visibleMonth = new Date();
+let imageDrag = null;
+let suppressImageToggle = false;
 
-const diceExtras = [
-  "Kerro nopea tarina tai ota rangaistus.",
-  "Valitse pelaaja, joka saa immuniteetin seuraavalle kierrokselle.",
-  "Kaikki äänestävät, kuka heittää seuraavaksi.",
-  "Jos noppa osuu samaan numeroon uudestaan, kaikki ottavat.",
-  "Valitse joku tekemään 5 sekunnin haaste.",
-];
-
-const games = [
-  {
-    id: "never-have-i-ever",
-    title: "En ole koskaan",
-    description: "Lue väite ääneen. Ne, jotka ovat tehneet sen, ottavat rangaistuksen.",
-    rules:
-      "Yksi pelaaja lukee väitteen ääneen. Kaikki, jotka ovat tehneet asian, ottavat sovitun rangaistuksen. Pitäkää tahti rentona ja skipatkaa mikä tahansa kortti, joka ei tunnu hyvältä.",
-    type: "prompt",
-    promptLabel: "Väite",
-    variants: [
-      {
-        id: "leppo",
-        title: "Leppo",
-        badge: "Kevyt",
-        description: "Hauska ja kevyesti kiusallinen peruspakka.",
-        prompts: [
-          "En ole koskaan lähettänyt viestiä, jota kadun heti.",
-          "En ole koskaan nauranut tilanteessa, jossa ei olisi saanut.",
-          "En ole koskaan stalkannut jonkun somea liian pitkään.",
-          "En ole koskaan esittänyt tietäväni biisin sanat.",
-          "En ole koskaan myöhästynyt ja syyttänyt liikennettä.",
-          "En ole koskaan unohtanut miksi menin toiseen huoneeseen.",
-          "En ole koskaan tilannut ruokaa vain koska joku muu mainitsi ruoan.",
-          "En ole koskaan vastannut viestiin päässäni mutta en oikeasti.",
-          "En ole koskaan sanonut olevani viiden minuutin päässä, vaikka olin kotona.",
-          "En ole koskaan katsonut sarjaa ilman sitä ihmistä, jonka kanssa piti katsoa yhdessä.",
-          "En ole koskaan laulanut suihkussa täysillä.",
-          "En ole koskaan teeskennellyt puhelua välttääkseni tilanteen.",
-          "En ole koskaan unohtanut jonkun nimeä heti esittelyn jälkeen.",
-          "En ole koskaan mennyt jääkaapille ilman suunnitelmaa.",
-          "En ole koskaan tanssinut peilin edessä yksin.",
-          "En ole koskaan käyttänyt filtteriä ja sanonut kuvan olevan ihan luonnollinen.",
-          "En ole koskaan lukenut vanhoja omia viestejä ja nolostunut.",
-          "En ole koskaan vaihtanut asua monta kertaa ennen lähtöä.",
-          "En ole koskaan esittänyt ymmärtäväni sisäpiirivitsin.",
-          "En ole koskaan puhunut lemmikille kuin ihmiselle.",
-          "En ole koskaan lähettänyt kuvakaappausta väärälle henkilölle.",
-          "En ole koskaan ostanut jotain vain koska se oli alennuksessa.",
-          "En ole koskaan sanonut etten ole väsynyt ja nukahtanut heti.",
-          "En ole koskaan tehnyt soittolistaa tiettyä tunnelmaa varten.",
-          "En ole koskaan vältellyt puheluun vastaamista.",
-          "En ole koskaan hakenut googlesta miten jokin hyvin tavallinen sana kirjoitetaan.",
-          "En ole koskaan katunut hiustenleikkausta saman päivän aikana.",
-          "En ole koskaan syönyt jälkiruokaa ennen oikeaa ruokaa.",
-          "En ole koskaan väittänyt muistavani jonkun, vaikka en muistanut.",
-          "En ole koskaan puhunut liian kovaa kuulokkeet päässä.",
-          "En ole koskaan jäänyt katsomaan yhtä videota ja huomannut tunnin kadonneen.",
-          "En ole koskaan lähettänyt ääniviestiä ja kuunnellut sitä heti nolona.",
-        ],
-      },
-      {
-        id: "tuhma",
-        title: "Tuhma",
-        badge: "K-18",
-        description: "Rohkeampi pakka aikuiselle porukalle.",
-        prompts: [
-          "En ole koskaan lähettänyt flirttailevaa viestiä ja esittänyt sen olleen vitsi.",
-          "En ole koskaan poistanut viestiä, koska se oli liian rohkea.",
-          "En ole koskaan ihastunut kaverin kaveriin yhden illan aikana.",
-          "En ole koskaan käyttänyt deittisovellusta vain saadakseni huomiota.",
-          "En ole koskaan suudellut jotakuta hetken mielijohteesta.",
-          "En ole koskaan lähtenyt jatkoille vain koska siellä oli kiinnostava tyyppi.",
-          "En ole koskaan lähettänyt viestiä exälle liian myöhään illalla.",
-          "En ole koskaan saanut punaista naamaa kohteliaisuudesta.",
-          "En ole koskaan flirtannut saadakseni ilmaisen juoman.",
-          "En ole koskaan vaihtanut katseita jonkun kanssa liian pitkään.",
-          "En ole koskaan katunut rohkeaa somejulkaisua aamulla.",
-          "En ole koskaan teeskennellyt, etten huomannut jonkun flirttiä.",
-          "En ole koskaan kysynyt kaverilta apua flirttiviestin muotoiluun.",
-          "En ole koskaan suudellut samaa ihmistä uudestaan, vaikka sanoin etten aio.",
-          "En ole koskaan pitänyt salaisesta ihastuksesta pidempään kuin myönnän.",
-          "En ole koskaan käyttänyt bileitä tekosyynä päästäkseni jonkun viereen.",
-          "En ole koskaan kertonut liian henkilökohtaista tarinaa liian nopeasti.",
-          "En ole koskaan antanut puhelintani kaverille, jotta en lähettäisi viestiä.",
-          "En ole koskaan stalkannut ihastuksen vanhoja kuvia nolon pitkälle.",
-          "En ole koskaan ollut treffeillä, joista en kertonut kenellekään.",
-          "En ole koskaan sanonut olevani rento, vaikka olin aivan hermona ihastuksen takia.",
-          "En ole koskaan vaihtanut asua siksi, että tiesin tietyn ihmisen tulevan paikalle.",
-          "En ole koskaan pyytänyt kaveria selvittämään, onko joku sinkku.",
-          "En ole koskaan lähetellyt vihjailevia emojeita ja toivonut, että viesti ymmärretään.",
-          "En ole koskaan mennyt tanssilattialle vain päästäkseni lähemmäs jotakuta.",
-          "En ole koskaan tallentanut jonkun viestiä, koska se oli liian hyvä.",
-          "En ole koskaan valehdellut katsoneeni vain yhden kuvan somessa.",
-          "En ole koskaan pitänyt jostakusta, jonka tiesin olevan vähän huono idea.",
-          "En ole koskaan pyytänyt numeroa ja jättänyt sitten viestimättä.",
-          "En ole koskaan suostunut peliin vain koska mukana oli ihastus.",
-          "En ole koskaan sanonut kaverille, että nyt pitää estää minua tekemästä jotain typerää.",
-          "En ole koskaan herännyt ja ajatellut, että eilinen flirtti meni aika pitkälle.",
-        ],
-      },
-    ],
-  },
-  {
-    id: "most-likely",
-    title: "Kuka todennäköisimmin",
-    description: "Lue kysymys ääneen. Kaikki osoittavat pelaajaa, johon väite sopii parhaiten.",
-    rules:
-      "Lukekaa kysymys ääneen. Kaikki osoittavat yhtä pelaajaa tai sanovat nimen yhtä aikaa. Eniten ääniä saanut tekee sovitun rangaistuksen tai kertoo lyhyen selityksen.",
-    type: "prompt",
-    promptLabel: "Kysymys",
-    variants: [
-      {
-        id: "leppo",
-        title: "Leppo",
-        badge: "Kevyt",
-        description: "Hauska ja hyväntuulinen äänestyspakka.",
-        prompts: [
-          "Kuka todennäköisimmin unohtaa mihin laittoi puhelimensa?",
-          "Kuka todennäköisimmin alkaa selittää pitkää tarinaa ilman pointtia?",
-          "Kuka todennäköisimmin tilaa ruokaa vielä yöllä?",
-          "Kuka todennäköisimmin ottaa DJ-roolin väkisin?",
-          "Kuka todennäköisimmin nauraa omalle vitsilleen eniten?",
-          "Kuka todennäköisimmin eksyy matkalla vessaan?",
-          "Kuka todennäköisimmin ehdottaa jatkoja ensimmäisenä?",
-          "Kuka todennäköisimmin tietää kaikkien horoskoopit?",
-          "Kuka todennäköisimmin dokumentoi illan eniten?",
-          "Kuka todennäköisimmin ottaa ryhmäkuvan liian monta kertaa?",
-          "Kuka todennäköisimmin löytää uuden parhaan ystävän jonosta?",
-          "Kuka todennäköisimmin unohtaa mitä oli sanomassa?",
-          "Kuka todennäköisimmin puhuu käsillään eniten?",
-          "Kuka todennäköisimmin haluaa pelata vielä yhden kierroksen?",
-          "Kuka todennäköisimmin tilaa saman annoksen kuin joku muu?",
-          "Kuka todennäköisimmin aloittaa yhteislaulun?",
-          "Kuka todennäköisimmin ottaa parhaat kuvat?",
-          "Kuka todennäköisimmin myöhästyy mutta tuo hyvän fiiliksen?",
-          "Kuka todennäköisimmin antaa kaikille lempinimet?",
-          "Kuka todennäköisimmin muistaa illan oudoimman yksityiskohdan?",
-          "Kuka todennäköisimmin vaihtaa mielipidettä viime hetkellä?",
-          "Kuka todennäköisimmin tekee dramaattisen sisääntulon?",
-          "Kuka todennäköisimmin kysyy saako soittaa yhden biisin?",
-          "Kuka todennäköisimmin tekee parhaat eväät jatkoille?",
-          "Kuka todennäköisimmin selittää meemin väärin mutta itsevarmasti?",
-          "Kuka todennäköisimmin tarvitsee kolme muistutusta lähtöajasta?",
-          "Kuka todennäköisimmin unohtaa juomansa jonnekin?",
-          "Kuka todennäköisimmin tekee spontaanin suunnitelman huomiselle?",
-          "Kuka todennäköisimmin löytää tanssilattian ensimmäisenä?",
-          "Kuka todennäköisimmin lähettää aamulla kiitosviestin?",
-          "Kuka todennäköisimmin sanoo olevansa rauhallinen ja innostuu eniten?",
-          "Kuka todennäköisimmin muistaa kaikkien tilaukset ulkoa?",
-        ],
-      },
-      {
-        id: "tuhma",
-        title: "Tuhma",
-        badge: "K-18",
-        description: "Rohkeampi äänestyspakka aikuiselle porukalle.",
-        prompts: [
-          "Kuka todennäköisimmin lähettää viestin ihastukselle vielä tänä iltana?",
-          "Kuka todennäköisimmin flirttailee vahingossa kaikille?",
-          "Kuka todennäköisimmin punastuu ensimmäisenä rohkeasta kysymyksestä?",
-          "Kuka todennäköisimmin myöntää ihastuksen vasta kolmannen kysymyksen jälkeen?",
-          "Kuka todennäköisimmin päätyy suutelemaan jotakuta illan aikana?",
-          "Kuka todennäköisimmin tarvitsee kaverin estämään exälle viestimisen?",
-          "Kuka todennäköisimmin tanssii tarkoituksella liian lähellä ihastusta?",
-          "Kuka todennäköisimmin kertoo salaisen deittitarinan vahingossa?",
-          "Kuka todennäköisimmin saa eniten match-ilmoituksia illan aikana?",
-          "Kuka todennäköisimmin pyytää jonkun numeroa rohkeasti?",
-          "Kuka todennäköisimmin esittää viatonta, vaikka flirttailee selvästi?",
-          "Kuka todennäköisimmin lähettää vihjailevimman emojin?",
-          "Kuka todennäköisimmin päätyy pitkään katsekontaktiin jonkun kanssa?",
-          "Kuka todennäköisimmin kertoo parhaan suutelutarinan?",
-          "Kuka todennäköisimmin jää kiinni ihastuksen someprofiilin katsomisesta?",
-          "Kuka todennäköisimmin tekee ensimmäisen liikkeen?",
-          "Kuka todennäköisimmin on porukan salainen romantikko?",
-          "Kuka todennäköisimmin saa oudoimman iskurepliikin toimimaan?",
-          "Kuka todennäköisimmin vaihtaa suunnitelmaa kiinnostavan ihmisen takia?",
-          "Kuka todennäköisimmin muistaa kaikkien deittidraamat?",
-          "Kuka todennäköisimmin lähtee jatkoille flirttailun takia?",
-          "Kuka todennäköisimmin on rohkein tanssilattialla?",
-          "Kuka todennäköisimmin väittää ettei ole mustasukkainen, vaikka vähän on?",
-          "Kuka todennäköisimmin saa viestin, joka saa koko pöydän kiljumaan?",
-          "Kuka todennäköisimmin käyttää kaveria siipihenkilönä?",
-          "Kuka todennäköisimmin sanoo jotain liian suoraa ja katuu heti?",
-          "Kuka todennäköisimmin hymyilee puhelimelleen epäilyttävän paljon?",
-          "Kuka todennäköisimmin tekee deittisuunnitelman viidessä minuutissa?",
-          "Kuka todennäköisimmin ihastuu vain ääneen tai nauruun?",
-          "Kuka todennäköisimmin lähettää aamulla viestin 'olipa hauska ilta'?",
-          "Kuka todennäköisimmin saa muut huutamaan 'nyt menet juttelemaan'?",
-          "Kuka todennäköisimmin yrittää selittää, että flirtti oli vain kohteliaisuutta?",
-        ],
-      },
-    ],
-  },
-  {
-    id: "kings-cup",
-    title: "Ring of Fire / Kings Cup",
-    description: "Nosta kortti ja tee siihen kuuluva sääntö.",
-    rules:
-      "Puhelin toimii korttipakkana. Nosta kortti, lue sääntö ääneen ja tehkää kortin mukainen tehtävä. Sama kortti ei tule uudestaan ennen kuin pakka on käyty loppuun.",
-    type: "kingsCup",
-  },
-  {
-    id: "ride-the-bus",
-    title: "Bussi / Ride the Bus",
-    description: "Arvaa neljä korttivaihetta putkeen ja selviä bussista.",
-    rules:
-      "Arvaa ensin punainen vai musta, sitten korkeampi vai matalampi, sen jälkeen välissä vai ulkona ja lopuksi maa. Oikea vastaus vie eteenpäin, väärä aloittaa kierroksen alusta.",
-    type: "rideBus",
-  },
-  {
-    id: "pyramid",
-    title: "Pyramidipeli",
-    description: "Jaa pelaajille kortit ja paljasta pyramidi kortti kerrallaan.",
-    rules:
-      "Jokaiselle pelaajalle jaetaan neljä korttia. Pyramidi paljastetaan yksi kortti kerrallaan. Jos pelaajalla on sama arvo, hän osui ja jakaa tai ottaa rivin mukaisen rangaistuksen.",
-    type: "pyramid",
-    requiresPlayers: true,
-  },
-  {
-    id: "dice",
-    title: "Noppajuomapeli",
-    description: "Heitä noppaa ja tee numeron mukainen tehtävä.",
-    rules:
-      "Heitä noppaa. Numero 1-6 kertoo perustehtävän, ja sovellus voi lisätä satunnaisen lisähaasteen tai kohdepelaajan.",
-    type: "dice",
-  },
-];
-
-const state = {
-  players: readPlayers(),
-  waterBreaksEnabled: readWaterBreakPreference(),
-  activeGameId: null,
-  activeVariantId: null,
-  decks: buildPromptDecks(),
-  round: buildPromptRounds(),
-  sessions: {},
-};
-
-const screens = {
-  start: document.querySelector('[data-screen="start"]'),
-  menu: document.querySelector('[data-screen="menu"]'),
-  setup: document.querySelector('[data-screen="setup"]'),
-  play: document.querySelector('[data-screen="play"]'),
-};
+const screens = [...document.querySelectorAll("[data-screen]")];
+const navButtons = [...document.querySelectorAll("[data-nav]")];
 
 const elements = {
-  gameList: document.querySelector("[data-game-list]"),
-  playerForm: document.querySelector("[data-player-form]"),
-  playerInput: document.querySelector("#player-name"),
-  playerList: document.querySelector("[data-player-list]"),
-  waterBreakToggle: document.querySelector("[data-water-break-toggle]"),
-  waterBreakLabel: document.querySelector("[data-water-break-label]"),
-  beginGameButton: document.querySelector('[data-action="begin-game"]'),
-  setupTitle: document.querySelector("[data-setup-title]"),
-  setupBadge: document.querySelector("[data-setup-badge]"),
-  setupHeading: document.querySelector("[data-setup-heading]"),
-  setupDescription: document.querySelector("[data-setup-description]"),
-  gameTitle: document.querySelector("[data-game-title]"),
-  roundLabel: document.querySelector("[data-round-label]"),
-  promptCard: document.querySelector("[data-prompt-card]"),
-  promptKicker: document.querySelector("[data-prompt-kicker]"),
-  promptText: document.querySelector("[data-prompt-text]"),
-  targetPlayer: document.querySelector("[data-target-player]"),
-  primaryPlayAction: document.querySelector('[data-action="next-card"]'),
-  rulesModal: document.querySelector("[data-rules-modal]"),
-  rulesTitle: document.querySelector("[data-rules-title]"),
-  rulesText: document.querySelector("[data-rules-text]"),
+  heroImage: document.querySelector("[data-hero-image]"),
+  heroPhoto: document.querySelector("[data-hero-photo]"),
+  memoryOfDay: document.querySelector("[data-memory-of-day]"),
+  memoryForm: document.querySelector("[data-memory-form]"),
+  memoryMedia: document.querySelector("[data-memory-media]"),
+  memoryMessage: document.querySelector("[data-memory-message]"),
+  memoryList: document.querySelector("[data-memory-list]"),
+  letterForm: document.querySelector("[data-letter-form]"),
+  letterList: document.querySelector("[data-letter-list]"),
+  monthCover: document.querySelector("[data-month-cover]"),
+  currentMonth: document.querySelector("[data-current-month]"),
+  calendarGrid: document.querySelector("[data-calendar-grid]"),
+  monthPhoto: document.querySelector("[data-month-photo]"),
+  dayForm: document.querySelector("[data-day-form]"),
+  dayList: document.querySelector("[data-day-list]"),
+  memorialButton: document.querySelector("[data-memorial-button]"),
+  memorialTitle: document.querySelector("[data-memorial-title]"),
+  memorialDate: document.querySelector("[data-memorial-date]"),
+  memorialHeading: document.querySelector("[data-memorial-heading]"),
+  memorialText: document.querySelector("[data-memorial-text]"),
+  memorialImage: document.querySelector("[data-memorial-image]"),
+  memorialPhoto: document.querySelector("[data-memorial-photo]"),
+  candleState: document.querySelector("[data-candle-state]"),
+  settingsForm: document.querySelector("[data-settings-form]"),
+  petType: document.querySelector("[data-pet-type]"),
 };
 
 document.addEventListener("click", handleClick);
-elements.playerForm.addEventListener("submit", addPlayer);
-elements.waterBreakToggle.addEventListener("change", updateWaterBreakPreference);
+elements.memoryList.addEventListener("change", updateMemoryImage);
+elements.heroPhoto.addEventListener("change", updateHeroPhoto);
+elements.memoryMedia.addEventListener("change", updateMemoryFileMessage);
+elements.memoryForm.addEventListener("submit", addMemory);
+elements.letterForm.addEventListener("submit", addLetter);
+elements.dayForm.addEventListener("submit", addImportantDay);
+elements.monthPhoto.addEventListener("change", updateMonthPhoto);
+elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
+elements.settingsForm.addEventListener("submit", saveSettings);
+elements.petType.addEventListener("change", previewPetMemorialText);
+document.addEventListener("pointerdown", startImageCompose);
+document.addEventListener("pointermove", moveImageCompose);
+document.addEventListener("pointerup", stopImageCompose);
+document.addEventListener("pointercancel", stopImageCompose);
+document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
 
-renderPlayers();
-renderWaterBreakPreference();
-renderGames();
+renderAll();
 
 function handleClick(event) {
-  const choice = event.target.closest("[data-bus-choice]")?.dataset.busChoice;
-  if (choice) {
-    handleBusChoice(choice);
+  if (event.target.closest("[data-image-change]")) return;
+
+  const imagePicker = event.target.closest("[data-image-picker]");
+  const imageSurface = event.target.closest(".hero-image, .month-cover, .memorial-image, .media-preview");
+  const isHeroTap = imagePicker?.classList.contains("hero");
+  if (imagePicker && (imageSurface || isHeroTap)) {
+    if (suppressImageToggle) {
+      suppressImageToggle = false;
+      return;
+    }
+    const isOpen = toggleImagePicker(imagePicker);
+    const memoryCard = imagePicker.closest('[data-deletable-item="memory"]');
+    if (memoryCard) {
+      if (isOpen) showDeleteAction(memoryCard);
+      else hideDeleteAction(memoryCard);
+    }
     return;
   }
 
-  const action = event.target.closest("[data-action]")?.dataset.action;
-  if (!action) return;
+  const deleteButton = event.target.closest("[data-delete-item]");
+  if (deleteButton) {
+    handleDeleteAction(deleteButton);
+    return;
+  }
 
-  if (action === "start") showScreen("menu");
-  if (action === "back-menu") showScreen("menu");
-  if (action === "reset-players") resetPlayers();
-  if (action === "begin-game") beginGame();
-  if (action === "next-card") handlePrimaryPlayAction();
-  if (action === "show-rules") showRules();
-  if (action === "close-rules") closeRules();
+  const deletableItem = event.target.closest("[data-deletable-item]");
+  if (deletableItem) {
+    toggleDeleteAction(deletableItem);
+    return;
+  }
+
+  const cardTarget = event.target.closest("[data-open-card]")?.dataset.openCard;
+  if (cardTarget) {
+    openCard(cardTarget);
+    return;
+  }
+
+  const closeTarget = event.target.closest("[data-close-card]")?.dataset.closeCard;
+  if (closeTarget) {
+    closeCard(closeTarget);
+    return;
+  }
+
+  const navTarget = event.target.closest("[data-nav]")?.dataset.nav;
+  if (navTarget) {
+    showScreen(navTarget);
+    return;
+  }
+
+  const monthDirection = event.target.closest("[data-month]")?.dataset.month;
+  if (monthDirection) {
+    visibleMonth = new Date(
+      visibleMonth.getFullYear(),
+      visibleMonth.getMonth() + (monthDirection === "next" ? 1 : -1),
+      1,
+    );
+    renderCalendar();
+    return;
+  }
+
+  if (event.target.closest("[data-light-candle]")) {
+    state.candleLit = true;
+    saveState();
+    renderMemorial();
+  }
 }
 
-function renderGames() {
-  elements.gameList.innerHTML = games
-    .map((game) => {
-      const actions = game.variants
-        ? game.variants
-            .map(
-              (variant) => `
-                <button class="mode-button" type="button" data-game-id="${game.id}" data-variant-id="${variant.id}">
-                  <span>${variant.title}</span>
-                  <small>${variant.badge} · ${variant.prompts.length} korttia</small>
-                </button>
-              `,
-            )
-            .join("")
-        : `
-            <button class="mode-button wide" type="button" data-game-id="${game.id}" data-variant-id="default">
-              <span>Pelaa</span>
-              <small>${getGameMeta(game)}</small>
-            </button>
-          `;
+function toggleImagePicker(picker) {
+  const control = picker.querySelector("[data-image-change]");
+  const hint = picker.querySelector("[data-image-hint]");
+  if (!control) return false;
 
+  control.hidden = !control.hidden;
+  if (hint) hint.hidden = control.hidden;
+  picker.classList.toggle("is-composing", !control.hidden);
+  return !control.hidden;
+}
+
+function hideImagePickers() {
+  document.querySelectorAll("[data-image-change]").forEach((control) => {
+    control.hidden = true;
+  });
+  document.querySelectorAll("[data-image-hint]").forEach((hint) => {
+    hint.hidden = true;
+  });
+  document.querySelectorAll("[data-image-picker]").forEach((picker) => {
+    picker.classList.remove("is-composing", "is-dragging");
+  });
+}
+
+function openCard(name) {
+  const button = document.querySelector(`[data-open-card="${name}"]`);
+  const panel = document.querySelector(`[data-card-panel="${name}"]`);
+  if (!button || !panel) return;
+
+  button.classList.add("is-hidden");
+  panel.classList.remove("is-collapsed");
+  panel.querySelector("input, textarea, select")?.focus();
+}
+
+function closeCard(name) {
+  const button = document.querySelector(`[data-open-card="${name}"]`);
+  const panel = document.querySelector(`[data-card-panel="${name}"]`);
+  if (!button || !panel) return;
+
+  panel.classList.add("is-collapsed");
+  button.classList.remove("is-hidden");
+}
+
+function toggleDeleteAction(card) {
+  const button = card.querySelector("[data-delete-item]");
+  if (!button) return;
+
+  const nextHidden = !button.hidden;
+  hideDeleteActions();
+  button.hidden = nextHidden;
+}
+
+function showDeleteAction(card) {
+  const button = card.querySelector("[data-delete-item]");
+  if (!button) return;
+
+  hideDeleteActions();
+  button.hidden = false;
+}
+
+function hideDeleteAction(card) {
+  const button = card.querySelector("[data-delete-item]");
+  if (!button) return;
+
+  button.hidden = true;
+  button.dataset.confirming = "false";
+  button.classList.remove("is-confirming");
+  button.textContent = "Poista";
+}
+
+function hideDeleteActions() {
+  document.querySelectorAll("[data-delete-item]").forEach((button) => {
+    button.hidden = true;
+    button.dataset.confirming = "false";
+    button.classList.remove("is-confirming");
+    button.textContent = "Poista";
+  });
+}
+
+function handleDeleteAction(button) {
+  const type = button.dataset.deleteItem;
+  const id = button.dataset.itemId;
+
+  if (button.dataset.confirming !== "true") {
+    button.dataset.confirming = "true";
+    button.classList.add("is-confirming");
+    button.textContent = "Vahvista poisto";
+    return;
+  }
+
+  if (type === "memory") state.memories = state.memories.filter((memory) => memory.id !== id);
+  if (type === "letter") state.letters = state.letters.filter((letter) => letter.id !== id);
+  saveState();
+  renderHome();
+  renderMemories();
+  renderLetters();
+}
+
+function startImageCompose(event) {
+  const surface = event.target.closest(".hero-image, .month-cover, .memorial-image, .media-preview");
+  const picker = event.target.closest("[data-image-picker]");
+  if (!surface || !picker || picker.querySelector("[data-image-change]")?.hidden) return;
+
+  if (imageDrag?.surface === surface) {
+    imageDrag.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    imageDrag.pinchStartDistance = null;
+    imageDrag.pinchStartZoom = getImagePosition(imageDrag.key).zoom;
+    surface.setPointerCapture?.(event.pointerId);
+    return;
+  }
+
+  const key = getImagePositionKey(surface);
+  const position = getImagePosition(key);
+  const rect = surface.getBoundingClientRect();
+  imageDrag = {
+    key,
+    surface,
+    picker,
+    startX: event.clientX,
+    startY: event.clientY,
+    startPosition: { ...position },
+    moved: false,
+    width: rect.width,
+    height: rect.height,
+    pointers: new Map([[event.pointerId, { x: event.clientX, y: event.clientY }]]),
+    pinchStartDistance: null,
+    pinchStartZoom: position.zoom,
+  };
+  picker.classList.add("is-dragging");
+  surface.setPointerCapture?.(event.pointerId);
+}
+
+function moveImageCompose(event) {
+  if (!imageDrag) return;
+
+  if (imageDrag.pointers.has(event.pointerId)) {
+    imageDrag.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  }
+
+  if (imageDrag.pointers.size >= 2) {
+    const points = [...imageDrag.pointers.values()];
+    const distance = getPointerDistance(points[0], points[1]);
+    if (!imageDrag.pinchStartDistance) {
+      imageDrag.pinchStartDistance = distance;
+      imageDrag.pinchStartZoom = getImagePosition(imageDrag.key).zoom;
+      return;
+    }
+
+    const nextPosition = {
+      ...getImagePosition(imageDrag.key),
+      zoom: clamp(imageDrag.pinchStartZoom * (distance / imageDrag.pinchStartDistance), 1, 2.6),
+    };
+    imageDrag.moved = true;
+    setImagePosition(imageDrag.key, nextPosition);
+    applyImagePosition(imageDrag.surface, nextPosition);
+    return;
+  }
+
+  const deltaX = event.clientX - imageDrag.startX;
+  const deltaY = event.clientY - imageDrag.startY;
+  if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) imageDrag.moved = true;
+
+  const nextPosition = {
+    x: clamp(imageDrag.startPosition.x + (deltaX / imageDrag.width) * 100, 0, 100),
+    y: clamp(imageDrag.startPosition.y + (deltaY / imageDrag.height) * 100, 0, 100),
+    zoom: imageDrag.startPosition.zoom,
+  };
+  setImagePosition(imageDrag.key, nextPosition);
+  applyImagePosition(imageDrag.surface, nextPosition);
+}
+
+function stopImageCompose(event) {
+  if (!imageDrag) return;
+
+  if (event?.pointerId && imageDrag.pointers.has(event.pointerId)) {
+    imageDrag.pointers.delete(event.pointerId);
+    if (imageDrag.pointers.size > 0) return;
+  }
+
+  if (imageDrag.moved) {
+    saveState();
+    suppressImageToggle = true;
+    window.setTimeout(() => {
+      suppressImageToggle = false;
+    }, 120);
+  }
+  imageDrag.picker.classList.remove("is-dragging");
+  imageDrag = null;
+}
+
+function zoomImageWithWheel(event) {
+  const surface = event.target.closest?.(".hero-image, .month-cover, .memorial-image, .media-preview");
+  const picker = event.target.closest?.("[data-image-picker]");
+  if (!surface || !picker || picker.querySelector("[data-image-change]")?.hidden) return;
+
+  event.preventDefault();
+  const key = getImagePositionKey(surface);
+  const position = getImagePosition(key);
+  const nextPosition = {
+    ...position,
+    zoom: clamp(position.zoom + (event.deltaY < 0 ? 0.08 : -0.08), 1, 2.6),
+  };
+  setImagePosition(key, nextPosition);
+  applyImagePosition(surface, nextPosition);
+  saveState();
+}
+
+function showScreen(name) {
+  screens.forEach((screen) => {
+    screen.classList.toggle("is-active", screen.dataset.screen === name);
+  });
+
+  navButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.nav === name);
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  hideImagePickers();
+}
+
+async function addMemory(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const file = form.get("media");
+  const text = String(form.get("text") || "").trim();
+
+  if (!text && !(file instanceof File && file.size)) return;
+
+  setMemoryMessage("Tallennetaan muistoa...");
+  let media = "";
+  try {
+    media = file instanceof File && file.size ? await prepareMediaFile(file) : "";
+  } catch {
+    setMemoryMessage("Tiedostoa ei voitu lukea. Kokeile toista kuvaa tai pienempää tiedostoa.", true);
+    return;
+  }
+  const type = file instanceof File && file.type.startsWith("video") ? "video" : "image";
+
+  state.memories.unshift({
+    id: crypto.randomUUID(),
+    type,
+    media,
+    imagePosition: { x: 50, y: 50, zoom: 1 },
+    text: text || "Muisto ilman sanoja.",
+    createdAt: new Date().toISOString(),
+  });
+
+  if (!saveState()) {
+    state.memories.shift();
+    setMemoryMessage(
+      "Kuva tai video on liian suuri paikalliseen tallennukseen. Kokeile pienempää kuvaa.",
+      true,
+    );
+    return;
+  }
+
+  event.currentTarget.reset();
+  setMemoryMessage("");
+  closeCard("memory");
+  renderHome();
+  renderMemories();
+}
+
+function updateMemoryFileMessage(event) {
+  const file = event.target.files?.[0];
+  if (!file) {
+    setMemoryMessage("");
+    return;
+  }
+
+  const size = `${(file.size / 1024 / 1024).toFixed(1)} Mt`;
+  const note = file.type.startsWith("image/")
+    ? "Kuva pakataan sopivaksi ennen tallennusta."
+    : "Video tallennetaan vain, jos se mahtuu selaimen paikalliseen muistiin.";
+  setMemoryMessage(`${file.name} (${size}). ${note}`);
+}
+
+function setMemoryMessage(text, isError = false) {
+  elements.memoryMessage.textContent = text;
+  elements.memoryMessage.classList.toggle("is-error", isError);
+}
+
+function addLetter(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const title = String(form.get("title") || "").trim();
+  const body = String(form.get("body") || "").trim();
+
+  if (!title && !body) return;
+
+  state.letters.unshift({
+    id: crypto.randomUUID(),
+    title: title || `Kirje ${toAllative(state.horseName)}`,
+    body,
+    createdAt: new Date().toISOString(),
+  });
+
+  saveState();
+  event.currentTarget.reset();
+  closeCard("letter");
+  renderLetters();
+}
+
+function addImportantDay(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const name = String(form.get("name") || "").trim();
+  const date = String(form.get("date") || "");
+  const note = String(form.get("note") || "").trim();
+  const symbol = String(form.get("symbol") || "♡");
+
+  if (!name || !date) return;
+
+  state.importantDays.push({
+    id: crypto.randomUUID(),
+    name,
+    date,
+    note,
+    symbol,
+  });
+
+  saveState();
+  event.currentTarget.reset();
+  closeCard("day");
+  renderCalendar();
+}
+
+async function updateMonthPhoto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  state.monthPhotos[getMonthKey(visibleMonth)] = await prepareImageFile(file);
+  state.monthPhotoPositions[getMonthKey(visibleMonth)] = { x: 50, y: 50 };
+  saveState();
+  event.target.value = "";
+  hideImagePickers();
+  renderCalendar();
+}
+
+async function updateHeroPhoto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  state.heroImage = await prepareImageFile(file);
+  state.heroImagePosition = { x: 50, y: 50 };
+  saveState();
+  event.target.value = "";
+  hideImagePickers();
+  renderHome();
+}
+
+async function updateMemorialPhoto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  state.memorialImage = await prepareImageFile(file);
+  state.memorialImagePosition = { x: 50, y: 50 };
+  saveState();
+  event.target.value = "";
+  hideImagePickers();
+  renderMemorial();
+}
+
+async function updateMemoryImage(event) {
+  const input = event.target.closest("[data-memory-photo]");
+  if (!input) return;
+
+  const memory = findMemory(input.dataset.memoryPhoto);
+  const file = input.files?.[0];
+  if (!memory || !file) return;
+
+  memory.media = await prepareImageFile(file);
+  memory.type = "image";
+  memory.imagePosition = { x: 50, y: 50, zoom: 1 };
+  saveState();
+  input.value = "";
+  hideImagePickers();
+  renderHome();
+  renderMemories();
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const image = form.get("memorialImage");
+
+  state.horseName = String(form.get("horseName") || state.horseName).trim() || state.horseName;
+  state.petType = String(form.get("petType") || state.petType);
+  state.petTypeCustom = String(form.get("petTypeCustom") || "").trim();
+  state.memorialName =
+    String(form.get("memorialName") || state.memorialName).trim() || state.memorialName;
+  state.memorialDate = String(form.get("memorialDate") || state.memorialDate);
+  state.memorialNote = String(form.get("memorialNote") || "").trim();
+  state.memorialText = buildMemorialText(state);
+
+  if (image instanceof File && image.size) {
+    state.memorialImage = await prepareImageFile(image);
+    state.memorialImagePosition = { x: 50, y: 50 };
+  }
+
+  saveState();
+  renderAll();
+  showScreen("memorial");
+}
+
+function renderAll() {
+  renderHome();
+  renderMemories();
+  renderLetters();
+  renderCalendar();
+  renderMemorial();
+  renderSettings();
+}
+
+function renderHome() {
+  const memory = state.memories[0];
+  elements.heroImage.style.backgroundImage = state.heroImage
+    ? `linear-gradient(180deg, rgba(37,42,31,0.12), rgba(37,42,31,0.7)), url('${state.heroImage}')`
+    : "";
+  applyImagePosition(elements.heroImage, state.heroImagePosition);
+  elements.memoryOfDay.innerHTML = `
+    <p class="eyebrow">Päivän muisto</p>
+    <h3>${escapeHtml(state.horseName)} on tässä mukana</h3>
+    <p>${escapeHtml(memory?.text || "Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.")}</p>
+  `;
+  elements.memorialButton.textContent = state.memorialName;
+}
+
+function renderMemories() {
+  if (!state.memories.length) {
+    elements.memoryList.innerHTML = `<p class="empty-state">Muistoseinä odottaa ensimmäistä kuvaa, videota tai lausetta.</p>`;
+    return;
+  }
+
+  elements.memoryList.innerHTML = state.memories.map(renderMemoryCard).join("");
+  applyMemoryImagePositions();
+}
+
+function renderMemoryCard(memory) {
+  const media = memory.media
+    ? memory.type === "video"
+      ? `<video src="${memory.media}" controls playsinline></video>`
+      : `
+          <div class="memory-media-frame" data-image-picker>
+            <div class="media-preview" data-memory-image-id="${memory.id}" style="background-image:url('${memory.media}')"></div>
+            <label class="image-change memory-change" data-image-change hidden>
+              Vaihda kuva
+              <input data-memory-photo="${memory.id}" type="file" accept="image/*" />
+            </label>
+            <span class="image-compose-hint memory-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+          </div>
+        `
+    : `<div class="media-preview" data-memory-image-id="${memory.id}"></div>`;
+
+  return `
+    <article class="memory-card card" data-deletable-item="memory" data-item-id="${memory.id}">
+      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
+      ${media}
+      <div class="memory-body">
+        <p class="date-line">${formatDate(memory.createdAt)}</p>
+        <p>${escapeHtml(memory.text)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function renderLetters() {
+  if (!state.letters.length) {
+    elements.letterList.innerHTML = `<p class="empty-state">Kirjeet ovat yksityinen paikka sanoille, joita ei tarvitse lähettää mihinkään.</p>`;
+    return;
+  }
+
+  elements.letterList.innerHTML = state.letters
+    .map(
+      (letter) => `
+        <article class="letter-card card" data-deletable-item="letter" data-item-id="${letter.id}">
+          <button class="delete-action" type="button" data-delete-item="letter" data-item-id="${letter.id}" hidden>Poista</button>
+          <p class="date-line">${formatDate(letter.createdAt)}</p>
+          <h3>${escapeHtml(letter.title)}</h3>
+          <p>${escapeHtml(letter.body)}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderCalendar() {
+  const year = visibleMonth.getFullYear();
+  const month = visibleMonth.getMonth();
+  const monthKey = getMonthKey(visibleMonth);
+  const customPhoto = state.monthPhotos[monthKey];
+
+  elements.currentMonth.textContent = `${capitalize(monthNames[month])} ${year}`;
+  elements.monthCover.style.backgroundImage = customPhoto
+    ? `linear-gradient(180deg, rgba(47,54,47,0), rgba(47,54,47,0.22)), url('${customPhoto}')`
+    : "";
+  applyImagePosition(elements.monthCover, getMonthPosition(monthKey));
+
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const gridStart = new Date(year, month, 1 - startOffset);
+  const todayKey = toDateKey(new Date());
+
+  const cells = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + index);
+    const dateKey = toDateKey(date);
+    const isCurrentMonth = date.getMonth() === month;
+    const note = getDayNote(date);
+    const isMemorial = isMemorialDate(date);
+    const classes = [
+      "day-cell",
+      !isCurrentMonth ? "is-muted" : "",
+      dateKey === todayKey ? "is-today" : "",
+      note || isMemorial ? "has-note" : "",
+      isMemorial ? "is-memorial" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return `<div class="${classes}" data-symbol="${escapeHtml(isMemorial ? "♡" : note?.symbol || "")}">${date.getDate()}</div>`;
+  });
+
+  elements.calendarGrid.innerHTML = cells.join("");
+  renderDayList();
+}
+
+function renderDayList() {
+  const month = visibleMonth.getMonth();
+  const year = visibleMonth.getFullYear();
+  const days = [
+    {
+      name: state.memorialName,
+      date: state.memorialDate,
+      note: "Toistuu automaattisesti joka vuosi.",
+      symbol: "♡",
+      recurring: true,
+    },
+    ...state.importantDays,
+  ].filter((day) => {
+    const date = parseDate(day.date);
+    return date && date.getMonth() === month && (day.recurring || date.getFullYear() === year);
+  });
+
+  if (!days.length) {
+    elements.dayList.innerHTML = `<p class="empty-state">Tässä kuussa ei ole vielä omia muistopäiviä.</p>`;
+    return;
+  }
+
+  elements.dayList.innerHTML = days
+    .map((day) => {
+      const date = parseDate(day.date);
       return `
-        <article class="game-card">
-          <h3>${game.title}</h3>
-          <p>${game.description}</p>
-          <div class="variant-actions ${game.variants ? "" : "single"}">${actions}</div>
+        <article class="day-card card">
+          <span class="day-symbol">${escapeHtml(day.symbol)}</span>
+          <div>
+            <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
+            <h3>${escapeHtml(day.name)}</h3>
+            <p>${escapeHtml(day.note || "Hiljainen, tärkeä päivä.")}</p>
+          </div>
         </article>
       `;
     })
     .join("");
-
-  elements.gameList.querySelectorAll("[data-game-id][data-variant-id]").forEach((button) => {
-    button.addEventListener("click", () => selectGame(button.dataset.gameId, button.dataset.variantId));
-  });
 }
 
-function renderPlayers() {
-  if (state.players.length === 0) {
-    elements.playerList.innerHTML = '<li class="empty-state">Ei pelaajia lisättynä.</li>';
-    return;
-  }
+function renderMemorial() {
+  const memorialDate = parseDate(state.memorialDate);
+  elements.memorialTitle.textContent = state.memorialName;
+  elements.memorialHeading.textContent = toAllative(state.horseName);
+  elements.memorialDate.textContent = memorialDate
+    ? `${memorialDate.getDate()}. ${monthNames[memorialDate.getMonth()]} - toistuu joka vuosi`
+    : "Muistopäivä";
+  elements.memorialText.textContent = buildMemorialText(state);
+  elements.candleState.classList.toggle("is-lit", state.candleLit);
 
-  elements.playerList.innerHTML = state.players
-    .map(
-      (player) => `
-        <li class="player-pill">
-          <span>${escapeHtml(player)}</span>
-          <button class="remove-player" type="button" aria-label="Poista ${escapeHtml(player)}" data-remove-player="${escapeHtml(player)}">×</button>
-        </li>
-      `,
-    )
-    .join("");
-
-  elements.playerList.querySelectorAll("[data-remove-player]").forEach((button) => {
-    button.addEventListener("click", () => removePlayer(button.dataset.removePlayer));
-  });
-}
-
-function addPlayer(event) {
-  event.preventDefault();
-  const name = elements.playerInput.value.trim();
-
-  if (!name || state.players.some((player) => player.toLowerCase() === name.toLowerCase())) {
-    elements.playerInput.value = "";
-    return;
-  }
-
-  state.players.push(name);
-  savePlayers();
-  renderPlayers();
-  elements.playerInput.value = "";
-  elements.playerInput.focus();
-}
-
-function removePlayer(name) {
-  state.players = state.players.filter((player) => player !== name);
-  savePlayers();
-  renderPlayers();
-}
-
-function resetPlayers() {
-  state.players = [];
-  savePlayers();
-  renderPlayers();
-}
-
-function selectGame(gameId, variantId) {
-  const game = games.find((item) => item.id === gameId);
-  if (game?.requiresPlayers && state.players.length === 0) {
-    state.activeGameId = gameId;
-    state.activeVariantId = variantId;
-    elements.setupTitle.textContent = game.title;
-    elements.setupBadge.textContent = "Tarvitsee pelaajat";
-    elements.setupHeading.textContent = "Lisää pelaajat ennen pyramidipeliä.";
-    elements.setupDescription.textContent =
-      "Pyramidipeli jakaa jokaiselle pelaajalle omat kortit, joten lisää vähintään yksi pelaaja valikossa.";
-    showScreen("setup");
-    elements.waterBreakToggle.closest(".setup-setting").hidden = true;
-    elements.beginGameButton.hidden = true;
-    return;
-  }
-
-  state.activeGameId = gameId;
-  state.activeVariantId = variantId;
-  const variant = getActiveVariant();
-  elements.waterBreakToggle.closest(".setup-setting").hidden = false;
-  elements.setupTitle.textContent = variant ? `${game.title}: ${variant.title}` : game.title;
-  elements.setupBadge.textContent = variant
-    ? `${variant.badge} · ${variant.prompts.length} korttia`
-    : getGameMeta(game);
-  elements.setupHeading.textContent = game.title;
-  elements.setupDescription.textContent = variant?.description || game.description;
-  elements.gameTitle.textContent = elements.setupTitle.textContent;
-  elements.beginGameButton.hidden = false;
-  showScreen("setup");
-}
-
-function beginGame() {
-  const game = getActiveGame();
-  if (!game) return;
-
-  state.sessions[game.id] = createGameSession(game);
-  elements.gameTitle.textContent = getActiveTitle();
-  showScreen("play");
-  renderActiveGame({ firstRender: true });
-}
-
-function handlePrimaryPlayAction() {
-  const game = getActiveGame();
-  if (!game) return;
-
-  if (game.type === "prompt") showPromptCard();
-  if (game.type === "kingsCup") drawKingsCupCard();
-  if (game.type === "pyramid") revealPyramidCard();
-  if (game.type === "dice") rollDice();
-}
-
-function renderActiveGame(options = {}) {
-  const game = getActiveGame();
-  if (!game) return;
-
-  if (game.type === "prompt") {
-    showPromptCard({ forcePrompt: options.firstRender });
-  }
-
-  if (game.type === "kingsCup") {
-    elements.primaryPlayAction.textContent = "Nosta kortti";
-    drawKingsCupCard();
-  }
-
-  if (game.type === "rideBus") {
-    elements.primaryPlayAction.hidden = true;
-    renderBus();
+  if (state.memorialImage) {
+    elements.memorialImage.style.backgroundImage = `linear-gradient(180deg, rgba(47,54,47,0), rgba(47,54,47,0.24)), url('${state.memorialImage}')`;
   } else {
-    elements.primaryPlayAction.hidden = false;
+    elements.memorialImage.style.backgroundImage = "";
   }
+  applyImagePosition(elements.memorialImage, state.memorialImagePosition);
+}
 
-  if (game.type === "pyramid") {
-    elements.primaryPlayAction.textContent = "Paljasta seuraava kortti";
-    renderPyramid();
+function renderSettings() {
+  elements.settingsForm.horseName.value = state.horseName;
+  elements.settingsForm.petType.value = state.petType || "horse";
+  elements.settingsForm.petTypeCustom.value = state.petTypeCustom || "";
+  elements.settingsForm.memorialName.value = state.memorialName;
+  elements.settingsForm.memorialDate.value = state.memorialDate;
+  elements.settingsForm.memorialNote.value = state.memorialNote || "";
+}
+
+function previewPetMemorialText() {
+  const form = elements.settingsForm;
+  const previewState = {
+    ...state,
+    horseName: form.horseName.value.trim() || state.horseName,
+    petType: form.petType.value,
+    petTypeCustom: form.petTypeCustom.value.trim(),
+    memorialNote: form.memorialNote.value.trim(),
+  };
+  state.memorialText = buildMemorialText(previewState);
+  renderMemorial();
+}
+
+function buildMemorialText(source) {
+  const name = source.horseName || "rakas ystävä";
+  const customAnimal = source.petTypeCustom || "eläin";
+  const templates = {
+    horse:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pehmeä turpa, tutut askeleet ja rauha, jonka ${name} toi mukanaan.`,
+    dog:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: iloinen katse, tutut tassut ja uskollinen läsnäolo, jonka ${name} toi jokaiseen päivään.`,
+    cat:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: hiljainen kehräys, pehmeät tassut ja oma erityinen rauha, jonka ${name} toi kotiin.`,
+    rabbit:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pehmeä olemus, pienet hypyt ja lempeä hiljaisuus, jonka ${name} toi mukanaan.`,
+    bird:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: kevyt liike, tuttu ääni ja ilo, jonka ${name} toi huoneeseen.`,
+    guineaPig:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pienet äänet, lämmin läheisyys ja arjen suloinen rauha, jonka ${name} toi kotiin.`,
+    hamster:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pienet tassut, utelias katse ja hellä läsnäolo, jonka ${name} toi mukanaan.`,
+    ferret:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: vilkas olemus, leikkisät hetket ja persoonallinen lämpö, jonka ${name} toi elämään.`,
+    turtle:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: rauhallinen tahti, tuttu olemus ja hiljainen viisaus, jonka ${name} toi mukanaan.`,
+    human:
+      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: yhteiset hetket, tutut sanat ja rakkaus, jonka ${name} jätti elämään.`,
+    other:
+      `Tänään muistetaan lämmöllä: ${name}, rakas ${customAnimal}, ja kaikkea sitä, mikä jäi sydämeen: tutut hetket, oma ainutlaatuinen luonne ja lämpö.`,
+  };
+  const base = templates[source.petType] || templates.other;
+  return source.memorialNote ? `${base} ${source.memorialNote}` : base;
+}
+
+function getImagePositionKey(surface) {
+  if (surface.matches("[data-hero-image]")) return "hero";
+  if (surface.matches("[data-month-cover]")) return `month:${getMonthKey(visibleMonth)}`;
+  if (surface.matches("[data-memorial-image]")) return "memorial";
+  if (surface.matches("[data-memory-image-id]")) return `memory:${surface.dataset.memoryImageId}`;
+  return "hero";
+}
+
+function getImagePosition(key) {
+  if (key === "hero") return normalizePosition(state.heroImagePosition);
+  if (key === "memorial") return normalizePosition(state.memorialImagePosition);
+  if (key.startsWith("month:")) return normalizePosition(state.monthPhotoPositions[key.replace("month:", "")]);
+  if (key.startsWith("memory:")) return normalizePosition(findMemory(key.replace("memory:", ""))?.imagePosition);
+  return { x: 50, y: 50 };
+}
+
+function setImagePosition(key, position) {
+  const normalized = normalizePosition(position);
+  if (key === "hero") state.heroImagePosition = normalized;
+  if (key === "memorial") state.memorialImagePosition = normalized;
+  if (key.startsWith("month:")) {
+    state.monthPhotoPositions[key.replace("month:", "")] = normalized;
   }
-
-  if (game.type === "dice") {
-    elements.primaryPlayAction.textContent = "Heitä noppaa";
-    renderDice();
+  if (key.startsWith("memory:")) {
+    const memory = findMemory(key.replace("memory:", ""));
+    if (memory) memory.imagePosition = normalized;
   }
 }
 
-function showPromptCard(options = {}) {
-  const game = getActiveGame();
-  const variant = getActiveVariant();
-  if (!game || !variant) return;
+function getMonthPosition(monthKey) {
+  return normalizePosition(state.monthPhotoPositions[monthKey]);
+}
 
-  elements.primaryPlayAction.textContent = "Seuraava";
-  const useWaterBreak =
-    state.waterBreaksEnabled && !options.forcePrompt && Math.random() < WATER_BREAK_CHANCE;
-  const text = useWaterBreak ? randomItem(waterBreaks) : drawPrompt(game, variant);
-  const kicker = useWaterBreak ? "Vesitauko" : `${game.promptLabel} · ${variant.title}`;
-  const deckKey = getDeckKey(game.id, variant.id);
+function applyImagePosition(element, position) {
+  const normalized = normalizePosition(position);
+  element.style.backgroundPosition = `${normalized.x}% ${normalized.y}%`;
+  element.style.backgroundSize = getComposedBackgroundSize(element, normalized.zoom);
+}
 
-  animateCardUpdate(() => {
-    elements.promptKicker.textContent = kicker;
-    elements.promptText.className = "prompt-text";
-    elements.promptText.innerHTML = escapeHtml(text);
-    elements.targetPlayer.textContent = getTargetText(game.id, useWaterBreak);
-    elements.roundLabel.textContent = `${Math.max(state.round[deckKey], 1)}. kortti`;
+function applyMemoryImagePositions() {
+  elements.memoryList.querySelectorAll("[data-memory-image-id]").forEach((element) => {
+    const memory = findMemory(element.dataset.memoryImageId);
+    applyImagePosition(element, memory?.imagePosition);
   });
 }
 
-function drawPrompt(game, variant) {
-  const deckKey = getDeckKey(game.id, variant.id);
-
-  if (state.decks[deckKey].length === 0) {
-    state.decks[deckKey] = shuffleDeck([...variant.prompts]);
-  }
-
-  state.round[deckKey] += 1;
-  return state.decks[deckKey].pop();
+function findMemory(id) {
+  return state.memories.find((memory) => memory.id === id);
 }
 
-function drawKingsCupCard() {
-  const session = getSession();
-  if (session.deck.length === 0) {
-    session.deck = shuffleDeck(createDeck());
-  }
-
-  const card = drawCard(session.deck);
-  if (card.value === "K") session.kings += 1;
-
-  animateCardUpdate(() => {
-    elements.promptKicker.textContent = `${session.deck.length} korttia jäljellä`;
-    elements.promptText.className = `prompt-text playing-card ${card.color}`;
-    elements.promptText.innerHTML = card.label;
-    elements.targetPlayer.textContent =
-      card.value === "K" && session.kings === 4
-        ? "Neljäs kuningas. Kierros päättyy, jos niin sovitte."
-        : kingsCupRules[card.value];
-    elements.roundLabel.textContent = "Nosta kortti";
-  });
-}
-
-function handleBusChoice(choice) {
-  const session = getSession();
-  const step = session.steps[session.stepIndex];
-  const card = randomCard();
-  const previous = session.cards.at(-1);
-  const result = evaluateBusChoice(step.id, choice, card, session.cards);
-  session.cards.push(card);
-
-  if (result) {
-    session.message =
-      session.stepIndex === session.steps.length - 1
-        ? "Selvisit bussista!"
-        : "Oikein. Seuraava vaihe!";
-    session.stepIndex += 1;
-    session.finished = session.stepIndex >= session.steps.length;
-  } else {
-    session.message = "Väärin - ota rangaistus.";
-    session.stepIndex = 0;
-    session.cards = [];
-    session.finished = false;
-  }
-
-  session.lastCard = card;
-  session.previousCard = previous;
-  renderBus();
-}
-
-function renderBus() {
-  const session = getSession();
-  const step = session.steps[session.stepIndex] || session.steps.at(-1);
-  const cards = session.cards.map(cardMarkup).join("");
-  const choices = session.finished
-    ? `<button class="mode-button wide" type="button" data-action="begin-game"><span>Uusi kierros</span><small>Aloita bussi alusta</small></button>`
-    : step.options
-        .map(
-          (option) => `
-            <button class="choice-button" type="button" data-bus-choice="${option.id}">
-              ${option.label}
-            </button>
-          `,
-        )
-        .join("");
-
-  animateCardUpdate(() => {
-    elements.promptKicker.textContent = session.finished ? "Valmis" : `Vaihe ${session.stepIndex + 1} / 4`;
-    elements.promptText.className = "prompt-text custom-game";
-    elements.promptText.innerHTML = `
-      <span class="game-status">${escapeHtml(session.message || step.title)}</span>
-      <span class="bus-step">${escapeHtml(session.finished ? "Selvisit bussista!" : step.title)}</span>
-      <span class="card-row">${cards || '<span class="mini-note">Ensimmäinen kortti odottaa.</span>'}</span>
-      <span class="choice-grid">${choices}</span>
-    `;
-    elements.targetPlayer.textContent = session.lastCard ? `Viimeisin kortti: ${session.lastCard.label}` : "";
-    elements.roundLabel.textContent = "Bussi";
-  });
-}
-
-function renderPyramid() {
-  const session = getSession();
-  const next = getNextPyramidCard(session);
-  const revealed = session.revealedCount;
-  const total = session.pyramid.flat().length;
-
-  animateCardUpdate(() => {
-    elements.promptKicker.textContent = `${revealed} / ${total} paljastettu`;
-    elements.promptText.className = "prompt-text custom-game";
-    elements.promptText.innerHTML = `
-      <span class="pyramid-grid">${renderPyramidRows(session)}</span>
-      <span class="player-hands">${renderPlayerHands(session)}</span>
-    `;
-    elements.targetPlayer.textContent = session.finished
-      ? "Pyramidi valmis."
-      : session.message
-        ? session.message
-      : next
-        ? `Seuraava rivi: ${next.penalty} rangaistus${next.penalty > 1 ? "ta" : ""}.`
-        : "";
-    elements.primaryPlayAction.textContent = session.finished ? "Uusi pyramidi" : "Paljasta seuraava kortti";
-    elements.roundLabel.textContent = "Pyramidi";
-  });
-}
-
-function revealPyramidCard() {
-  const session = getSession();
-
-  if (session.finished) {
-    state.sessions.pyramid = createPyramidSession();
-    renderPyramid();
-    return;
-  }
-
-  const next = getNextPyramidCard(session);
-  if (!next) return;
-
-  next.card.revealed = true;
-  session.revealedCount += 1;
-  const hits = findPyramidHits(session, next.card);
-  session.message = hits.length
-    ? `${hits.join(", ")} osui! Jaa / ota ${next.penalty} rangaistus${next.penalty > 1 ? "ta" : ""}.`
-    : `Ei osumia. Rangaistusmäärä oli ${next.penalty}.`;
-  session.finished = session.revealedCount >= session.pyramid.flat().length;
-  renderPyramid();
-}
-
-function renderDice() {
-  const session = getSession();
-  const value = session.currentValue || "-";
-
-  animateCardUpdate(() => {
-    elements.promptKicker.textContent = session.rolls ? `${session.rolls}. heitto` : "Valmis heittoon";
-    elements.promptText.className = "prompt-text custom-game";
-    elements.promptText.innerHTML = `
-      <span class="dice-face ${session.rolling ? "is-rolling" : ""}">${value}</span>
-      <span class="game-status">${escapeHtml(session.message || "Heitä noppaa ja tee tehtävä.")}</span>
-      <span class="mini-note">${escapeHtml(session.extra || "")}</span>
-    `;
-    elements.targetPlayer.textContent = session.target || "";
-    elements.roundLabel.textContent = "Noppa";
-  });
-}
-
-function rollDice() {
-  const session = getSession();
-  let ticks = 0;
-  session.rolling = true;
-
-  const interval = window.setInterval(() => {
-    session.currentValue = randomNumber(1, 6);
-    renderDice();
-    ticks += 1;
-
-    if (ticks >= 8) {
-      window.clearInterval(interval);
-      const value = randomNumber(1, 6);
-      const sameAgain = session.lastValue === value;
-      session.currentValue = value;
-      session.lastValue = value;
-      session.rolls += 1;
-      session.rolling = false;
-      session.message = diceRules[value];
-      session.extra = Math.random() < 0.65 ? randomItem(diceExtras) : "";
-      session.target = getDiceTarget();
-      if (sameAgain) session.extra = "Sama numero uudestaan. Kaikki ottavat!";
-      renderDice();
-    }
-  }, 70);
-}
-
-function createGameSession(game) {
-  if (game.type === "kingsCup") return { deck: shuffleDeck(createDeck()), kings: 0 };
-  if (game.type === "rideBus") return createBusSession();
-  if (game.type === "pyramid") return createPyramidSession();
-  if (game.type === "dice") return { currentValue: null, lastValue: null, rolls: 0, message: "", extra: "", target: "" };
-  return {};
-}
-
-function createBusSession() {
+function normalizePosition(position) {
   return {
-    stepIndex: 0,
-    cards: [],
-    lastCard: null,
-    message: "",
-    finished: false,
-    steps: [
-      {
-        id: "color",
-        title: "Punainen vai musta?",
-        options: [
-          { id: "red", label: "Punainen" },
-          { id: "black", label: "Musta" },
-        ],
-      },
-      {
-        id: "higherLower",
-        title: "Korkeampi vai matalampi?",
-        options: [
-          { id: "higher", label: "Korkeampi" },
-          { id: "lower", label: "Matalampi" },
-        ],
-      },
-      {
-        id: "insideOutside",
-        title: "Välissä vai ulkona?",
-        options: [
-          { id: "inside", label: "Välissä" },
-          { id: "outside", label: "Ulkona" },
-        ],
-      },
-      {
-        id: "suit",
-        title: "Valitse maa",
-        options: suits.map((suit) => ({ id: suit.id, label: suit.name })),
-      },
-    ],
+    x: clamp(Number(position?.x ?? 50), 0, 100),
+    y: clamp(Number(position?.y ?? 50), 0, 100),
+    zoom: clamp(Number(position?.zoom ?? 1), 1, 2.6),
   };
 }
 
-function createPyramidSession() {
-  const deck = shuffleDeck(createDeck());
-  const hands = state.players.map((player) => ({
-    player,
-    cards: [drawCard(deck), drawCard(deck), drawCard(deck), drawCard(deck)],
-  }));
-  const rowSizes = [4, 3, 2, 1];
-  const pyramid = rowSizes.map((size, rowIndex) =>
-    Array.from({ length: size }, () => ({
-      ...drawCard(deck),
-      revealed: false,
-      penalty: rowIndex + 1,
-    })),
-  );
-
-  return { deck, hands, pyramid, revealedCount: 0, finished: false, message: "" };
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
-function evaluateBusChoice(stepId, choice, card, cards) {
-  if (stepId === "color") return choice === card.color;
+function getComposedBackgroundSize(element, zoom) {
+  if (zoom <= 1.001) return "cover";
 
-  if (stepId === "higherLower") {
-    const previous = cards.at(-1);
-    if (!previous || valueRank[card.value] === valueRank[previous.value]) return false;
-    return choice === "higher"
-      ? valueRank[card.value] > valueRank[previous.value]
-      : valueRank[card.value] < valueRank[previous.value];
-  }
-
-  if (stepId === "insideOutside") {
-    const first = valueRank[cards[0].value];
-    const second = valueRank[cards[1].value];
-    const current = valueRank[card.value];
-    const low = Math.min(first, second);
-    const high = Math.max(first, second);
-    const inside = current > low && current < high;
-    return choice === "inside" ? inside : !inside;
-  }
-
-  if (stepId === "suit") return choice === card.suit;
-
-  return false;
+  const rect = element.getBoundingClientRect();
+  const percent = `${Math.round(zoom * 100)}%`;
+  return rect.width / rect.height > 1.35 ? `${percent} auto` : `auto ${percent}`;
 }
 
-function getNextPyramidCard(session) {
-  for (const row of session.pyramid) {
-    const card = row.find((item) => !item.revealed);
-    if (card) return { card, penalty: card.penalty };
-  }
-  return null;
+function getPointerDistance(first, second) {
+  return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
-function findPyramidHits(session, pyramidCard) {
-  return session.hands
-    .filter((hand) => hand.cards.some((card) => card.value === pyramidCard.value))
-    .map((hand) => hand.player);
+function toAllative(name) {
+  if (!name) return "Rakkaalle ystävälle";
+  const lower = name.toLowerCase();
+  const suffix = /[aouå]$/.test(lower) ? "lle" : "lle";
+  return `${name}${suffix}`;
 }
 
-function renderPyramidRows(session) {
-  return session.pyramid
-    .slice()
-    .reverse()
-    .map(
-      (row) => `
-        <span class="pyramid-row">
-          ${row
-            .map((card) =>
-              card.revealed
-                ? cardMarkup(card)
-                : `<span class="mini-card hidden-card">?</span>`,
-            )
-            .join("")}
-        </span>
-      `,
-    )
-    .join("");
+function getDayNote(date) {
+  const dateKey = toDateKey(date);
+  return state.importantDays.find((day) => day.date === dateKey);
 }
 
-function renderPlayerHands(session) {
-  return session.hands
-    .map(
-      (hand) => `
-        <span class="hand-row">
-          <strong>${escapeHtml(hand.player)}</strong>
-          <span>${hand.cards.map(cardMarkup).join("")}</span>
-        </span>
-      `,
-    )
-    .join("");
+function isMemorialDate(date) {
+  const memorial = parseDate(state.memorialDate);
+  return memorial && memorial.getMonth() === date.getMonth() && memorial.getDate() === date.getDate();
 }
 
-function getTargetText(gameId, isWaterBreak) {
-  if (isWaterBreak) return "Kaikki mukana.";
-  if (gameId !== "most-likely") return "";
-  if (state.players.length === 0) return "Kaikki äänestävät.";
-
-  return Math.random() < 0.35
-    ? `Kohdepelaaja: ${randomItem(state.players)}`
-    : "Kaikki äänestävät.";
+function parseDate(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
 }
 
-function getDiceTarget() {
-  if (state.players.length === 0 || Math.random() > 0.45) return "";
-  const player = randomItem(state.players);
-  return Math.random() > 0.5
-    ? `${player} valitsee jonkun.`
-    : `${player} ottaa seuraavan haasteen.`;
+function toDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function showRules() {
-  const game = getActiveGame();
-  const variant = getActiveVariant();
-  if (!game) return;
-
-  elements.rulesTitle.textContent = variant ? `${game.title}: ${variant.title}` : game.title;
-  elements.rulesText.textContent = variant
-    ? `${game.rules} Tämä on ${variant.description.toLowerCase()}`
-    : game.rules;
-  elements.rulesModal.hidden = false;
+function getMonthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function closeRules() {
-  elements.rulesModal.hidden = true;
+function formatDate(value) {
+  const date = new Date(value);
+  return `${date.getDate()}. ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-function showScreen(name) {
-  Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
-  screens[name].classList.add("is-active");
-  closeRules();
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function animateCardUpdate(update) {
-  elements.promptCard.classList.remove("is-changing");
-  window.requestAnimationFrame(() => {
-    update();
-    elements.promptCard.classList.add("is-changing");
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", reject);
+    reader.readAsDataURL(file);
   });
 }
 
-function getActiveGame() {
-  return games.find((game) => game.id === state.activeGameId);
+async function prepareMediaFile(file) {
+  if (file.type.startsWith("image/")) return prepareImageFile(file);
+  return fileToDataUrl(file);
 }
 
-function getActiveVariant() {
-  return getActiveGame()?.variants?.find((variant) => variant.id === state.activeVariantId);
-}
+async function prepareImageFile(file) {
+  if (!file.type.startsWith("image/")) return fileToDataUrl(file);
 
-function getActiveTitle() {
-  const game = getActiveGame();
-  const variant = getActiveVariant();
-  return variant ? `${game.title}: ${variant.title}` : game?.title || "Peli";
-}
-
-function getSession() {
-  return state.sessions[state.activeGameId];
-}
-
-function getDeckKey(gameId, variantId) {
-  return `${gameId}:${variantId}`;
-}
-
-function buildPromptDecks() {
-  return Object.fromEntries(
-    games.flatMap((game) =>
-      game.variants
-        ? game.variants.map((variant) => [getDeckKey(game.id, variant.id), shuffleDeck([...variant.prompts])])
-        : [],
-    ),
-  );
-}
-
-function buildPromptRounds() {
-  return Object.fromEntries(
-    games.flatMap((game) =>
-      game.variants ? game.variants.map((variant) => [getDeckKey(game.id, variant.id), 0]) : [],
-    ),
-  );
-}
-
-function getGameMeta(game) {
-  if (game.type === "kingsCup") return "52 korttia";
-  if (game.type === "rideBus") return "4 vaihetta";
-  if (game.type === "pyramid") return "Pelaajilla";
-  if (game.type === "dice") return "1-6 tehtävää";
-  return "Pelaa";
-}
-
-function createDeck() {
-  return suits.flatMap((suit) =>
-    values.map((value) => ({
-      value,
-      suit: suit.id,
-      suitName: suit.name,
-      symbol: suit.symbol,
-      color: suit.color,
-      label: `${value}${suit.symbol}`,
-    })),
-  );
-}
-
-function shuffleDeck(items) {
-  const shuffled = [...items];
-
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  try {
+    const image = await createImageBitmap(file, { imageOrientation: "from-image" });
+    return resizeImageToDataUrl(image, 1100, 0.76);
+  } catch {
+    const dataUrl = await fileToDataUrl(file);
+    const image = await loadImage(dataUrl);
+    return resizeImageToDataUrl(image, 1100, 0.76);
   }
-
-  return shuffled;
 }
 
-function drawCard(deck) {
-  return deck.pop();
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", reject);
+    image.src = src;
+  });
 }
 
-function randomCard() {
-  return randomItem(createDeck());
+function resizeImageToDataUrl(image, maxSide, quality) {
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const scale = Math.min(1, maxSide / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { alpha: false });
+  context.drawImage(image, 0, 0, width, height);
+  image.close?.();
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
-function cardMarkup(card) {
-  return `<span class="mini-card ${card.color}">${card.label}</span>`;
-}
-
-function savePlayers() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.players));
-}
-
-function updateWaterBreakPreference() {
-  state.waterBreaksEnabled = elements.waterBreakToggle.checked;
-  localStorage.setItem(WATER_BREAK_STORAGE_KEY, JSON.stringify(state.waterBreaksEnabled));
-  renderWaterBreakPreference();
-}
-
-function renderWaterBreakPreference() {
-  elements.waterBreakToggle.checked = state.waterBreaksEnabled;
-  elements.waterBreakLabel.textContent = state.waterBreaksEnabled ? "Päällä" : "Pois";
-}
-
-function readPlayers() {
+function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return Array.isArray(stored) ? stored.filter(Boolean) : [];
+    const loaded = { ...structuredClone(defaultState), ...stored };
+    loaded.petType = loaded.petType || "horse";
+    loaded.petTypeCustom = loaded.petTypeCustom || "";
+    loaded.heroImagePosition = normalizePosition(loaded.heroImagePosition);
+    loaded.memorialImagePosition = normalizePosition(loaded.memorialImagePosition);
+    loaded.monthPhotoPositions = loaded.monthPhotoPositions || {};
+    loaded.memories = (loaded.memories || []).map((memory) => ({
+      ...memory,
+      imagePosition: normalizePosition(memory.imagePosition),
+    }));
+    loaded.memorialNote = loaded.memorialNote || "";
+    loaded.memorialText = buildMemorialText(loaded);
+    return loaded;
   } catch {
-    return [];
+    const fresh = structuredClone(defaultState);
+    fresh.memorialText = buildMemorialText(fresh);
+    return fresh;
   }
 }
 
-function readWaterBreakPreference() {
-  const stored = localStorage.getItem(WATER_BREAK_STORAGE_KEY);
-
-  if (stored === null) return true;
-
+function saveState() {
   try {
-    return JSON.parse(stored) === true;
-  } catch {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     return true;
+  } catch (error) {
+    console.warn("Tallessa local save failed", error);
+    return false;
   }
-}
-
-function randomItem(items) {
-  return items[Math.floor(Math.random() * items.length)];
-}
-
-function randomNumber(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function escapeHtml(value) {

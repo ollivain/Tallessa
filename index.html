@@ -5,141 +5,270 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="PartyDeck on mobiiliystävällinen juomapeli-iltojen web-sovellus."
+      content="Tallessa on yksityinen muistosovellus rakkaan lemmikin kuvien, kirjeiden ja muistopäivien säilyttämiseen."
     />
-    <title>PartyDeck</title>
+    <title>Tallessa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260519-games" />
+    <link rel="stylesheet" href="styles.css?v=20260519-tallessa" />
   </head>
   <body>
-    <main class="app-shell">
-      <section class="screen start-screen is-active" data-screen="start">
-        <div class="brand-lockup">
-          <p class="eyebrow">Juomapeli-iltaan</p>
-          <h1>PartyDeck</h1>
-          <p class="lead">Valitse peli, lisää pelaajat ja aloita.</p>
-        </div>
-        <button class="primary-action" type="button" data-action="start">Aloita</button>
-        <p class="responsible-note">Pelaa omalla vastuulla. Pidä taukoja ja juo vettä.</p>
+    <main class="phone-shell" aria-live="polite">
+      <section class="screen home-screen is-active" data-screen="home">
+        <header class="hero" data-image-picker>
+          <div class="hero-image" data-hero-image role="img" aria-label="Rauhallinen hevonen aamuauringossa"></div>
+          <label class="image-change hero-change" data-image-change hidden>
+            Vaihda kuva
+            <input data-hero-photo type="file" accept="image/*" />
+          </label>
+          <span class="image-compose-hint hero-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+          <div class="hero-copy">
+            <p class="eyebrow">Yksityinen muistopaikka</p>
+            <h1>Tallessa</h1>
+            <p class="lead">Muistot, jotka pysyvät mukana.</p>
+          </div>
+        </header>
+
+        <article class="memory-of-day card" data-memory-of-day></article>
+
+        <section class="quick-actions" aria-label="Tärkeimmät osiot">
+          <button class="section-button" type="button" data-nav="wall">
+            <span class="button-icon" aria-hidden="true">⌑</span>
+            <span>Muistoseinä</span>
+          </button>
+          <button class="section-button" type="button" data-nav="letters">
+            <span class="button-icon" aria-hidden="true">✎</span>
+            <span>Kirjeet</span>
+          </button>
+          <button class="section-button" type="button" data-nav="calendar">
+            <span class="button-icon" aria-hidden="true">◷</span>
+            <span>Kalenteri</span>
+          </button>
+          <button class="section-button" type="button" data-nav="memorial">
+            <span class="button-icon" aria-hidden="true">♡</span>
+            <span data-memorial-button>Pepen päivä</span>
+          </button>
+        </section>
       </section>
 
-      <section class="screen menu-screen" data-screen="menu">
+      <section class="screen" data-screen="wall">
         <header class="topbar">
           <div>
-            <p class="eyebrow">PartyDeck</p>
-            <h2>Pelin valinta</h2>
+            <p class="eyebrow">Kuvat ja hetket</p>
+            <h2>Muistoseinä</h2>
           </div>
         </header>
 
-        <section class="panel players-panel" aria-labelledby="players-title">
-          <div class="section-heading">
-            <div>
-              <h3 id="players-title">Pelaajat</h3>
-              <p>Lisää nimet tai pelaa ilman listaa.</p>
-            </div>
-            <button class="ghost-button small" type="button" data-action="reset-players">
-              Resetoi pelaajat
-            </button>
+        <button class="add-card-toggle" type="button" data-open-card="memory">
+          <span aria-hidden="true">+</span>
+          <strong>Lisää muisto</strong>
+        </button>
+
+        <form class="card form-card is-collapsed" data-card-panel="memory" data-memory-form>
+          <button class="close-card-button" type="button" data-close-card="memory" aria-label="Sulje muistokortti">×</button>
+          <label>
+            Kuva tai video
+            <input name="media" data-memory-media type="file" accept="image/*,video/*" />
+          </label>
+          <label>
+            Pieni teksti muistolle
+            <textarea name="text" maxlength="220" placeholder="Esim. Viimeinen kesälaidun, kun kaikki oli vielä tässä."></textarea>
+          </label>
+          <p class="form-message" data-memory-message></p>
+          <button class="primary-action" type="submit">Tallenna muisto</button>
+        </form>
+
+        <section class="memory-grid" data-memory-list></section>
+      </section>
+
+      <section class="screen" data-screen="letters">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Vain sinulle</p>
+            <h2>Kirjeet</h2>
           </div>
-          <form class="player-form" data-player-form>
-            <label class="sr-only" for="player-name">Pelaajan nimi</label>
-            <input
-              id="player-name"
-              name="player"
-              type="text"
-              autocomplete="off"
-              maxlength="24"
-              placeholder="Pelaajan nimi"
-            />
-            <button class="secondary-action" type="submit">Lisää</button>
-          </form>
-          <ul class="player-list" data-player-list aria-live="polite"></ul>
+        </header>
+
+        <button class="add-card-toggle" type="button" data-open-card="letter">
+          <span aria-hidden="true">+</span>
+          <strong>Kirjoita kirje</strong>
+        </button>
+
+        <form class="card form-card letter-editor is-collapsed" data-card-panel="letter" data-letter-form>
+          <button class="close-card-button" type="button" data-close-card="letter" aria-label="Sulje kirjekortti">×</button>
+          <label>
+            Otsikko
+            <input name="title" type="text" maxlength="60" placeholder="Rakas Pepe" />
+          </label>
+          <label>
+            Kirje
+            <textarea name="body" maxlength="1400" placeholder="Kirjoita rauhassa. Tätä ei julkaista eikä jaeta."></textarea>
+          </label>
+          <button class="primary-action" type="submit">Tallenna kirje</button>
+        </form>
+
+        <section class="letter-list" data-letter-list></section>
+      </section>
+
+      <section class="screen" data-screen="calendar">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Vuodet mukana</p>
+            <h2>Muistokalenteri</h2>
+          </div>
+        </header>
+
+        <section class="calendar-card card">
+          <div class="image-frame" data-image-picker>
+            <div class="month-cover" data-month-cover></div>
+            <label class="image-change cover-change" data-image-change hidden>
+              Vaihda kuva
+              <input data-month-photo type="file" accept="image/*" />
+            </label>
+            <span class="image-compose-hint cover-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+          </div>
+          <div class="calendar-controls">
+            <button class="icon-button" type="button" data-month="prev" aria-label="Edellinen kuukausi">‹</button>
+            <div>
+              <p class="eyebrow">Kuukausi</p>
+              <h3 data-current-month></h3>
+            </div>
+            <button class="icon-button" type="button" data-month="next" aria-label="Seuraava kuukausi">›</button>
+          </div>
+          <div class="weekdays" aria-hidden="true">
+            <span>Ma</span><span>Ti</span><span>Ke</span><span>To</span><span>Pe</span><span>La</span><span>Su</span>
+          </div>
+          <div class="calendar-grid" data-calendar-grid></div>
         </section>
 
-        <section class="game-grid" aria-label="Pelit" data-game-list></section>
+        <button class="add-card-toggle" type="button" data-open-card="day">
+          <span aria-hidden="true">+</span>
+          <strong>Lisää muistopäivä</strong>
+        </button>
+
+        <form class="card form-card is-collapsed" data-card-panel="day" data-day-form>
+          <button class="close-card-button" type="button" data-close-card="day" aria-label="Sulje muistopäiväkortti">×</button>
+          <label>
+            Muistopäivän nimi
+            <input name="name" type="text" maxlength="48" placeholder="Esim. Ensimmäinen maastolenkki" />
+          </label>
+          <label>
+            Päivämäärä
+            <input name="date" type="date" />
+          </label>
+          <label>
+            Lempeä merkki
+            <select name="symbol">
+              <option value="♡">Sydän</option>
+              <option value="✦">Tähti</option>
+              <option value="♢">Muisto</option>
+              <option value="🕯">Kynttilä</option>
+            </select>
+          </label>
+          <label>
+            Teksti
+            <textarea name="note" maxlength="180" placeholder="Mitä haluat muistaa juuri tästä päivästä?"></textarea>
+          </label>
+          <button class="primary-action" type="submit">Lisää päivä</button>
+        </form>
+
+        <section class="day-list" data-day-list></section>
       </section>
 
-      <section class="screen setup-screen" data-screen="setup">
-        <header class="topbar game-topbar">
-          <button class="icon-button" type="button" data-action="back-menu" aria-label="Takaisin valikkoon">
-            <span aria-hidden="true">←</span>
-          </button>
+      <section class="screen" data-screen="memorial">
+        <header class="topbar">
           <div>
-            <p class="eyebrow">Peli valittu</p>
-            <h2 data-setup-title>Valmistaudu</h2>
+            <p class="eyebrow">Muistopäivä</p>
+            <h2 data-memorial-title>Pepen päivä</h2>
           </div>
         </header>
 
-        <article class="setup-card">
-          <p class="setup-badge" data-setup-badge>Valittu pakka</p>
-          <h3 data-setup-heading>Aloitetaanko?</h3>
-          <p data-setup-description>Valitse asetukset ennen ensimmäistä korttia.</p>
-
-          <div class="setting-row setup-setting">
-            <div>
-              <h3>Vesitauot</h3>
-              <p>Satunnainen muistutus voi ilmestyä kysymysten väliin.</p>
-            </div>
-            <label class="toggle-control">
-              <input type="checkbox" data-water-break-toggle />
-              <span class="toggle-track" aria-hidden="true"></span>
-              <span class="toggle-text" data-water-break-label>Päällä</span>
-            </label>
+        <article class="memorial-card card" data-candle-state data-image-picker>
+          <div class="memorial-image" data-memorial-image></div>
+          <label class="image-change memorial-change" data-image-change hidden>
+            Vaihda kuva
+            <input data-memorial-photo type="file" accept="image/*" />
+          </label>
+          <span class="image-compose-hint memorial-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+          <div class="candle" aria-hidden="true">
+            <span class="flame"></span>
+            <span class="wick"></span>
+            <span class="wax"></span>
           </div>
+          <p class="italic-note" data-memorial-date></p>
+          <h3 data-memorial-heading></h3>
+          <p data-memorial-text></p>
+          <button class="primary-action" type="button" data-light-candle>Sytytä kynttilä</button>
         </article>
-
-        <div class="play-actions">
-          <button class="primary-action" type="button" data-action="begin-game">Aloita peli</button>
-          <button class="ghost-button" type="button" data-action="back-menu">Takaisin valikkoon</button>
-        </div>
       </section>
 
-      <section class="screen play-screen" data-screen="play">
-        <header class="topbar game-topbar">
-          <button class="icon-button" type="button" data-action="back-menu" aria-label="Takaisin valikkoon">
-            <span aria-hidden="true">←</span>
-          </button>
+      <section class="screen" data-screen="settings">
+        <header class="topbar">
           <div>
-            <p class="eyebrow" data-round-label>Kierros</p>
-            <h2 data-game-title>Peli</h2>
+            <p class="eyebrow">Yksityisesti laitteella</p>
+            <h2>Asetukset</h2>
           </div>
-          <button class="ghost-button small" type="button" data-action="show-rules">Säännöt</button>
         </header>
 
-        <article class="prompt-card" data-prompt-card>
-          <p class="prompt-kicker" data-prompt-kicker>Pakka valmis</p>
-          <p class="prompt-text" data-prompt-text>Valitse seuraava kortti.</p>
-          <p class="target-player" data-target-player></p>
-        </article>
-
-        <div class="play-actions">
-          <button class="primary-action" type="button" data-action="next-card">Seuraava</button>
-          <button class="ghost-button" type="button" data-action="back-menu">Takaisin valikkoon</button>
-        </div>
+        <form class="card form-card" data-settings-form>
+          <label>
+            Lemmikin nimi
+            <input name="horseName" type="text" maxlength="40" />
+          </label>
+          <label>
+            Lemmikki / eläin
+            <select name="petType" data-pet-type>
+              <option value="horse">Hevonen</option>
+              <option value="dog">Koira</option>
+              <option value="cat">Kissa</option>
+              <option value="rabbit">Kani</option>
+              <option value="bird">Lintu</option>
+              <option value="guineaPig">Marsu</option>
+              <option value="hamster">Hamsteri</option>
+              <option value="ferret">Fretti</option>
+              <option value="turtle">Kilpikonna</option>
+              <option value="human">Ihminen</option>
+              <option value="other">Muu eläin</option>
+            </select>
+          </label>
+          <label>
+            Jos valitsit muu eläin
+            <input name="petTypeCustom" type="text" maxlength="40" placeholder="Esim. poni, papukaija tai akvaariokala" />
+          </label>
+          <label>
+            Muistopäivän nimi
+            <input name="memorialName" type="text" maxlength="48" />
+          </label>
+          <label>
+            Kuolinpäivä
+            <input name="memorialDate" type="date" />
+          </label>
+          <label>
+            Oma lisäteksti muistopäivälle
+            <textarea name="memorialNote" maxlength="320"></textarea>
+          </label>
+          <label>
+            Muistopäivän kuva
+            <input name="memorialImage" type="file" accept="image/*" />
+          </label>
+          <button class="primary-action" type="submit">Tallenna asetukset</button>
+        </form>
+        <p class="privacy-note">Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.</p>
       </section>
     </main>
 
-    <div class="rules-modal" data-rules-modal hidden>
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="rules-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Säännöt</p>
-            <h3 id="rules-title" data-rules-title>Pelin säännöt</h3>
-          </div>
-          <button class="icon-button" type="button" data-action="close-rules" aria-label="Sulje säännöt">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <p data-rules-text></p>
-      </div>
-    </div>
+    <nav class="bottom-nav" aria-label="Sovelluksen osiot">
+      <button class="is-active" type="button" data-nav="home">Koti</button>
+      <button type="button" data-nav="wall">Muistot</button>
+      <button type="button" data-nav="letters">Kirjeet</button>
+      <button type="button" data-nav="calendar">Kalenteri</button>
+      <button type="button" data-nav="settings">Asetukset</button>
+    </nav>
 
-    <footer>PartyDeck prototype</footer>
-    <script src="app.js?v=20260519-games" type="module"></script>
+    <script src="app.js?v=20260519-tallessa" type="module"></script>
   </body>
 </html>
