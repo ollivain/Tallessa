@@ -51,12 +51,40 @@ input,
 textarea,
 select {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 13px 14px;
   color: var(--text);
   background: rgba(255, 252, 246, 0.88);
   outline: 0;
+}
+
+input[type="date"] {
+  display: block;
+  width: 100%;
+  inline-size: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 1.4em;
+  text-align: left;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  max-width: 100%;
 }
 
 textarea {
@@ -580,12 +608,13 @@ h3 {
 }
 
 .section-button {
+  position: relative;
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
+  grid-template-columns: 46px minmax(0, 1fr) 18px;
   min-height: 78px;
   align-items: center;
   gap: 12px;
-  padding: 14px 12px;
+  padding: 14px 10px 14px 12px;
   color: var(--moss-dark);
   text-align: left;
   border: 1px solid rgba(255, 250, 240, 0.74);
@@ -618,12 +647,21 @@ h3 {
   stroke-linejoin: round;
 }
 
+.button-icon svg *,
+.nav-icon svg * {
+  fill: none;
+  stroke: currentColor;
+}
+
 .section-button span:last-child {
   min-width: 0;
+  max-width: 100%;
   font-family: var(--serif);
-  font-size: 1.05rem;
+  font-size: clamp(0.9rem, 3.8vw, 1.05rem);
   font-weight: 700;
   line-height: 1.1;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .section-button::after {
@@ -652,6 +690,8 @@ h3 {
   position: relative;
   display: grid;
   gap: 14px;
+  min-width: 0;
+  overflow: hidden;
   padding: 16px;
 }
 
@@ -732,6 +772,7 @@ h3 {
 label {
   display: grid;
   gap: 8px;
+  min-width: 0;
   color: var(--moss-dark);
   font-size: 0.86rem;
   font-weight: 700;
@@ -1089,6 +1130,48 @@ label {
   }
 }
 
+@media (max-width: 430px) {
+  .quick-actions {
+    gap: 10px;
+  }
+
+  .section-button {
+    grid-template-columns: 38px minmax(0, 1fr) 12px;
+    gap: 6px;
+    padding: 11px 7px 11px 8px;
+  }
+
+  .button-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .button-icon svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .section-button span:last-child {
+    font-size: 0.86rem;
+  }
+
+  .section-button[data-nav="wall"] span:last-child {
+    font-size: 0.76rem;
+  }
+
+  input[type="date"] {
+    width: -webkit-fill-available;
+    max-width: -webkit-fill-available;
+    padding-right: 10px;
+    padding-left: 10px;
+    font-size: 0.88rem;
+  }
+
+  .section-button::after {
+    font-size: 1.45rem;
+  }
+}
+
 @media (max-width: 360px) {
   .phone-shell {
     padding-inline: 12px;
@@ -1103,19 +1186,23 @@ label {
   }
 
   .section-button {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-columns: 36px minmax(0, 1fr) 12px;
     min-height: 72px;
-    gap: 9px;
-    padding: 12px 10px;
+    gap: 6px;
+    padding: 11px 7px;
   }
 
   .button-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .section-button span:last-child {
-    font-size: 0.96rem;
+    font-size: 0.8rem;
+  }
+
+  .section-button[data-nav="wall"] span:last-child {
+    font-size: 0.7rem;
   }
 
   .memory-of-day {
