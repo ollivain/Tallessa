@@ -202,32 +202,63 @@ h3 {
 .screen[data-screen="settings"]::after {
   position: absolute;
   z-index: 0;
-  width: 128px;
-  height: 164px;
-  background-image: var(--botanical-sprig);
+  inset: 0;
+  background-image: var(--botanical-sprig), var(--botanical-sprig), var(--botanical-sprig);
   background-repeat: no-repeat;
-  background-size: contain;
   content: "";
-  opacity: 0.55;
   pointer-events: none;
 }
 
-.screen[data-screen="wall"]::before,
-.screen[data-screen="letters"]::before,
-.screen[data-screen="calendar"]::before,
-.screen[data-screen="settings"]::before {
-  top: 76px;
-  right: -40px;
+.screen[data-screen="wall"]::before {
+  opacity: 0.58;
+  background-position: right -32px top 58px, left -38px top 44%, right 24px bottom 148px;
+  background-size: 132px 170px, 96px 124px, 82px 106px;
 }
 
-.screen[data-screen="wall"]::after,
-.screen[data-screen="letters"]::after,
-.screen[data-screen="calendar"]::after,
-.screen[data-screen="settings"]::after {
-  bottom: 92px;
-  left: -42px;
+.screen[data-screen="wall"]::after {
+  opacity: 0.3;
+  background-position: left -44px top 180px, right -42px top 62%, left 24px bottom 86px;
+  background-size: 118px 152px, 108px 140px, 72px 94px;
+  transform: scaleX(-1);
+}
+
+.screen[data-screen="letters"]::before {
+  opacity: 0.5;
+  background-position: right -36px top 90px, left 22px top 48%, right -18px bottom 112px;
+  background-size: 118px 152px, 80px 104px, 138px 178px;
+}
+
+.screen[data-screen="letters"]::after {
   opacity: 0.34;
-  transform: scaleX(-1) rotate(-8deg);
+  background-position: left -50px top 120px, right 18px top 42%, left -26px bottom 74px;
+  background-size: 126px 162px, 74px 96px, 102px 132px;
+  transform: scaleX(-1) rotate(-3deg);
+}
+
+.screen[data-screen="calendar"]::before {
+  opacity: 0.54;
+  background-position: right 12px top 76px, left -52px top 34%, right -46px bottom 170px;
+  background-size: 86px 112px, 140px 180px, 112px 146px;
+}
+
+.screen[data-screen="calendar"]::after {
+  opacity: 0.32;
+  background-position: left 10px top 154px, right -54px top 54%, left -34px bottom 96px;
+  background-size: 76px 98px, 132px 170px, 98px 126px;
+  transform: scaleX(-1) rotate(4deg);
+}
+
+.screen[data-screen="settings"]::before {
+  opacity: 0.5;
+  background-position: right -44px top 70px, left -30px top 38%, right 24px bottom 132px;
+  background-size: 136px 176px, 92px 120px, 78px 102px;
+}
+
+.screen[data-screen="settings"]::after {
+  opacity: 0.32;
+  background-position: left 16px top 132px, right -38px top 48%, left -50px bottom 102px;
+  background-size: 82px 106px, 108px 140px, 128px 166px;
+  transform: scaleX(-1) rotate(-5deg);
 }
 
 .screen[data-screen="wall"] > *,
@@ -241,8 +272,9 @@ h3 {
 .screen[data-screen="memorial"] {
   position: relative;
   isolation: isolate;
-  margin: -14px;
-  padding: 14px 14px 92px;
+  min-height: 100dvh;
+  margin: -18px -16px 0;
+  padding: calc(env(safe-area-inset-top) + 18px) 16px calc(150px + env(safe-area-inset-bottom));
   overflow: hidden;
   background: #d9c7ac;
 }
@@ -287,18 +319,18 @@ h3 {
 
 .screen[data-screen="memorial"].memorial-sky-day::before {
   background:
-    linear-gradient(180deg, rgba(235, 240, 230, 0.18), rgba(125, 110, 82, 0.24)),
-    radial-gradient(ellipse at 24% 20%, rgba(255, 255, 249, 0.86), transparent 20%),
-    radial-gradient(ellipse at 72% 28%, rgba(255, 255, 248, 0.74), transparent 24%),
-    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=75"),
-    linear-gradient(180deg, #b8d2d7 0%, #dce6dd 34%, #f1e2c8 74%, #c9b89c 100%);
+    linear-gradient(180deg, rgba(255, 251, 232, 0.08), rgba(96, 117, 65, 0.2)),
+    radial-gradient(ellipse at 24% 18%, rgba(255, 248, 205, 0.92), transparent 22%),
+    radial-gradient(ellipse at 78% 24%, rgba(255, 255, 238, 0.6), transparent 24%),
+    url("assets/memorial-day-sunny-field.jpg"),
+    linear-gradient(180deg, #d9e8bb 0%, #eef0c5 38%, #d6c79a 100%);
 }
 
 .screen[data-screen="memorial"].memorial-sky-day::after {
   background:
-    radial-gradient(ellipse at 44% 24%, rgba(255, 255, 255, 0.62), transparent 24%),
-    radial-gradient(ellipse at 83% 44%, rgba(255, 250, 238, 0.45), transparent 20%),
-    linear-gradient(180deg, rgba(255, 252, 241, 0.04), rgba(93, 107, 78, 0.1));
+    radial-gradient(ellipse at 38% 20%, rgba(255, 255, 240, 0.54), transparent 24%),
+    radial-gradient(ellipse at 82% 42%, rgba(255, 243, 193, 0.3), transparent 22%),
+    linear-gradient(180deg, rgba(255, 252, 232, 0.02), rgba(89, 115, 65, 0.08));
 }
 
 .screen[data-screen="memorial"].memorial-sky-evening::before {
@@ -337,7 +369,17 @@ h3 {
     linear-gradient(180deg, rgba(19, 19, 18, 0.16), rgba(90, 73, 56, 0.22));
 }
 
+.screen[data-screen="memorial"].memorial-sky-morning::before,
+.screen[data-screen="memorial"].memorial-sky-day::before,
+.screen[data-screen="memorial"].memorial-sky-evening::before,
+.screen[data-screen="memorial"].memorial-sky-night::before {
+  background-position: center;
+  background-size: cover;
+}
+
 .screen[data-screen="memorial"] .topbar {
+  margin: 0;
+  padding-top: 20px;
   background: transparent;
   backdrop-filter: none;
 }
@@ -1281,6 +1323,10 @@ label {
     padding-top: 26px;
   }
 
+  .screen[data-screen="memorial"] {
+    margin-top: -26px;
+  }
+
   .bottom-nav,
   .phone-shell {
     border-inline: 1px solid rgba(79, 83, 62, 0.08);
@@ -1288,6 +1334,11 @@ label {
 }
 
 @media (max-width: 430px) {
+  .screen[data-screen="memorial"] {
+    margin-inline: -12px;
+    padding-inline: 12px;
+  }
+
   .quick-actions {
     gap: 10px;
   }
