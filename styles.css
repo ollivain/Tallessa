@@ -13,6 +13,7 @@
   --soft-shadow: 0 12px 30px rgba(83, 73, 55, 0.08);
   --serif: "Playfair Display", Georgia, serif;
   --sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --botanical-sprig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 92 118'%3E%3Cg fill='none' stroke='%239a7657' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.7' opacity='.34'%3E%3Cpath d='M47 110C44 82 47 54 59 22'/%3E%3Cpath d='M50 86C35 78 29 66 27 55C41 58 49 68 50 86Z'/%3E%3Cpath d='M56 68C71 61 78 50 80 39C66 41 58 51 56 68Z'/%3E%3Cpath d='M43 96C29 91 19 81 14 68C29 68 40 78 43 96Z'/%3E%3Cpath d='M59 48C50 42 45 32 46 20C58 26 63 35 59 48Z'/%3E%3Cpath d='M63 34C70 29 75 22 76 12'/%3E%3Cpath d='M35 66C29 58 25 49 24 38'/%3E%3C/g%3E%3Cg fill='%239a7657' opacity='.34'%3E%3Ccircle cx='76' cy='12' r='3'/%3E%3Ccircle cx='24' cy='38' r='2.5'/%3E%3Ccircle cx='60' cy='20' r='2'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 * {
@@ -171,6 +172,61 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.screen[data-screen="wall"],
+.screen[data-screen="letters"],
+.screen[data-screen="calendar"],
+.screen[data-screen="settings"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.screen[data-screen="wall"]::before,
+.screen[data-screen="letters"]::before,
+.screen[data-screen="calendar"]::before,
+.screen[data-screen="settings"]::before,
+.screen[data-screen="wall"]::after,
+.screen[data-screen="letters"]::after,
+.screen[data-screen="calendar"]::after,
+.screen[data-screen="settings"]::after {
+  position: absolute;
+  z-index: 0;
+  width: 128px;
+  height: 164px;
+  background-image: var(--botanical-sprig);
+  background-repeat: no-repeat;
+  background-size: contain;
+  content: "";
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.screen[data-screen="wall"]::before,
+.screen[data-screen="letters"]::before,
+.screen[data-screen="calendar"]::before,
+.screen[data-screen="settings"]::before {
+  top: 76px;
+  right: -40px;
+}
+
+.screen[data-screen="wall"]::after,
+.screen[data-screen="letters"]::after,
+.screen[data-screen="calendar"]::after,
+.screen[data-screen="settings"]::after {
+  bottom: 92px;
+  left: -42px;
+  opacity: 0.34;
+  transform: scaleX(-1) rotate(-8deg);
+}
+
+.screen[data-screen="wall"] > *,
+.screen[data-screen="letters"] > *,
+.screen[data-screen="calendar"] > *,
+.screen[data-screen="settings"] > * {
+  position: relative;
+  z-index: 1;
 }
 
 .screen[data-screen="memorial"] {
@@ -500,6 +556,46 @@ h3 {
   padding: calc(env(safe-area-inset-top) + 20px) 18px 16px;
   background: linear-gradient(180deg, rgba(245, 237, 223, 0.98), rgba(245, 237, 223, 0.86));
   backdrop-filter: blur(14px);
+}
+
+.topbar--ornate {
+  isolation: isolate;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.topbar--ornate > div {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.topbar-ornament {
+  position: absolute;
+  right: 16px;
+  bottom: -8px;
+  z-index: 0;
+  width: 92px;
+  height: 118px;
+  color: rgba(154, 118, 87, 0.34);
+  pointer-events: none;
+}
+
+.topbar-ornament svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.topbar-ornament circle {
+  fill: currentColor;
+  stroke: none;
 }
 
 .card {
