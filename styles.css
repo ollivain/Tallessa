@@ -87,6 +87,13 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper {
   max-width: 100%;
 }
 
+input[name="memorialDate"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
+}
+
 textarea {
   min-height: 108px;
   resize: vertical;
@@ -664,6 +671,19 @@ h3 {
   word-break: keep-all;
 }
 
+.action-label {
+  display: block;
+}
+
+.action-label-wall {
+  display: grid;
+  gap: 0;
+}
+
+.action-label-wall span {
+  display: block;
+}
+
 .section-button::after {
   color: rgba(48, 56, 45, 0.72);
   content: "›";
@@ -1156,7 +1176,7 @@ label {
   }
 
   .section-button[data-nav="wall"] span:last-child {
-    font-size: 0.76rem;
+    font-size: 0.92rem;
   }
 
   input[type="date"] {
@@ -1202,7 +1222,7 @@ label {
   }
 
   .section-button[data-nav="wall"] span:last-child {
-    font-size: 0.7rem;
+    font-size: 0.86rem;
   }
 
   .memory-of-day {

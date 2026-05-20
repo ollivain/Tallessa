@@ -632,7 +632,7 @@ async function saveSettings(event) {
   state.petTypeCustom = String(form.get("petTypeCustom") || "").trim();
   state.memorialName =
     String(form.get("memorialName") || state.memorialName).trim() || state.memorialName;
-  state.memorialDate = String(form.get("memorialDate") || state.memorialDate);
+  state.memorialDate = parseDateInput(String(form.get("memorialDate") || "")) || state.memorialDate;
   state.memorialNote = String(form.get("memorialNote") || "").trim();
   state.memorialText = buildMemorialText(state);
 
@@ -905,7 +905,7 @@ function renderSettings() {
   elements.settingsForm.petType.value = state.petType || "horse";
   elements.settingsForm.petTypeCustom.value = state.petTypeCustom || "";
   elements.settingsForm.memorialName.value = state.memorialName;
-  elements.settingsForm.memorialDate.value = state.memorialDate;
+  elements.settingsForm.memorialDate.value = formatDateInput(state.memorialDate);
   elements.settingsForm.memorialNote.value = state.memorialNote || "";
 }
 
@@ -1058,6 +1058,30 @@ function parseDate(value) {
   const [year, month, day] = value.split("-").map(Number);
   if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
+}
+
+function parseDateInput(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const match = trimmed.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  if (!match) return "";
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "";
+
+  return toDateKey(date);
+}
+
+function formatDateInput(value) {
+  const date = parseDate(value);
+  if (!date) return "";
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
 }
 
 function toDateKey(date) {
