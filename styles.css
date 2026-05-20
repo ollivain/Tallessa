@@ -20,16 +20,25 @@
   box-sizing: border-box;
 }
 
-html {
+html,
+body,
+#root {
+  width: 100%;
   min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+html {
   background: var(--cream);
 }
 
 body {
   min-height: 100vh;
-  margin: 0;
   color: var(--text);
   font-family: var(--sans);
+  touch-action: pan-y;
   background:
     linear-gradient(180deg, rgba(255, 252, 245, 0.62), transparent 18rem),
     var(--cream);
