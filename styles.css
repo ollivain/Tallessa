@@ -168,7 +168,7 @@ h3 {
   width: min(100%, 460px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 18px 16px 82px;
+  padding: 18px 16px calc(150px + env(safe-area-inset-bottom));
 }
 
 .screen {
