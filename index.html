@@ -20,10 +20,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260520-home-memory-deeper-overlap" />
+    <link rel="stylesheet" href="styles.css?v=20260520-compact-bottom-nav" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -344,6 +344,43 @@
             Muistopäivän kuva
             <input name="memorialImage" type="file" accept="image/*" />
           </label>
+
+          <details class="theme-disclosure">
+            <summary>Teemat</summary>
+            <fieldset class="theme-picker">
+              <legend>Valitse teema</legend>
+            <label class="theme-card theme-card--classic">
+              <input name="theme" type="radio" value="classic" />
+              <span class="theme-check" aria-hidden="true">✓</span>
+              <span class="theme-name">Klassinen</span>
+              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+            </label>
+            <label class="theme-card theme-card--timeless">
+              <input name="theme" type="radio" value="timeless" />
+              <span class="theme-check" aria-hidden="true">✓</span>
+              <span class="theme-name">Ajaton</span>
+              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+            </label>
+            <label class="theme-card theme-card--soft">
+              <input name="theme" type="radio" value="soft" />
+              <span class="theme-check" aria-hidden="true">✓</span>
+              <span class="theme-name">Pehmeä</span>
+              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+            </label>
+            <label class="theme-card theme-card--modern">
+              <input name="theme" type="radio" value="modern" />
+              <span class="theme-check" aria-hidden="true">✓</span>
+              <span class="theme-name">Moderni</span>
+              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+            </label>
+            <label class="theme-card theme-card--romantic">
+              <input name="theme" type="radio" value="romantic" />
+              <span class="theme-check" aria-hidden="true">✓</span>
+              <span class="theme-name">Romanttinen</span>
+              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+            </label>
+            </fieldset>
+          </details>
           <button class="primary-action" type="submit">Tallenna asetukset</button>
         </form>
         <p class="privacy-note">Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.</p>
@@ -398,6 +435,6 @@
       </button>
     </nav>
 
-    <script src="app.js?v=20260520-authenia-memorial-only" type="module"></script>
+    <script src="app.js?v=20260520-themes" type="module"></script>
   </body>
 </html>

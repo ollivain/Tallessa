@@ -1,4 +1,5 @@
 const STORAGE_KEY = "tallessa.prototype.v1";
+const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
 
 const monthNames = [
   "tammikuu",
@@ -16,6 +17,7 @@ const monthNames = [
 ];
 
 const defaultState = {
+  theme: "classic",
   horseName: "Pepe",
   petType: "horse",
   petTypeCustom: "",
@@ -105,6 +107,7 @@ elements.dayForm.addEventListener("submit", addImportantDay);
 elements.monthPhoto.addEventListener("change", updateMonthPhoto);
 elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
 elements.settingsForm.addEventListener("submit", saveSettings);
+elements.settingsForm.addEventListener("change", handleSettingsChange);
 elements.petType.addEventListener("change", previewPetMemorialText);
 elements.memorialDateInput.addEventListener("change", updateMemorialDateDisplay);
 document.addEventListener("pointerdown", startImageCompose);
@@ -630,7 +633,9 @@ async function saveSettings(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const image = form.get("memorialImage");
+  const selectedTheme = String(form.get("theme") || state.theme || "classic");
 
+  state.theme = normalizeTheme(selectedTheme);
   state.horseName = String(form.get("horseName") || state.horseName).trim() || state.horseName;
   state.petType = String(form.get("petType") || state.petType);
   state.petTypeCustom = String(form.get("petTypeCustom") || "").trim();
@@ -650,7 +655,16 @@ async function saveSettings(event) {
   showScreen("memorial");
 }
 
+function handleSettingsChange(event) {
+  if (event.target.name !== "theme") return;
+  state.theme = normalizeTheme(event.target.value);
+  applyTheme();
+  saveState();
+  renderSettings();
+}
+
 function renderAll() {
+  applyTheme();
   renderHome();
   renderMemories();
   renderLetters();
@@ -1241,6 +1255,18 @@ function renderSettings() {
   elements.settingsForm.memorialDate.value = state.memorialDate;
   updateMemorialDateDisplay();
   elements.settingsForm.memorialNote.value = state.memorialNote || "";
+  const themeInput = elements.settingsForm.querySelector(`input[name="theme"][value="${normalizeTheme(state.theme)}"]`);
+  if (themeInput) themeInput.checked = true;
+}
+
+function applyTheme() {
+  const theme = normalizeTheme(state.theme);
+  document.documentElement.classList.remove(...THEME_IDS.map((id) => `theme-${id}`));
+  document.documentElement.classList.add(`theme-${theme}`);
+}
+
+function normalizeTheme(theme) {
+  return THEME_IDS.includes(theme) ? theme : "classic";
 }
 
 function updateMemorialDateDisplay() {
@@ -1498,6 +1524,7 @@ function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
     const loaded = { ...structuredClone(defaultState), ...stored };
+    loaded.theme = normalizeTheme(loaded.theme);
     loaded.petType = loaded.petType || "horse";
     loaded.petTypeCustom = loaded.petTypeCustom || "";
     loaded.heroImagePosition = normalizePosition(loaded.heroImagePosition);
