@@ -463,20 +463,43 @@ async function addMemory(event) {
   let uploadedStoragePath = "";
 
   try {
-    if (type === "video") {
-      const videoFile = memoryDraft?.file || file;
-      if (!(videoFile instanceof File && videoFile.size)) {
-        throw new Error("missing-video-file");
-      }
-      setMemoryMessage("Valmistellaan videon leikkausta...");
-      const clipFile = await trimVideoFile(videoFile, memoryDraft?.clipStart || 0);
-      if (clipFile.size > MAX_STANDARD_VIDEO_SIZE) {
-        throw new Error("video-too-large");
-      }
-      setMemoryMessage("Lähetetään leikattu video Supabaseen...");
-      const uploaded = await uploadMemoryVideo(clipFile);
-      media = uploaded.publicUrl;
-      storagePath = uploaded.path;
+   if (type === "video") {
+  const videoFile = memoryDraft?.file || file;
+  if (!(videoFile instanceof File && videoFile.size)) {
+    throw new Error("missing-video-file");
+  }
+
+  let videoToUpload = videoFile;
+  let shouldTrimVideo = true;
+
+  try {
+    const duration = await getVideoDuration(videoFile);
+
+    if (duration && duration <= VIDEO_CLIP_SECONDS) {
+      shouldTrimVideo = false;
+    }
+  } catch (error) {
+    console.warn("Videon keston lukeminen epäonnistui, käytetään leikkausta varmistuksena.", error);
+  }
+
+  if (shouldTrimVideo) {
+    setMemoryMessage("Valmistellaan videon leikkausta...");
+    videoToUpload = await trimVideoFile(videoFile, memoryDraft?.clipStart || 0);
+  }
+
+  if (videoToUpload.size > MAX_STANDARD_VIDEO_SIZE) {
+    throw new Error("video-too-large");
+  }
+
+  setMemoryMessage(
+    shouldTrimVideo
+      ? "Lähetetään leikattu video Supabaseen..."
+      : "Lähetetään video Supabaseen..."
+  );
+
+  const uploaded = await uploadMemoryVideo(videoToUpload);
+  media = uploaded.publicUrl;
+  storagePath = uploaded.path;
       uploadedStoragePath = uploaded.path;
     } else if (!media && file instanceof File && file.size) {
       media = await prepareImageFile(file);
@@ -616,6 +639,14 @@ async function prepareVideoDraft(file) {
     URL.revokeObjectURL(previewUrl);
     throw error;
   }
+}
+
+function getVideoDuration(file) {
+  const previewUrl = URL.createObjectURL(file);
+
+  return readVideoDuration(previewUrl).finally(() => {
+    URL.revokeObjectURL(previewUrl);
+  });
 }
 
 function readVideoDuration(src) {
