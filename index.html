@@ -20,7 +20,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260520-ios-layout-fix" />
+    <link rel="stylesheet" href="styles.css?v=20260520-date-picker" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -275,7 +275,10 @@
           </label>
           <label>
             Kuolinpäivä
-            <input name="memorialDate" type="text" inputmode="numeric" autocomplete="off" placeholder="19.5.2026" />
+            <span class="date-picker-field">
+              <input name="memorialDate" data-memorial-date-input type="date" />
+              <span data-memorial-date-display>19.5.2026</span>
+            </span>
           </label>
           <label>
             Oma lisäteksti muistopäivälle
@@ -339,6 +342,6 @@
       </button>
     </nav>
 
-    <script src="app.js?v=20260520-ios-layout-fix" type="module"></script>
+    <script src="app.js?v=20260520-date-picker" type="module"></script>
   </body>
 </html>

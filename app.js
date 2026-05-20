@@ -84,6 +84,8 @@ const elements = {
   memorialTitle: document.querySelector("[data-memorial-title]"),
   memorialButton: document.querySelector("[data-memorial-button]"),
   memorialDate: document.querySelector("[data-memorial-date]"),
+  memorialDateInput: document.querySelector("[data-memorial-date-input]"),
+  memorialDateDisplay: document.querySelector("[data-memorial-date-display]"),
   memorialHeading: document.querySelector("[data-memorial-heading]"),
   memorialText: document.querySelector("[data-memorial-text]"),
   memorialImage: document.querySelector("[data-memorial-image]"),
@@ -104,15 +106,12 @@ elements.monthPhoto.addEventListener("change", updateMonthPhoto);
 elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
 elements.settingsForm.addEventListener("submit", saveSettings);
 elements.petType.addEventListener("change", previewPetMemorialText);
+elements.memorialDateInput.addEventListener("change", updateMemorialDateDisplay);
 document.addEventListener("pointerdown", startImageCompose);
 document.addEventListener("pointermove", moveImageCompose);
 document.addEventListener("pointerup", stopImageCompose);
 document.addEventListener("pointercancel", stopImageCompose);
 document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
-
-renderAll();
-updateMemorialSky();
-memorialSkyTimer = window.setInterval(updateMemorialSky, 60 * 1000);
 
 function handleClick(event) {
   if (event.target.closest("[data-image-change]")) return;
@@ -691,58 +690,387 @@ function getDailyMemoryElement(date) {
   return elements[dayIndex % elements.length];
 }
 
+const dailyQuotes = `
+Muisto ei katoa, se vaihtaa vain paikkaa sydämeen.
+Rakkaus jää sinne, missä kaipauskin asuu.
+Tänäänkin yksi muisto kantaa enemmän kuin tuhat sanaa.
+Se, mikä oli tärkeää, ei koskaan lakkaa olemasta.
+Kaipaus on rakkauden hiljainen ääni.
+Muistot kulkevat mukana silloinkin, kun askeleet jatkuvat ilman toista.
+Sydän muistaa sen, mitä aika ei voi viedä.
+Jokainen lämmin muisto on pieni valo pimeässä.
+Poissaolo voi tuntua suurelta, koska rakkaus oli niin suuri.
+Tänään saa ikävöidä lempeästi.
+Jotkut jättävät jäljen, jota ei tarvitse nähdä tunteakseen.
+Rakkaus ei pääty siihen, mihin yhteinen aika päättyi.
+Muistoissa on koti niille hetkille, joihin haluaa palata.
+Hiljaisuuskin voi olla täynnä rakkautta.
+Ikävä kertoo, että joku oli todella merkityksellinen.
+Tänään muistot saavat olla lähellä.
+Jälki sydämessä on pysyvämpi kuin jälki maassa.
+Kauneimmat hetket eivät katoa, ne pehmenevät ajan mukana.
+Rakkaus löytää tiensä myös hiljaisuuden läpi.
+Jokainen muisto on pieni tapa sanoa: olet yhä tärkeä.
+Kaipaus ei ole heikkoutta, vaan rakkautta ilman paikkaa minne mennä.
+Se, mitä rakastettiin, jää osaksi kaikkea.
+Tänään yksi ajatus voi tuoda lähelle.
+Muistot ovat siltoja eilisen ja tämän päivän välillä.
+Sydän kantaa sitä, mitä kädet eivät enää voi.
+Rakkaus ei tarvitse ääntä kuuluakseen.
+Jotkut nimet tuntuvat aina lämpimiltä.
+Muisto voi olla pieni, mutta sen merkitys suuri.
+Poissa oleva voi silti olla lähellä.
+Tänäänkin rakkaus jatkuu muistojen muodossa.
+Kaikki kaunis ei pääty, osa siitä jää elämään meissä.
+Muisto on kuin valo, joka ei sammu kokonaan.
+Ikävä on sydämen tapa pitää kiinni rakkaasta.
+Tänään saa pysähtyä sen äärelle, mikä oli kaunista.
+Rakkaus ei katoa, vaikka maailma muuttuu.
+Jotkut hetket jäävät ikuisiksi, koska ne tuntuivat kodilta.
+Sydämessä säilyy se, mitä ei halua unohtaa.
+Kaipaus kulkee rinnalla, mutta niin kulkee rakkauskin.
+Muistot tekevät poissaolevasta yhä osan päivää.
+Rakkaan jälki näkyy siinä, miten muistamme.
+Tänään yksi muisto voi riittää lohduttamaan.
+Hiljainen ajatus voi olla kaunein tervehdys.
+Se, joka oli rakas, pysyy rakkaana.
+Muistot eivät kysy aikaa, ne tulevat kun sydän tarvitsee.
+Ikävä kertoo tarinan rakkaudesta.
+Jotkut sydämet jäävät toisiin sydämiin asumaan.
+Tänään saa antaa muistojen olla pehmeitä.
+Rakkaus on vahvempi kuin välimatka.
+Kaipaus tekee näkyväksi sen, mikä merkitsi paljon.
+Muistoissa rakas saa aina tulla lähelle.
+Poissaolo ei poista merkitystä.
+Jokainen lämmin ajatus on pieni kukka muistolle.
+Rakkaus jatkuu siinä, miten puhumme, muistamme ja kannamme.
+Sydän osaa löytää tien takaisin tärkeisiin hetkiin.
+Tänäänkin voit kohdata rakkaan muiston kautta.
+Muistot ovat ajan pehmentämiä aarteita.
+Kaikki hyvä ei jää taakse, osa siitä jää sisään.
+Ikävä on merkki siitä, että rakkaus oli totta.
+Jotkut muistot hengittävät hiljaa mukana.
+Kevytkin muisto voi kantaa raskaan päivän yli.
+Rakkaus näkyy siinä, mitä emme koskaan unohda.
+Tänään muistot saavat kulkea vierellä.
+Sydän pitää tallessa sen, mikä oli tärkeintä.
+Kaipaus voi satuttaa, mutta se syntyi rakkaudesta.
+Jotkut kohtaamiset muuttavat meitä pysyvästi.
+Muisto on pieni hetki, joka ei suostu katoamaan.
+Rakkaan merkitys ei vähene ajan myötä.
+Tänään yksi nimi voi tuoda hymyn ja kyyneleen.
+Ikävä on hiljainen side menneen ja nykyisen välillä.
+Se, mikä kosketti sydäntä, jää sinne.
+Muistot tekevät näkymättömästä läsnä olevaa.
+Rakkaus voi olla poissa silmistä, mutta ei sydämestä.
+Tänään saa muistaa ilman kiirettä.
+Kauniit hetket eivät ole menneet hukkaan.
+Sydän säilyttää omansa hellästi.
+Poissaoleva voi yhä tuoda lohtua.
+Muisto on rakkauden tapa palata.
+Ikävä kulkee kevyemmin, kun sitä kantaa lempeydellä.
+Jotkut jäljet ovat niin kauniita, ettei niitä halua pyyhkiä pois.
+Rakkaus jää elämään pienissä asioissa.
+Tänäänkin mennyt voi tuntua lämpimältä.
+Muistot ovat kuin ikkunoita yhteiseen aikaan.
+Se, joka toi valoa, jättää valoa jälkeensä.
+Kaipaus on osa rakkautta, joka ei päättynyt.
+Sydämen tärkeimmät paikat eivät tyhjene.
+Jokainen muisto kertoo: sinulla oli merkitys.
+Rakkaus ei katoa, se muuttaa muotoaan.
+Tänään saa löytää lohtua siitä, mikä oli hyvää.
+Muistoissa rakas saa aina olla lähellä.
+Jotkut hetket jäävät kulkemaan mukanamme.
+Rakkaus kukkii myös muistoissa.
+Ikävä voi olla raskas, mutta sen juuret ovat kauniit.
+Tänään muistetaan sitä, mikä toi valoa.
+Muisto on sydämen oma kevät.
+Kaikki tärkeä ei katoa ajan mukana.
+Rakas voi olla poissa, mutta vaikutus jää.
+Sydän tunnistaa ne, joita se rakasti.
+Tänään yksi muisto voi avata lempeän oven.
+Kaipaus kertoo, että yhteinen aika oli arvokasta.
+Muistoissa elää se, mitä ei voi menettää kokonaan.
+Rakkaus jää näkyviin tavoissa, ajatuksissa ja tarinoissa.
+Hiljaisuus voi olla täynnä yhteisiä hetkiä.
+Jotkut muistot palaavat kuin aurinko pilvien takaa.
+Tänään saa hymyillä sille, mitä oli.
+Ikävä ja kiitollisuus voivat asua samassa sydämessä.
+Rakkaan jälki ei tarvitse sanoja.
+Muistot tekevät menneestä pehmeän paikan levätä.
+Se, mikä oli rakasta, on yhä arvokasta.
+Sydän ei unohda niitä, jotka tekivät siitä täydemmän.
+Tänään rakkaus saa puhua hiljaa.
+Kaipaus ei vie pois sitä, mitä saatiin kokea.
+Muisto on pieni pala yhteistä aikaa.
+Rakkaus kantaa yli päivien, vuosien ja hiljaisuuden.
+Jotkut hetket pysyvät, koska ne olivat täynnä merkitystä.
+Tänään saa pitää kiinni hyvästä.
+Poissaolo ei tee rakkaasta vähemmän tärkeää.
+Muistot ovat sydämen oma tapa säilyttää.
+Kauniisti eletty hetki elää pitkään.
+Rakkaus jättää jäljen, jota aika vain pehmentää.
+Tänäänkin muisto voi olla lähellä kuin hengitys.
+Muisto voi tuoda valoa tavalliseen päivään.
+Rakkaus ei kysy, onko toinen lähellä.
+Tänään sydän saa muistaa omalla tavallaan.
+Kaipaus on rakkauden varjo, mutta myös sen todiste.
+Jotkut nimet tuntuvat aina kodilta.
+Muistot kasvavat kauniiksi, kun niitä vaalitaan.
+Se, mikä oli hyvää, ei katoa kokonaan.
+Tänään yksi ajatus voi kantaa paljon.
+Rakas jää elämään siinä, mitä hän opetti.
+Hiljainen muisto voi olla päivän lämpimin hetki.
+Rakkaus säilyy siellä, missä sitä tarvitaan.
+Ikävä tekee näkyväksi yhteisen ajan arvon.
+Muisto on sydämen tapa sanoa: olet mukana.
+Tänään saa olla sekä kiitollinen että ikävissään.
+Kauniit jäljet eivät haalistu kokonaan.
+Jotkut hetket jäävät sydämeen asumaan.
+Rakkaus voi olla hiljaista, mutta se ei ole poissa.
+Muistot ovat lempeitä tervehdyksiä menneestä.
+Tänäänkin yhteinen aika saa merkityksen.
+Ikävä ei vähennä rakkautta, se paljastaa sen suuruuden.
+Sydän löytää rakkaan pienistä merkeistä.
+Muisto voi olla kuin kukka, joka avautuu uudelleen.
+Se, mitä rakastimme, kulkee meissä eteenpäin.
+Tänään saa antaa muistolle tilaa.
+Rakkaus ei pääty viimeiseen päivään.
+Kaipaus ja lämpö voivat kulkea käsi kädessä.
+Muistoissa on voimaa, kun päivä tuntuu raskaalta.
+Jotkut jäävät lähelle ilman askelia.
+Tänäänkin rakas voi tuntua ajatuksessa.
+Sydämen muistot eivät tarvitse kalenteria.
+Rakkaus tekee muistoista ikuisia.
+Muistot loistavat joskus kirkkaimmin hiljaisina hetkinä.
+Tänään saa palata siihen, mikä tuntui hyvältä.
+Rakkaan läsnäolo voi jatkua muiston valossa.
+Kaipaus on merkki syvästä yhteydestä.
+Jokainen lämmin muisto on pieni lahja.
+Sydän kantaa yhteiset hetket mukanaan.
+Se, mikä oli rakasta, on yhä osa elämää.
+Tänään yksi muisto voi tehdä päivästä pehmeämmän.
+Rakkaus säilyy, vaikka aika liikkuu eteenpäin.
+Muistoissa on paikka, jossa mikään ei katoa.
+Ikävä kertoo siitä, että joku teki elämästä kauniimpaa.
+Jotkut hetket jäävät kuin auringonvalo iholle.
+Tänään saa muistaa ilolla ja kaipauksella.
+Rakas ei poistu siitä, mitä hän merkitsi.
+Muisto on hiljainen lupaus olla unohtamatta.
+Sydän tietää, ketkä kuuluvat siihen aina.
+Rakkaus voi olla muisto, mutta se tuntuu yhä elävältä.
+Tänäänkin jokin pieni asia voi muistuttaa rakkaasta.
+Kaikki arvokas ei tarvitse olla näkyvää.
+Muistot tekevät poissaolosta hieman lempeämpää.
+Ikävä on rakkauden pitkä kaiku.
+Jotkut jäljet ovat lahjoja, vaikka ne sattuvatkin.
+Tänään saa kiittää siitä, että sai tuntea.
+Rakkaus ei vähene, vaikka sitä kantaa muistoissa.
+Muisto on sydämen kesäpäivä.
+Kaipaus tuo lähelle sen, mitä ei voi koskettaa.
+Se, joka oli tärkeä, pysyy tärkeänä.
+Tänään sydän saa levätä hyvässä muistossa.
+Rakkaan valo ei sammu, se jää heijastumaan.
+Muistot ovat lempeitä jalanjälkiä ajassa.
+Tänään muisto saa olla kevyt kuin kesätuuli.
+Rakkaus kulkee mukana hiljaisissa hetkissä.
+Kaipaus voi muuttua kiitollisuudeksi yhteisestä ajasta.
+Muisto on paikka, jossa rakas on aina lähellä.
+Sydän säilyttää sen, mitä se ei halua päästää pois.
+Jotkut hetket jäävät lämpiminä ihon alle.
+Tänään saa hymyillä sille, mikä kerran oli.
+Rakkaus ei katoa, vaikka sen muoto muuttuu.
+Ikävä on sydämen tapa puhua rakkaasta.
+Kauniit muistot ovat pieniä valoja arjessa.
+Se, joka toi iloa, jätti iloa jälkeensä.
+Tänään yksi ajatus voi olla tervehdys.
+Muistoissa yhteinen aika ei pääty.
+Rakas jää elämään siinä, mitä hän herätti.
+Hiljainen hetki voi olla täynnä läsnäoloa.
+Kaipaus syntyy siitä, että jokin oli korvaamatonta.
+Tänään saa antaa sydämen muistaa vapaasti.
+Rakkaus ei tarvitse näkyä ollakseen totta.
+Muistot kantavat sinne, mihin jalat eivät voi palata.
+Jotkut nimet jäävät sydämen kielelle.
+Ikävä voi olla myös kaunis, kun sen alla on rakkaus.
+Tänäänkin rakas voi löytyä pienestä merkistä.
+Sydän osaa säilyttää tärkeimmät hetket.
+Muisto on lahja, joka avautuu yhä uudelleen.
+Rakkaus jää niihin paikkoihin, joissa sitä jaettiin.
+Kaikki päättynyt ei ole kadonnut.
+Tänään saa kantaa muistoa lempeästi.
+Jälki sydämessä kertoo yhteisestä matkasta.
+Muistot ovat rakkauden hiljaisia kukkia.
+Se, mikä merkitsi paljon, merkitsee yhä.
+Rakkaus on joskus läsnä kaipauksen muodossa.
+Tänään muisto voi tuntua lämpimältä kädeltä olalla.
+Ikävä ei vie pois sitä, mitä saatiin rakastaa.
+Rakkaus säilyy ajassa, vaikka päivät vaihtuvat.
+Muisto on sydämen oma tapa pitää lähellä.
+Jotkut hetket eivät pääty, ne muuttuvat osaksi meitä.
+Kaipaus kertoo, että yhteys oli todellinen.
+Tänään saa olla hetken menneen valossa.
+Rakas jää elämään niissä tarinoissa, joita kerromme.
+Sydän ei mittaa aikaa, vaan merkitystä.
+Muistot voivat olla hiljaisia, mutta ne kantavat pitkälle.
+Rakkaus ei katoa, vaikka sitä ei voi enää koskettaa.
+Tänään yksi muisto voi tehdä tilaa rauhalle.
+Se, mikä oli kaunista, jää valoksi.
+Ikävä on rakkauden lempeä varjo.
+Muistoissa rakas saa aina palata kotiin.
+Jotkut jäljet ovat ikuisia siksi, että ne syntyivät rakkaudesta.
+Tänään saa kiittää jokaisesta yhteisestä hetkestä.
+Rakkaus jää näkymättömäksi voimaksi.
+Kaipaus voi olla hiljainen, mutta se puhuu paljon.
+Sydän muistaa sen, mitä sanat eivät tavoita.
+Muisto on pieni ikkuna rakkaaseen aikaan.
+Tänäänkin läsnäolo voi löytyä poissaolon keskeltä.
+Rakas on mukana siinä, miten jatkamme.
+Muistot eivät sido menneeseen, ne kuljettavat rakkautta eteenpäin.
+Ikävä kertoo, että elämässä oli jotain hyvin kaunista.
+Rakkaus on suurempi kuin viimeinen hyvästi.
+Tänään saa pysähtyä lempeästi.
+Jotkut muistot tulevat luo silloin, kun niitä tarvitsee.
+Sydämen tärkeimmät paikat ovat aina varattuja.
+Muisto kantaa silloinkin, kun sanat loppuvat.
+Rakkaus jää olemaan siellä, missä se kerran syttyi.
+Muisto on kuin lämmin valo viilenevässä illassa.
+Tänään saa antaa kaipauksen tulla ja mennä.
+Rakkaus elää siinä, mitä muistamme hellästi.
+Jotkut hetket jäävät lehdiksi sydämen kirjaan.
+Ikävä syntyy siitä, että joku oli korvaamaton.
+Muistot tekevät menneestä läsnä olevan.
+Sydän pitää tallessa kaiken tärkeimmän.
+Tänään yksi muisto voi riittää lohduttamaan.
+Rakkaus ei kysy aikaa eikä paikkaa.
+Kaipaus on hiljainen side rakkaaseen.
+Muistoissa on lempeä koti yhteiselle ajalle.
+Se, joka toi hyvää, jätti hyvää jälkeensä.
+Tänään saa kulkea muiston kanssa rauhassa.
+Rakas voi olla poissa arjesta, mutta ei sydämestä.
+Muistot ovat pieniä tapoja olla yhdessä yhä.
+Ikävä ei pyyhi pois kiitollisuutta.
+Rakkaus näkyy siinä, mikä pysyy mielessä.
+Jotkut muistot ovat kuin pehmeitä sateen ääniä.
+Tänäänkin sydän saa kaivata.
+Kaikki arvokas ei katoa näkyvistä kadotessaan.
+Muisto on rakkauden lempeä jälki.
+Sydän tietää, ketä se kantaa.
+Rakas jää osaksi vuodenaikoja, paikkoja ja pieniä hetkiä.
+Tänään saa löytää rauhaa siitä, että sai rakastaa.
+Kaipaus on osa yhteistä tarinaa.
+Muistot eivät vanhene samalla tavalla kuin päivät.
+Rakkaus tekee menneestä elävän.
+Jotkut jäljet ovat hiljaisia, mutta syviä.
+Tänään muisto saa olla lähellä.
+Se, mikä oli tärkeää, pysyy sydämen sisällä.
+Muisto voi lämmittää silloinkin, kun päivä on viileä.
+Rakkaus kulkee mukana hiljaisena voimana.
+Tänään saa sytyttää ajatuksissa valon rakkaalle.
+Kaipaus kertoo siitä, että yhteinen aika oli lahja.
+Sydän säilyttää omansa hellästi ja tarkasti.
+Muistot ovat rakkauden pehmeitä jälkiä.
+Jotkut hetket jäävät niin lähelle, ettei niitä tarvitse etsiä.
+Tänään yksi muisto voi tehdä pimeästä lempeämmän.
+Rakas ei katoa siitä, mitä hän merkitsi.
+Ikävä on sydämen hiljainen rukous.
+Rakkaus voi tuntua kaipauksena ja silti lohduttaa.
+Muistoissa on paikka, jossa aika pysähtyy.
+Tänään saa olla kiitollinen myös kyynelten läpi.
+Se, mikä kerran toi valoa, voi tuoda sitä yhä.
+Sydän muistaa ilman muistuttamista.
+Muistot eivät poista ikävää, mutta tekevät sille tilaa.
+Rakkaus jää elämään tavallisissa hetkissä.
+Jotkut nimet ovat sydämessä aina lämpimiä.
+Tänään saa antaa muistojen puhua.
+Kaipaus on rakkauden jälkikaiku.
+Muisto voi olla pieni suoja raskaan päivän keskellä.
+Rakas on mukana siinä, mitä kannamme eteenpäin.
+Ikävä ei tarkoita, että rakkaus olisi jäänyt taakse.
+Tänäänkin mennyt voi olla kauniisti läsnä.
+Sydän löytää lohtua siitä, mikä oli totta.
+Muistot ovat hiljaisia aarteita.
+Rakkaus tekee poissaolevasta yhä merkityksellisen.
+Jotkut jäljet näkyvät vain sydämessä.
+Tänään saa muistaa lämmöllä.
+Kaikki hyvä ei pääty menneeseen.
+Muisto kantaa rakkauden ääntä.
+Pimeässäkin muisto voi olla valo.
+Tänään saa sytyttää sydämessä kynttilän.
+Rakkaus ei sammu, se muuttaa sävyään.
+Kaipaus kertoo siitä, että joku oli syvästi rakas.
+Muistot ovat pieniä valoja hiljaisessa illassa.
+Sydän kantaa sen, mitä se ei voi enää pitää sylissä.
+Jotkut hetket ovat ikuisia juuri siksi, että ne olivat niin rakkaita.
+Tänään saa pysähtyä rakkaan äärelle ajatuksissa.
+Ikävä on rakkauden toinen nimi.
+Muistoissa on lämpöä, vaikka ulkona olisi kylmä.
+Se, mikä oli tärkeää, jää näkyviin sydämen tavassa muistaa.
+Rakkaus ei tarvitse läsnäoloa jatkuakseen.
+Tänään yksi ajatus voi olla kaunis tervehdys.
+Muistot tekevät hiljaisuudesta pehmeämmän.
+Rakas jää osaksi niitä päiviä, joissa häntä muistetaan.
+Kaipaus saa olla, koska rakkauskin saa olla.
+Sydän ei päästä irti siitä, mikä teki hyvää.
+Tänään saa antaa ikävälle lempeän paikan.
+Muisto on kuin kynttilä, joka palaa sisällä.
+Jotkut jäljet muuttuvat osaksi meitä.
+Rakkaus näkyy siinä, miten muistamme vieläkin.
+Tänään saa kuunnella hiljaisuutta.
+Poissaolo ei voi poistaa yhteisiä hetkiä.
+Muistot ovat rakkauden arkisto.
+Ikävä voi olla raskas, mutta se kantaa mukanaan kauneutta.
+Se, joka oli rakas, pysyy rakkaana jokaisena vuodenaikana.
+Tänäänkin yksi muisto voi tuoda lohtua.
+Rakkaus elää siellä, missä nimi sanotaan lämmöllä.
+Muisto voi tehdä kylmästä päivästä vähän lämpimämmän.
+Sydän tietää, miksi se kaipaa.
+Muisto voi loistaa kuin tähti talvi-illassa.
+Tänään saa kantaa rakkautta hiljaa mukana.
+Kaipaus tuntuu suurelta, koska rakkaus oli suuri.
+Rakkaan merkitys ei vähene vuoden vaihtuessa.
+Muistot ovat lahjoja, joita aika ei voi paketoida pois.
+Sydän säilyttää sen, mitä joulun valotkin muistuttavat.
+Tänään yksi lämmin ajatus voi riittää.
+Rakkaus jää elämään pienissä perinteissä ja tavoissa.
+Ikävä voi olla osa juhlaa, kun rakas on ollut osa elämää.
+Muistoissa on paikka kaikelle kauniille, mitä oli.
+Jotkut hetket palaavat vuoden lopussa erityisen lähelle.
+Tänään saa muistaa ilman sanoja.
+Rakas kulkee mukana vuoden viimeisissäkin päivissä.
+Muistot tekevät menneestä valoisamman.
+Kaipaus on sydämen tapa pitää tärkeä lähellä.
+Rakkaus ei jää taakse, vaikka vuosi jää.
+Tänään saa olla kiitollinen siitä, että sai kokea.
+Muisto on pieni valo, joka ei pyydä paljon tilaa.
+Sydän kantaa rakkaansa myös vuodenvaihteen yli.
+Se, mikä oli merkityksellistä, pysyy mukana.
+Ikävä ja rakkaus voivat istua saman pöydän ääressä.
+Tänään yksi muisto voi tehdä olon pehmeämmäksi.
+Rakkaan jälki näkyy siinä, mitä vaalimme.
+Muistot eivät lopu, vaikka kalenteri vaihtuu.
+Jotkut valot jäävät palamaan meihin.
+Tänään saa sulkea vuoden lempeästi muistojen kanssa.
+Rakkaus jatkuu niissä hetkissä, joissa pysähdymme muistamaan.
+Kaipaus kertoo, ettei yhteinen aika ollut turhaa.
+Muistoissa rakas saa kulkea mukana myös uuteen vuoteen.
+Vuosi vaihtuu, mutta rakkauden jälki pysyy.
+Se, mikä on ollut sydämessä, pysyy siellä aina.
+`.trim().split("\n");
+
 function getDailyQuote(date) {
-  const starts = [
-    "Rakkaus pysyy hiljaisissa kohdissa",
-    "Muisto kulkee mukana pehmeästi",
-    "Kaipaus saa tänään olla lempeä",
-    "Se mikä oli tärkeää, ei katoa",
-    "Sydän muistaa myös ilman sanoja",
-    "Pieni hetki voi kantaa kokonaisen päivän",
-    "Lämpö jää asumaan tuttuihin paikkoihin",
-    "Ikävä ja kiitollisuus mahtuvat samaan hengitykseen",
-    "Jokainen muisto on oma pieni valo",
-    "Läheisyys voi tuntua vielä kaukaa",
-    "Tänään riittää yksi kaunis ajatus",
-    "Rauha löytyy siitä, mikä sai jäädä sydämeen",
-    "Muistaminen on rakkautta rauhallisessa muodossa",
-    "Kauneimmat jäljet eivät näy silmille",
-    "Yhteiset päivät kantavat edelleen",
-    "Hiljaisuuskin voi olla täynnä läsnäoloa",
-    "Kiitos voi olla päivän hellin sana",
-    "Muisto avaa oven lempeään valoon",
-    "Rakas ei ole poissa siitä, minkä muutti meissä",
-  ];
-  const endings = [
-    "ja tekee tästä päivästä vähän pehmeämmän.",
-    "kuin lämmin valo tutulla polulla.",
-    "ilman että sitä tarvitsee kiirehtiä pois.",
-    "vaan muuttaa muotoaan ja jää lähelle.",
-    "silloinkin kun päivä on aivan tavallinen.",
-    "kun sille antaa hetken tilaa.",
-    "ja muistuttaa, että hyvä oli totta.",
-    "niin kuin kaksi kättä saman peiton alla.",
-    "joka ei sammu, vaikka maailma jatkaa matkaa.",
-    "jos sitä kuuntelee rauhassa.",
-    "ja se saa riittää.",
-    "kun hengittää hitaammin ja muistaa hellästi.",
-    "joka ei vaadi muuta kuin pysähtymisen.",
-    "mutta ne tuntuvat siellä, missä rakkaus asuu.",
-    "hiljaisina, vahvoina ja kauniina.",
-    "kun siinä on lupa kaivata.",
-    "kun sanat ovat muuten vähissä.",
-    "ja kutsuu takaisin siihen, mikä oli hyvää.",
-    "vaan elää siinä, miten katsomme maailmaa.",
-    "kun annat muistolle lempeän paikan.",
-  ];
   const day = getDayOfYear(date);
-  return `${starts[day % starts.length]} ${endings[Math.floor(day / starts.length) % endings.length]}`;
+  return dailyQuotes[day % dailyQuotes.length];
 }
 
 function getDayOfYear(date) {
   const start = new Date(date.getFullYear(), 0, 0);
   return Math.floor((date - start) / 86400000) - 1;
 }
+
+renderAll();
+updateMemorialSky();
+memorialSkyTimer = window.setInterval(updateMemorialSky, 60 * 1000);
 
 function renderMemories() {
   if (!state.memories.length) {
@@ -905,8 +1233,14 @@ function renderSettings() {
   elements.settingsForm.petType.value = state.petType || "horse";
   elements.settingsForm.petTypeCustom.value = state.petTypeCustom || "";
   elements.settingsForm.memorialName.value = state.memorialName;
-  elements.settingsForm.memorialDate.value = formatDateInput(state.memorialDate);
+  elements.settingsForm.memorialDate.value = state.memorialDate;
+  updateMemorialDateDisplay();
   elements.settingsForm.memorialNote.value = state.memorialNote || "";
+}
+
+function updateMemorialDateDisplay() {
+  elements.memorialDateDisplay.textContent =
+    formatDateInput(elements.memorialDateInput.value) || "Valitse päivä";
 }
 
 function previewPetMemorialText() {
