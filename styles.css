@@ -1523,7 +1523,7 @@ label {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   width: min(calc(100% - 8px), 452px);
   margin: 0 auto;
-  padding: 4px 5px max(5px, calc(env(safe-area-inset-bottom) * 0.62));
+  padding: 6px 6px max(7px, calc(env(safe-area-inset-bottom) * 0.68));
   border: 1px solid rgba(255, 250, 240, 0.62);
   border-bottom: 0;
   border-radius: 24px 24px 0 0;
@@ -1536,29 +1536,29 @@ label {
 .bottom-nav button {
   position: relative;
   display: grid;
-  min-height: 34px;
+  min-height: 44px;
   align-content: center;
   justify-items: center;
-  gap: 1px;
-  border-radius: 13px;
+  gap: 2px;
+  border-radius: 15px;
   color: color-mix(in srgb, var(--muted) 72%, rgba(255, 250, 240, 0.75));
   background: transparent;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 650;
   line-height: 1.1;
 }
 
 .nav-icon {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   place-items: center;
   color: currentColor;
 }
 
 .nav-icon svg {
-  width: 1.34rem;
-  height: 1.34rem;
+  width: 1.48rem;
+  height: 1.48rem;
   stroke-width: 1.7;
 }
 
