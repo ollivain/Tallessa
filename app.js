@@ -398,11 +398,13 @@ function showScreen(name) {
     screen.classList.toggle("is-active", screen.dataset.screen === name);
   });
 
+  document.querySelector(".phone-shell")?.classList.toggle("is-memorial-active", name === "memorial");
+
   navButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.nav === name);
   });
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.scrollingElement?.scrollTo({ top: 0 });
   hideImagePickers();
   if (name === "memorial") updateMemorialSky();
 }
