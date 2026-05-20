@@ -2,6 +2,7 @@ const STORAGE_KEY = "tallessa.prototype.v1";
 const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
 const VIDEO_CLIP_SECONDS = 10;
 const MAX_STANDARD_VIDEO_SIZE = 50 * 1024 * 1024;
+const VIDEO_PROCESSING_TIMEOUT = 20_000;
 const SUPABASE_CONFIG = window.TallessaSupabase || {};
 const SUPABASE_BUCKET = SUPABASE_CONFIG.bucket || "memories";
 
@@ -467,7 +468,7 @@ async function addMemory(event) {
       if (!(videoFile instanceof File && videoFile.size)) {
         throw new Error("missing-video-file");
       }
-      setMemoryMessage("Ladataan videoleikkuria...");
+      setMemoryMessage("Valmistellaan videon leikkausta...");
       const clipFile = await trimVideoFile(videoFile, memoryDraft?.clipStart || 0);
       if (clipFile.size > MAX_STANDARD_VIDEO_SIZE) {
         throw new Error("video-too-large");
@@ -1686,6 +1687,73 @@ async function uploadMemoryVideo(file) {
 }
 
 async function trimVideoFile(file, startTime) {
+  try {
+    setMemoryMessage("Leikataan video selaimessa...");
+    return await withTimeout(trimVideoWithMediaRecorder(file, startTime), VIDEO_PROCESSING_TIMEOUT, "media-recorder-timeout");
+  } catch (error) {
+    console.warn("Browser video trim failed", error);
+    throw error;
+  }
+}
+
+async function trimVideoWithMediaRecorder(file, startTime) {
+  if (!window.MediaRecorder) throw new Error("media-recorder-unavailable");
+
+  const previewUrl = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.src = previewUrl;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.style.position = "fixed";
+  video.style.left = "-9999px";
+  video.style.width = "1px";
+  video.style.height = "1px";
+  document.body.append(video);
+  let stream = null;
+
+  try {
+    await waitForVideoMetadata(video);
+    video.currentTime = Math.min(Math.max(0, Number(startTime) || 0), Math.max(0, video.duration - 0.2));
+    await waitForVideoSeek(video);
+
+    const capture = video.captureStream || video.mozCaptureStream || video.webkitCaptureStream;
+    if (!capture) throw new Error("capture-stream-unavailable");
+
+    stream = capture.call(video);
+    const mimeType = getSupportedRecordingMimeType();
+    const chunks = [];
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data?.size) chunks.push(event.data);
+    });
+
+    const stopped = new Promise((resolve, reject) => {
+      recorder.addEventListener("stop", resolve, { once: true });
+      recorder.addEventListener("error", () => reject(new Error("media-recorder-error")), { once: true });
+    });
+
+    recorder.start(250);
+    await video.play();
+    await delay(VIDEO_CLIP_SECONDS * 1000);
+    recorder.stop();
+    video.pause();
+    await stopped;
+
+    const type = recorder.mimeType || mimeType || "video/webm";
+    const extension = type.includes("mp4") ? "mp4" : "webm";
+    const blob = new Blob(chunks, { type });
+    if (!blob.size) throw new Error("empty-recording");
+    return new File([blob], createClipFileName(file, extension), { type });
+  } finally {
+    stream?.getTracks().forEach((track) => track.stop());
+    video.remove();
+    URL.revokeObjectURL(previewUrl);
+  }
+}
+
+async function trimVideoWithFfmpeg(file, startTime) {
   const ffmpeg = await getFfmpegClient();
   const inputName = `input.${getFileExtension(file) || "mp4"}`;
   const outputName = "clip.mp4";
@@ -1737,7 +1805,7 @@ async function trimVideoFile(file, startTime) {
   await removeFfmpegFile(ffmpeg, inputName);
   await removeFfmpegFile(ffmpeg, outputName);
 
-  return new File([data.buffer], createClipFileName(file), { type: "video/mp4" });
+  return new File([data.buffer], createClipFileName(file, "mp4"), { type: "video/mp4" });
 }
 
 async function getFfmpegClient() {
@@ -1769,10 +1837,64 @@ async function removeFfmpegFile(ffmpeg, path) {
   }
 }
 
-function createClipFileName(file) {
+function getSupportedRecordingMimeType() {
+  const candidates = [
+    "video/mp4;codecs=h264,aac",
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+  ];
+
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function waitForVideoMetadata(video) {
+  if (Number.isFinite(video.duration) && video.duration > 0) return Promise.resolve();
+  return waitForMediaEvent(video, "loadedmetadata", "Video metadata could not be read.");
+}
+
+function waitForVideoSeek(video) {
+  if (video.readyState >= 2 && !video.seeking) return Promise.resolve();
+  return waitForMediaEvent(video, "seeked", "Video seek failed.");
+}
+
+function waitForMediaEvent(target, eventName, message) {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      target.removeEventListener(eventName, handleSuccess);
+      target.removeEventListener("error", handleError);
+    };
+    const handleSuccess = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error(message));
+    };
+    target.addEventListener(eventName, handleSuccess, { once: true });
+    target.addEventListener("error", handleError, { once: true });
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function withTimeout(promise, timeoutMs, errorMessage) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+function createClipFileName(file, extension = "mp4") {
   const base = file.name.replace(/\.[^.]+$/, "") || "muisto";
   const safeBase = base.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "muisto";
-  return `${safeBase}-10s.mp4`;
+  return `${safeBase}-10s.${extension}`;
 }
 
 async function deleteSupabaseFile(path) {
@@ -1822,6 +1944,12 @@ function getUploadErrorMessage(error) {
   }
   if (error?.message === "missing-video-file") {
     return "Videotiedostoa ei löytynyt. Valitse video uudelleen.";
+  }
+  if (error?.message === "media-recorder-timeout" || error?.message === "ffmpeg-timeout") {
+    return "Videon leikkaus kesti liian kauan. Kokeile lyhyempää tai pienempää videota.";
+  }
+  if (error?.message === "media-recorder-unavailable" || error?.message === "capture-stream-unavailable") {
+    return "Tämä selain ei tue videon leikkausta ennen latausta. Kokeile toista selainta tai lyhennä video ensin puhelimessa.";
   }
   if (String(error?.message || "").includes("ffmpeg") || String(error?.name || "").includes("FFmpeg")) {
     return "Videon leikkaus ei onnistunut tässä selaimessa. Kokeile lyhyempää videota tai päivitä selain.";
