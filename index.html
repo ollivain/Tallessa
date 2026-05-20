@@ -23,24 +23,26 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260520-alex-brush-dates" />
+    <link rel="stylesheet" href="styles.css?v=20260520-home-memory-deeper-overlap" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
       <section class="screen home-screen is-active" data-screen="home">
-        <header class="hero" data-image-picker>
-          <div class="hero-image" data-hero-image role="img" aria-label="Rauhallinen hevonen aamuauringossa"></div>
-          <label class="image-change hero-change" data-image-change hidden>
-            Vaihda kuva
-            <input data-hero-photo type="file" accept="image/*" />
-          </label>
-          <span class="image-compose-hint hero-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
-          <div class="hero-copy">
-            <p class="lead hero-memory-line" data-hero-memory-line>Pepen muistot, jotka pysyvät mukana.</p>
-          </div>
-        </header>
+        <div class="home-memory-stack">
+          <header class="hero" data-image-picker>
+            <div class="hero-image" data-hero-image role="img" aria-label="Rauhallinen hevonen aamuauringossa"></div>
+            <label class="image-change hero-change" data-image-change hidden>
+              Vaihda kuva
+              <input data-hero-photo type="file" accept="image/*" />
+            </label>
+            <span class="image-compose-hint hero-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+            <div class="hero-copy">
+              <p class="lead hero-memory-line" data-hero-memory-line>Pepen muistot, jotka pysyvät mukana.</p>
+            </div>
+          </header>
 
-        <article class="memory-of-day card" data-memory-of-day></article>
+          <article class="memory-of-day card" data-memory-of-day></article>
+        </div>
         <article class="daily-quote card" data-daily-quote></article>
 
         <section class="quick-actions" aria-label="Tärkeimmät osiot">
@@ -396,6 +398,6 @@
       </button>
     </nav>
 
-    <script src="app.js?v=20260520-alex-brush-dates" type="module"></script>
+    <script src="app.js?v=20260520-authenia-memorial-only" type="module"></script>
   </body>
 </html>
