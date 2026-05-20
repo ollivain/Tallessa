@@ -63,7 +63,7 @@ const navButtons = [...document.querySelectorAll("[data-nav]")];
 
 const elements = {
   heroImage: document.querySelector("[data-hero-image]"),
-  heroTitle: document.querySelector("[data-hero-title]"),
+  heroMemoryLine: document.querySelector("[data-hero-memory-line]"),
   heroPhoto: document.querySelector("[data-hero-photo]"),
   memoryOfDay: document.querySelector("[data-memory-of-day]"),
   dailyQuote: document.querySelector("[data-daily-quote]"),
@@ -668,7 +668,7 @@ function renderHome() {
     ? `linear-gradient(180deg, rgba(37,42,31,0.08) 24%, rgba(37,42,31,0.72) 100%), url('${state.heroImage}')`
     : "";
   applyImagePosition(elements.heroImage, state.heroImagePosition);
-  elements.heroTitle.textContent = toGenitive(state.horseName);
+  elements.heroMemoryLine.textContent = `${toGenitive(state.horseName)} muistot, jotka pysyvät mukana.`;
   elements.memoryOfDay.innerHTML = `
     <div class="memory-of-day-copy">
       <p class="eyebrow">Päivän muisto</p>

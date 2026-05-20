@@ -558,7 +558,7 @@ h3 {
   position: absolute;
   inset: auto 0 0;
   max-width: 84%;
-  padding: 0 22px 26px;
+  padding: 0 22px 24px;
   color: #fffaf0;
   text-shadow: 0 2px 18px rgba(28, 30, 24, 0.32);
 }
@@ -601,6 +601,16 @@ h3 {
   margin-bottom: 0;
   font-size: 0.98rem;
   line-height: 1.45;
+}
+
+.hero-memory-line {
+  max-width: 18rem;
+  color: rgba(255, 250, 240, 0.92);
+  font-family: "Alex Brush", var(--serif);
+  font-size: clamp(1.65rem, 7vw, 2.25rem);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.08;
 }
 
 .topbar {
@@ -779,11 +789,11 @@ h3 {
 .daily-quote blockquote {
   margin: 0;
   color: var(--brown);
-  font-family: var(--serif);
-  font-size: clamp(1rem, 4.6vw, 1.24rem);
-  font-style: italic;
-  font-weight: 500;
-  line-height: 1.35;
+  font-family: "Alex Brush", var(--serif);
+  font-size: clamp(1.55rem, 7vw, 2rem);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.12;
 }
 
 .quick-actions {
@@ -1061,9 +1071,11 @@ label {
 .date-line,
 .italic-note {
   color: var(--brown);
-  font-family: var(--serif);
-  font-size: 0.98rem;
-  font-style: italic;
+  font-family: "Alex Brush", var(--serif);
+  font-size: 1.35rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.12;
 }
 
 .letter-editor textarea {
