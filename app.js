@@ -63,8 +63,10 @@ const navButtons = [...document.querySelectorAll("[data-nav]")];
 
 const elements = {
   heroImage: document.querySelector("[data-hero-image]"),
+  heroTitle: document.querySelector("[data-hero-title]"),
   heroPhoto: document.querySelector("[data-hero-photo]"),
   memoryOfDay: document.querySelector("[data-memory-of-day]"),
+  dailyQuote: document.querySelector("[data-daily-quote]"),
   memoryForm: document.querySelector("[data-memory-form]"),
   memoryMedia: document.querySelector("[data-memory-media]"),
   memoryMessage: document.querySelector("[data-memory-message]"),
@@ -79,8 +81,8 @@ const elements = {
   monthPhoto: document.querySelector("[data-month-photo]"),
   dayForm: document.querySelector("[data-day-form]"),
   dayList: document.querySelector("[data-day-list]"),
-  memorialButton: document.querySelector("[data-memorial-button]"),
   memorialTitle: document.querySelector("[data-memorial-title]"),
+  memorialButton: document.querySelector("[data-memorial-button]"),
   memorialDate: document.querySelector("[data-memorial-date]"),
   memorialHeading: document.querySelector("[data-memorial-heading]"),
   memorialText: document.querySelector("[data-memorial-text]"),
@@ -655,16 +657,91 @@ function renderAll() {
 
 function renderHome() {
   const memory = state.memories[0];
+  const today = new Date();
+  const dailyElement = getDailyMemoryElement(today);
+  const quote = getDailyQuote(today);
   elements.heroImage.style.backgroundImage = state.heroImage
-    ? `linear-gradient(180deg, rgba(37,42,31,0.12), rgba(37,42,31,0.7)), url('${state.heroImage}')`
+    ? `linear-gradient(180deg, rgba(37,42,31,0.08) 24%, rgba(37,42,31,0.72) 100%), url('${state.heroImage}')`
     : "";
   applyImagePosition(elements.heroImage, state.heroImagePosition);
+  elements.heroTitle.textContent = toGenitive(state.horseName);
   elements.memoryOfDay.innerHTML = `
-    <p class="eyebrow">Päivän muisto</p>
-    <h3>${escapeHtml(state.horseName)} on tässä mukana</h3>
-    <p>${escapeHtml(memory?.text || "Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.")}</p>
+    <div class="memory-of-day-copy">
+      <p class="eyebrow">Päivän muisto</p>
+      <h3>${escapeHtml(state.horseName)} on tässä mukana</h3>
+      <p>${escapeHtml(memory?.text || "Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.")}</p>
+    </div>
+    <div class="daily-memory-element" aria-hidden="true">${dailyElement}</div>
+  `;
+  elements.dailyQuote.innerHTML = `
+    <p class="eyebrow">Päivän lause</p>
+    <blockquote>“${escapeHtml(quote)}”</blockquote>
   `;
   elements.memorialButton.textContent = state.memorialName;
+}
+
+function getDailyMemoryElement(date) {
+  const dayIndex = Math.floor(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 86400000);
+  const elements = [
+    `<svg viewBox="0 0 90 120"><path class="stem" d="M45 112C43 83 43 52 48 14"/><path d="M45 78c-18-7-27-19-28-34 17 4 27 15 28 34Z"/><path d="M48 61c17-9 25-23 23-40-15 6-24 18-23 40Z"/><path d="M44 96c-14-5-23-15-26-28 14 2 24 12 26 28Z"/><circle cx="50" cy="14" r="3"/><circle cx="58" cy="29" r="2.5"/><circle cx="38" cy="39" r="2.5"/></svg>`,
+    `<svg viewBox="0 0 90 120"><path class="stem" d="M42 112C48 82 52 51 40 18"/><path d="M42 85c-15-12-20-26-16-42 15 9 22 23 16 42Z"/><path d="M45 69c20-3 32-13 38-30-18 0-31 10-38 30Z"/><path d="M39 101c-12-8-18-19-18-33 13 6 20 17 18 33Z"/><circle cx="40" cy="18" r="3"/><circle cx="31" cy="31" r="2.5"/><circle cx="55" cy="46" r="2.5"/></svg>`,
+    `<svg viewBox="0 0 90 120"><path class="stem" d="M47 112C39 82 36 54 35 20"/><path d="M42 82c-18-4-30-15-35-31 18 1 30 12 35 31Z"/><path d="M43 55c14-13 20-28 16-45-13 9-20 24-16 45Z"/><path d="M48 95c17-6 27-18 30-34-16 3-27 15-30 34Z"/><circle cx="35" cy="20" r="3"/><circle cx="52" cy="28" r="2.5"/><circle cx="28" cy="48" r="2.5"/></svg>`,
+    `<svg viewBox="0 0 90 120"><path class="stem" d="M44 112C47 83 45 54 56 18"/><path d="M44 88c-16-9-24-22-24-38 16 6 25 19 24 38Z"/><path d="M50 70c17-7 28-19 30-36-17 3-28 16-30 36Z"/><path d="M42 101c-15-4-25-13-30-26 15 1 25 11 30 26Z"/><circle cx="56" cy="18" r="3"/><circle cx="63" cy="36" r="2.5"/><circle cx="36" cy="47" r="2.5"/></svg>`,
+  ];
+  return elements[dayIndex % elements.length];
+}
+
+function getDailyQuote(date) {
+  const starts = [
+    "Rakkaus pysyy hiljaisissa kohdissa",
+    "Muisto kulkee mukana pehmeästi",
+    "Kaipaus saa tänään olla lempeä",
+    "Se mikä oli tärkeää, ei katoa",
+    "Sydän muistaa myös ilman sanoja",
+    "Pieni hetki voi kantaa kokonaisen päivän",
+    "Lämpö jää asumaan tuttuihin paikkoihin",
+    "Ikävä ja kiitollisuus mahtuvat samaan hengitykseen",
+    "Jokainen muisto on oma pieni valo",
+    "Läheisyys voi tuntua vielä kaukaa",
+    "Tänään riittää yksi kaunis ajatus",
+    "Rauha löytyy siitä, mikä sai jäädä sydämeen",
+    "Muistaminen on rakkautta rauhallisessa muodossa",
+    "Kauneimmat jäljet eivät näy silmille",
+    "Yhteiset päivät kantavat edelleen",
+    "Hiljaisuuskin voi olla täynnä läsnäoloa",
+    "Kiitos voi olla päivän hellin sana",
+    "Muisto avaa oven lempeään valoon",
+    "Rakas ei ole poissa siitä, minkä muutti meissä",
+  ];
+  const endings = [
+    "ja tekee tästä päivästä vähän pehmeämmän.",
+    "kuin lämmin valo tutulla polulla.",
+    "ilman että sitä tarvitsee kiirehtiä pois.",
+    "vaan muuttaa muotoaan ja jää lähelle.",
+    "silloinkin kun päivä on aivan tavallinen.",
+    "kun sille antaa hetken tilaa.",
+    "ja muistuttaa, että hyvä oli totta.",
+    "niin kuin kaksi kättä saman peiton alla.",
+    "joka ei sammu, vaikka maailma jatkaa matkaa.",
+    "jos sitä kuuntelee rauhassa.",
+    "ja se saa riittää.",
+    "kun hengittää hitaammin ja muistaa hellästi.",
+    "joka ei vaadi muuta kuin pysähtymisen.",
+    "mutta ne tuntuvat siellä, missä rakkaus asuu.",
+    "hiljaisina, vahvoina ja kauniina.",
+    "kun siinä on lupa kaivata.",
+    "kun sanat ovat muuten vähissä.",
+    "ja kutsuu takaisin siihen, mikä oli hyvää.",
+    "vaan elää siinä, miten katsomme maailmaa.",
+    "kun annat muistolle lempeän paikan.",
+  ];
+  const day = getDayOfYear(date);
+  return `${starts[day % starts.length]} ${endings[Math.floor(day / starts.length) % endings.length]}`;
+}
+
+function getDayOfYear(date) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date - start) / 86400000) - 1;
 }
 
 function renderMemories() {
@@ -958,6 +1035,12 @@ function toAllative(name) {
   const lower = name.toLowerCase();
   const suffix = /[aouå]$/.test(lower) ? "lle" : "lle";
   return `${name}${suffix}`;
+}
+
+function toGenitive(name) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) return "Rakkaan";
+  return /[aeiouyäöå]$/i.test(trimmed) ? `${trimmed}n` : `${trimmed}in`;
 }
 
 function getDayNote(date) {
