@@ -1,5 +1,12 @@
 const STORAGE_KEY = "tallessa.prototype.v1";
 const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
+const VIDEO_CLIP_SECONDS = 10;
+const MAX_STANDARD_VIDEO_SIZE = 50 * 1024 * 1024;
+const SUPABASE_CONFIG = window.TallessaSupabase || {};
+const SUPABASE_BUCKET = SUPABASE_CONFIG.bucket || "memories";
+
+let supabaseClientPromise = null;
+let ffmpegClientPromise = null;
 
 const monthNames = [
   "tammikuu",
@@ -74,6 +81,10 @@ const elements = {
   memoryMessage: document.querySelector("[data-memory-message]"),
   draftPicker: document.querySelector("[data-draft-picker]"),
   draftPreview: document.querySelector("[data-draft-preview]"),
+  videoTrim: document.querySelector("[data-video-trim]"),
+  videoPreview: document.querySelector("[data-video-preview]"),
+  videoStart: document.querySelector("[data-video-start]"),
+  videoRangeLabel: document.querySelector("[data-video-range-label]"),
   memoryList: document.querySelector("[data-memory-list]"),
   letterForm: document.querySelector("[data-letter-form]"),
   letterList: document.querySelector("[data-letter-list]"),
@@ -101,6 +112,7 @@ document.addEventListener("click", handleClick);
 elements.memoryList.addEventListener("change", updateMemoryImage);
 elements.heroPhoto.addEventListener("change", updateHeroPhoto);
 elements.memoryMedia.addEventListener("change", updateMemoryFileMessage);
+elements.videoStart.addEventListener("input", updateVideoClipSelection);
 elements.memoryForm.addEventListener("submit", addMemory);
 elements.letterForm.addEventListener("submit", addLetter);
 elements.dayForm.addEventListener("submit", addImportantDay);
@@ -267,7 +279,7 @@ function hideDeleteActions() {
   });
 }
 
-function handleDeleteAction(button) {
+async function handleDeleteAction(button) {
   const type = button.dataset.deleteItem;
   const id = button.dataset.itemId;
 
@@ -278,7 +290,11 @@ function handleDeleteAction(button) {
     return;
   }
 
-  if (type === "memory") state.memories = state.memories.filter((memory) => memory.id !== id);
+  if (type === "memory") {
+    const memory = findMemory(id);
+    state.memories = state.memories.filter((item) => item.id !== id);
+    if (memory?.storagePath) deleteSupabaseFile(memory.storagePath);
+  }
   if (type === "letter") state.letters = state.letters.filter((letter) => letter.id !== id);
   saveState();
   renderHome();
@@ -440,13 +456,42 @@ async function addMemory(event) {
   if (!text && !(file instanceof File && file.size)) return;
 
   setMemoryMessage("Tallennetaan muistoa...");
-  const media = memoryDraft?.media || "";
-  const type = memoryDraft?.type || (file instanceof File && file.type.startsWith("video") ? "video" : "image");
+  const type = memoryDraft?.type || (file instanceof File && isVideoFile(file) ? "video" : "image");
+  let media = memoryDraft?.media || "";
+  let storagePath = memoryDraft?.storagePath || "";
+  let uploadedStoragePath = "";
+
+  try {
+    if (type === "video") {
+      const videoFile = memoryDraft?.file || file;
+      if (!(videoFile instanceof File && videoFile.size)) {
+        throw new Error("missing-video-file");
+      }
+      setMemoryMessage("Ladataan videoleikkuria...");
+      const clipFile = await trimVideoFile(videoFile, memoryDraft?.clipStart || 0);
+      if (clipFile.size > MAX_STANDARD_VIDEO_SIZE) {
+        throw new Error("video-too-large");
+      }
+      setMemoryMessage("Lähetetään leikattu video Supabaseen...");
+      const uploaded = await uploadMemoryVideo(clipFile);
+      media = uploaded.publicUrl;
+      storagePath = uploaded.path;
+      uploadedStoragePath = uploaded.path;
+    } else if (!media && file instanceof File && file.size) {
+      media = await prepareImageFile(file);
+    }
+  } catch (error) {
+    setMemoryMessage(getUploadErrorMessage(error), true);
+    return;
+  }
 
   state.memories.unshift({
     id: crypto.randomUUID(),
     type,
     media,
+    storagePath,
+    clipStart: memoryDraft?.clipStart || 0,
+    clipEnd: memoryDraft?.clipEnd || (type === "video" ? VIDEO_CLIP_SECONDS : 0),
     imagePosition: memoryDraft?.position || { x: 50, y: 50, zoom: 1 },
     text: text || "Muisto ilman sanoja.",
     createdAt: new Date().toISOString(),
@@ -454,8 +499,11 @@ async function addMemory(event) {
 
   if (!saveState()) {
     state.memories.shift();
+    if (uploadedStoragePath) deleteSupabaseFile(uploadedStoragePath);
     setMemoryMessage(
-      "Kuva tai video on liian suuri paikalliseen tallennukseen. Kokeile pienempää kuvaa.",
+      type === "video"
+        ? "Video tallentui pilveen, mutta selaimen paikallisia tietoja ei voitu päivittää. Kokeile päivittää sivu."
+        : "Kuva on liian suuri paikalliseen tallennukseen. Kokeile pienempää kuvaa.",
       true,
     );
     return;
@@ -477,24 +525,36 @@ async function updateMemoryFileMessage(event) {
   }
 
   const size = `${(file.size / 1024 / 1024).toFixed(1)} Mt`;
-  const note = file.type.startsWith("image/")
+  const type = isVideoFile(file) ? "video" : "image";
+  const note = type === "image"
     ? "Kuva avataan alle sommittelua varten."
-    : "Video tallennetaan vain, jos se mahtuu selaimen paikalliseen muistiin.";
+    : file.size > MAX_STANDARD_VIDEO_SIZE
+      ? "Video leikataan selaimessa 10 sekunnin pätkäksi ennen Supabaseen lähetystä."
+      : "Video lähetetään Supabaseen, kun tallennat muiston.";
   setMemoryMessage(`${file.name} (${size}). ${note}`);
 
   try {
-    const type = file.type.startsWith("video") ? "video" : "image";
-    const media = type === "image" ? await prepareImageFile(file) : await fileToDataUrl(file);
+    const media = type === "image" ? await prepareImageFile(file) : "";
+    const videoDraft = type === "video" ? await prepareVideoDraft(file) : null;
     memoryDraft = {
       type,
       media,
+      file: videoDraft?.file || null,
+      previewUrl: videoDraft?.previewUrl || "",
+      duration: videoDraft?.duration || 0,
+      clipStart: videoDraft?.clipStart || 0,
+      clipEnd: videoDraft?.clipEnd || 0,
       position: { x: 50, y: 50, zoom: 1 },
     };
     renderMemoryDraft();
     setMemoryMessage(
       type === "image"
         ? "Kuva valmis. Voit sommitella sitä ennen tallennusta."
-        : "Video valmis tallennettavaksi.",
+        : file.size > MAX_STANDARD_VIDEO_SIZE
+          ? `Video on ${formatFileSize(file.size)}, mutta tallennuksessa lähetetään vain valittu 10 sekunnin pätkä.`
+          : isSupabaseConfigured()
+          ? "Video valmis. Se lähetetään Supabaseen tallennuksen yhteydessä."
+          : "Video valittu. Lisää Supabase URL ja anon key supabase-config.js-tiedostoon ennen tallennusta.",
     );
   } catch {
     resetMemoryDraft();
@@ -508,6 +568,8 @@ function setMemoryMessage(text, isError = false) {
 }
 
 function renderMemoryDraft() {
+  renderVideoTrim();
+
   if (!memoryDraft?.media || memoryDraft.type !== "image") {
     elements.draftPicker.hidden = true;
     elements.draftPreview.style.backgroundImage = "";
@@ -521,13 +583,95 @@ function renderMemoryDraft() {
 }
 
 function resetMemoryDraft() {
+  if (memoryDraft?.previewUrl) URL.revokeObjectURL(memoryDraft.previewUrl);
   memoryDraft = null;
   elements.draftPicker.hidden = true;
   elements.draftPicker.classList.remove("is-composing", "is-dragging");
   elements.draftPreview.style.backgroundImage = "";
   elements.draftPreview.style.backgroundPosition = "";
   elements.draftPreview.style.backgroundSize = "";
+  elements.videoTrim.hidden = true;
+  elements.videoPreview.removeAttribute("src");
+  elements.videoPreview.load();
+  elements.videoStart.value = "0";
+  elements.videoStart.max = "0";
+  elements.videoRangeLabel.textContent = "0:00-0:10";
   setMemoryMessage("");
+}
+
+async function prepareVideoDraft(file) {
+  const previewUrl = URL.createObjectURL(file);
+  try {
+    const duration = await readVideoDuration(previewUrl);
+    const clipEnd = Math.min(VIDEO_CLIP_SECONDS, duration);
+    return {
+      file,
+      previewUrl,
+      duration,
+      clipStart: 0,
+      clipEnd,
+    };
+  } catch (error) {
+    URL.revokeObjectURL(previewUrl);
+    throw error;
+  }
+}
+
+function readVideoDuration(src) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.addEventListener("loadedmetadata", () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      resolve(duration);
+      video.removeAttribute("src");
+      video.load();
+    }, { once: true });
+    video.addEventListener("error", reject, { once: true });
+    video.src = src;
+  });
+}
+
+function renderVideoTrim() {
+  if (!memoryDraft || memoryDraft.type !== "video") {
+    elements.videoTrim.hidden = true;
+    return;
+  }
+
+  elements.videoTrim.hidden = false;
+  if (elements.videoPreview.src !== memoryDraft.previewUrl) {
+    elements.videoPreview.src = memoryDraft.previewUrl;
+  }
+  const maxStart = Math.max(0, memoryDraft.duration - VIDEO_CLIP_SECONDS);
+  elements.videoStart.max = String(maxStart.toFixed(1));
+  elements.videoStart.value = String(memoryDraft.clipStart || 0);
+  updateVideoRangeLabel();
+  previewVideoClipStart();
+}
+
+function updateVideoClipSelection() {
+  if (!memoryDraft || memoryDraft.type !== "video") return;
+
+  const maxStart = Math.max(0, memoryDraft.duration - VIDEO_CLIP_SECONDS);
+  const clipStart = Math.min(maxStart, Math.max(0, Number(elements.videoStart.value) || 0));
+  memoryDraft.clipStart = clipStart;
+  memoryDraft.clipEnd = Math.min(memoryDraft.duration, clipStart + VIDEO_CLIP_SECONDS);
+  updateVideoRangeLabel();
+  previewVideoClipStart();
+}
+
+function updateVideoRangeLabel() {
+  const start = memoryDraft?.clipStart || 0;
+  const end = memoryDraft?.clipEnd || VIDEO_CLIP_SECONDS;
+  elements.videoRangeLabel.textContent = `${formatDuration(start)}-${formatDuration(end)}`;
+}
+
+function previewVideoClipStart() {
+  if (!memoryDraft || memoryDraft.type !== "video") return;
+  const video = elements.videoPreview;
+  if (Number.isFinite(video.duration)) video.currentTime = memoryDraft.clipStart || 0;
 }
 
 function addLetter(event) {
@@ -653,6 +797,10 @@ async function saveSettings(event) {
   saveState();
   renderAll();
   showScreen("memorial");
+}
+
+function isVideoFile(file) {
+  return file.type.startsWith("video/") || /\.(mov|mp4|m4v|webm)$/i.test(file.name);
 }
 
 function handleSettingsChange(event) {
@@ -1099,12 +1247,15 @@ function renderMemories() {
 
   elements.memoryList.innerHTML = state.memories.map(renderMemoryCard).join("");
   applyMemoryImagePositions();
+  setupMemoryVideoClips();
 }
 
 function renderMemoryCard(memory) {
+  const clipStart = Number(memory.clipStart) || 0;
+  const clipEnd = Number(memory.clipEnd) || 0;
   const media = memory.media
     ? memory.type === "video"
-      ? `<video src="${memory.media}" controls playsinline></video>`
+      ? `<video src="${memory.media}" controls playsinline preload="metadata" data-video-clip-start="${clipStart}" data-video-clip-end="${clipEnd}"></video>`
       : `
           <div class="memory-media-frame" data-image-picker>
             <div class="media-preview" data-memory-image-id="${memory.id}" style="background-image:url('${memory.media}')"></div>
@@ -1127,6 +1278,32 @@ function renderMemoryCard(memory) {
       </div>
     </article>
   `;
+}
+
+function setupMemoryVideoClips() {
+  elements.memoryList.querySelectorAll("video[data-video-clip-start]").forEach((video) => {
+    const start = Number(video.dataset.videoClipStart) || 0;
+    const end = Number(video.dataset.videoClipEnd) || start + VIDEO_CLIP_SECONDS;
+
+    video.addEventListener("loadedmetadata", () => {
+      if (Number.isFinite(video.duration) && start < video.duration) {
+        video.currentTime = start;
+      }
+    });
+
+    video.addEventListener("play", () => {
+      if (Number.isFinite(video.currentTime) && (video.currentTime < start || video.currentTime >= end)) {
+        video.currentTime = start;
+      }
+    });
+
+    video.addEventListener("timeupdate", () => {
+      if (end > start && video.currentTime >= end) {
+        video.pause();
+        video.currentTime = start;
+      }
+    });
+  });
 }
 
 function renderLetters() {
@@ -1465,6 +1642,17 @@ function formatDate(value) {
   return `${date.getDate()}. ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+function formatDuration(value) {
+  const totalSeconds = Math.max(0, Math.round(value));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function formatFileSize(bytes) {
+  return `${(bytes / 1024 / 1024).toFixed(1)} Mt`;
+}
+
 function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -1476,6 +1664,172 @@ function fileToDataUrl(file) {
     reader.addEventListener("error", reject);
     reader.readAsDataURL(file);
   });
+}
+
+async function uploadMemoryVideo(file) {
+  if (!isSupabaseConfigured()) {
+    throw new Error("supabase-not-configured");
+  }
+
+  const supabase = await getSupabaseClient();
+  const path = createStoragePath(file);
+  const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, {
+    cacheControl: "31536000",
+    contentType: file.type || "video/mp4",
+    upsert: false,
+  });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+  return { path, publicUrl: data.publicUrl };
+}
+
+async function trimVideoFile(file, startTime) {
+  const ffmpeg = await getFfmpegClient();
+  const inputName = `input.${getFileExtension(file) || "mp4"}`;
+  const outputName = "clip.mp4";
+  const safeStart = Math.max(0, Number(startTime) || 0);
+
+  setMemoryMessage("Leikataan videosta 10 sekunnin pätkä...");
+  await ffmpeg.writeFile(inputName, new Uint8Array(await file.arrayBuffer()));
+
+  try {
+    await ffmpeg.exec([
+      "-ss",
+      String(safeStart),
+      "-i",
+      inputName,
+      "-t",
+      String(VIDEO_CLIP_SECONDS),
+      "-c",
+      "copy",
+      "-movflags",
+      "faststart",
+      outputName,
+    ]);
+  } catch {
+    await removeFfmpegFile(ffmpeg, outputName);
+    await ffmpeg.exec([
+      "-ss",
+      String(safeStart),
+      "-i",
+      inputName,
+      "-t",
+      String(VIDEO_CLIP_SECONDS),
+      "-vf",
+      "scale='min(1280,iw)':-2",
+      "-c:v",
+      "mpeg4",
+      "-q:v",
+      "5",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "128k",
+      "-movflags",
+      "faststart",
+      outputName,
+    ]);
+  }
+
+  const data = await ffmpeg.readFile(outputName);
+  await removeFfmpegFile(ffmpeg, inputName);
+  await removeFfmpegFile(ffmpeg, outputName);
+
+  return new File([data.buffer], createClipFileName(file), { type: "video/mp4" });
+}
+
+async function getFfmpegClient() {
+  if (!ffmpegClientPromise) {
+    ffmpegClientPromise = loadFfmpegClient();
+  }
+  return ffmpegClientPromise;
+}
+
+async function loadFfmpegClient() {
+  const [{ FFmpeg }, { toBlobURL }] = await Promise.all([
+    import("https://esm.sh/@ffmpeg/ffmpeg@0.12.15"),
+    import("https://esm.sh/@ffmpeg/util@0.12.2"),
+  ]);
+  const baseUrl = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+  const ffmpeg = new FFmpeg();
+  await ffmpeg.load({
+    coreURL: await toBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm"),
+  });
+  return ffmpeg;
+}
+
+async function removeFfmpegFile(ffmpeg, path) {
+  try {
+    await ffmpeg.deleteFile(path);
+  } catch {
+    // File may not exist if a previous FFmpeg command failed before writing output.
+  }
+}
+
+function createClipFileName(file) {
+  const base = file.name.replace(/\.[^.]+$/, "") || "muisto";
+  const safeBase = base.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "muisto";
+  return `${safeBase}-10s.mp4`;
+}
+
+async function deleteSupabaseFile(path) {
+  if (!isSupabaseConfigured() || !path) return;
+
+  try {
+    const supabase = await getSupabaseClient();
+    await supabase.storage.from(SUPABASE_BUCKET).remove([path]);
+  } catch (error) {
+    console.warn("Supabase file cleanup failed", error);
+  }
+}
+
+async function getSupabaseClient() {
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = import("https://esm.sh/@supabase/supabase-js@2").then(({ createClient }) =>
+      createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey),
+    );
+  }
+  return supabaseClientPromise;
+}
+
+function isSupabaseConfigured() {
+  return Boolean(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey && SUPABASE_BUCKET);
+}
+
+function createStoragePath(file) {
+  const extension = getFileExtension(file) || "mp4";
+  return `memories/${new Date().getFullYear()}/${crypto.randomUUID()}.${extension}`;
+}
+
+function getFileExtension(file) {
+  const fromName = file.name.split(".").pop();
+  if (fromName && fromName !== file.name) return fromName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (file.type.includes("quicktime")) return "mov";
+  if (file.type.includes("mp4")) return "mp4";
+  if (file.type.includes("webm")) return "webm";
+  return "";
+}
+
+function getUploadErrorMessage(error) {
+  if (error?.message === "supabase-not-configured") {
+    return "Supabase ei ole vielä käytössä. Lisää projektin URL, anon key ja Storage bucket tiedostoon supabase-config.js.";
+  }
+  if (error?.message === "video-too-large") {
+    return `Video on liian suuri nykyiseen Supabase-tallennukseen. Valitse enintään ${formatFileSize(MAX_STANDARD_VIDEO_SIZE)} video tai lyhennä video ensin puhelimessa ennen latausta.`;
+  }
+  if (error?.message === "missing-video-file") {
+    return "Videotiedostoa ei löytynyt. Valitse video uudelleen.";
+  }
+  if (String(error?.message || "").includes("ffmpeg") || String(error?.name || "").includes("FFmpeg")) {
+    return "Videon leikkaus ei onnistunut tässä selaimessa. Kokeile lyhyempää videota tai päivitä selain.";
+  }
+  if (String(error?.message || "").includes("Payload too large") || String(error?.message || "").includes("exceeded")) {
+    return `Video ylittää Supabasen tiedostokoon rajan. Kokeile enintään ${formatFileSize(MAX_STANDARD_VIDEO_SIZE)} videota.`;
+  }
+  return "Videon leikkaus tai lähetys ei onnistunut. Tarkista verkkoyhteys ja kokeile lyhyempää videota.";
 }
 
 async function prepareMediaFile(file) {

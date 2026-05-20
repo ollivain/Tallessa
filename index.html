@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260520-ios-safe-hero" />
+    <link rel="stylesheet" href="styles.css?v=20260521-video-clips" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -120,6 +120,14 @@
           <div class="memory-draft-preview" data-draft-picker hidden>
             <div class="media-preview" data-draft-preview></div>
             <span class="image-compose-hint draft-hint">Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+          </div>
+          <div class="video-trim" data-video-trim hidden>
+            <video data-video-preview controls playsinline muted preload="metadata"></video>
+            <label>
+              Valitse näytettävä 10 sekunnin kohta
+              <input data-video-start type="range" min="0" max="0" step="0.1" value="0" />
+            </label>
+            <p data-video-range-label>0:00-0:10</p>
           </div>
           <label>
             Pieni teksti muistolle
@@ -435,6 +443,7 @@
       </button>
     </nav>
 
-    <script src="app.js?v=20260520-themes" type="module"></script>
+    <script src="supabase-config.js?v=20260521-supabase-video"></script>
+    <script src="app.js?v=20260521-video-trim-upload" type="module"></script>
   </body>
 </html>
