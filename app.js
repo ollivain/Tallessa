@@ -212,7 +212,10 @@ function openCard(name) {
 
   button.classList.add("is-hidden");
   panel.classList.remove("is-collapsed");
-  panel.querySelector("input, textarea, select")?.focus();
+  panel.scrollIntoView({ block: "center", inline: "nearest" });
+  window.requestAnimationFrame(() => {
+    panel.querySelector("input, textarea, select")?.focus({ preventScroll: true });
+  });
 }
 
 function closeCard(name) {
