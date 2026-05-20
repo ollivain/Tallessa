@@ -238,10 +238,11 @@ h3 {
   width: min(100%, 460px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 18px 16px calc(150px + env(safe-area-inset-bottom));
+  padding: max(18px, calc(env(safe-area-inset-top) + 14px)) 16px calc(150px + env(safe-area-inset-bottom));
 }
 
 .phone-shell.is-memorial-active {
+  padding-top: 0;
   padding-bottom: 0;
 }
 
@@ -361,6 +362,10 @@ h3 {
   overflow: hidden;
   animation: none;
   background: #d9c7ac;
+}
+
+.phone-shell.is-memorial-active .screen[data-screen="memorial"] {
+  margin-top: 0;
 }
 
 .screen[data-screen="memorial"]::before,
