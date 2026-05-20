@@ -1534,8 +1534,9 @@ label {
 .bottom-nav button {
   display: grid;
   min-height: 36px;
-  place-items: center;
-  gap: 0;
+  align-content: center;
+  justify-items: center;
+  gap: 1px;
   border-radius: 14px;
   color: var(--muted);
   background: transparent;
@@ -1546,15 +1547,15 @@ label {
 
 .nav-icon {
   display: grid;
-  width: 19px;
-  height: 19px;
+  width: 22px;
+  height: 22px;
   place-items: center;
   color: currentColor;
 }
 
 .nav-icon svg {
-  width: 1.16rem;
-  height: 1.16rem;
+  width: 1.34rem;
+  height: 1.34rem;
   stroke-width: 1.7;
 }
 
