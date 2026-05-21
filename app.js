@@ -1,4 +1,4 @@
-const STORAGE_KEY = "tallessa.prototype.v1";
+const STORAGE_KEY = "tallessa.prototype.v2";
 const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
 const VIDEO_CLIP_SECONDS = 10;
 const MAX_STANDARD_VIDEO_SIZE = 50 * 1024 * 1024;
@@ -2262,14 +2262,7 @@ function loadState() {
 
     const stored = JSON.parse(storedValue);
     if (stored?.memorials) return normalizeAppState(stored);
-    if (!stored) return createEmptyAppState();
-
-    const migratedMemorial = normalizeMemorial(stored);
-    return {
-      version: 2,
-      activeMemorialId: migratedMemorial.id,
-      memorials: [migratedMemorial],
-    };
+    return createEmptyAppState();
   } catch {
     return createEmptyAppState();
   }
