@@ -23,11 +23,25 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260521-video-clips" />
+    <link rel="stylesheet" href="styles.css?v=20260521-selector-bg-image" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
-      <section class="screen home-screen is-active" data-screen="home">
+      <section class="screen selector-screen is-active" data-screen="selector">
+        <header class="selector-hero">
+          <h1>Tallessa</h1>
+          <p>Muistot, jotka pysyvät mukana.</p>
+        </header>
+
+        <section class="memorial-place-list" data-memorial-place-list></section>
+
+        <button class="primary-action selector-add" type="button" data-create-memorial>
+          Lisää muistopaikka
+        </button>
+      </section>
+
+      <section class="screen home-screen" data-screen="home">
+        <button class="memory-switch-button" type="button" data-nav="selector">Muistopaikat</button>
         <div class="home-memory-stack">
           <header class="hero" data-image-picker>
             <div class="hero-image" data-hero-image role="img" aria-label="Rauhallinen hevonen aamuauringossa"></div>
@@ -308,7 +322,13 @@
           </span>
         </header>
 
+        <button class="add-card-toggle memory-place-switch" type="button" data-nav="selector">
+          <span aria-hidden="true">↺</span>
+          <strong>Vaihda muistopaikkaa</strong>
+        </button>
+
         <form class="card form-card" data-settings-form>
+          <p class="settings-create-note" data-settings-create-note hidden>Luo uusi muistopaikka täyttämällä perustiedot. Tallennuksen jälkeen siirryt sen kotisivulle.</p>
           <label>
             Lemmikin nimi
             <input name="horseName" type="text" maxlength="40" />
@@ -389,13 +409,13 @@
             </label>
             </fieldset>
           </details>
-          <button class="primary-action" type="submit">Tallenna asetukset</button>
+          <button class="primary-action" type="submit">Tallenna muutokset</button>
         </form>
         <p class="privacy-note">Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.</p>
       </section>
     </main>
 
-    <nav class="bottom-nav" aria-label="Sovelluksen osiot">
+    <nav class="bottom-nav" data-app-nav aria-label="Sovelluksen osiot">
       <button class="is-active" type="button" data-nav="home">
         <span class="nav-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -444,6 +464,6 @@
     </nav>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260521-browser-video-trim" type="module"></script>
+    <script src="app.js?v=20260521-settings-cleanup" type="module"></script>
   </body>
 </html>

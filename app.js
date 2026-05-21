@@ -61,17 +61,22 @@ const defaultState = {
   monthPhotoPositions: {},
 };
 
-let state = loadState();
+let appState = loadState();
+let state = getActiveMemorial();
 let visibleMonth = new Date();
 let imageDrag = null;
 let suppressImageToggle = false;
 let memoryDraft = null;
 let memorialSkyTimer = null;
+let isCreatingMemorial = false;
 
 const screens = [...document.querySelectorAll("[data-screen]")];
 const navButtons = [...document.querySelectorAll("[data-nav]")];
 
 const elements = {
+  appNav: document.querySelector("[data-app-nav]"),
+  memorialPlaceList: document.querySelector("[data-memorial-place-list]"),
+  settingsCreateNote: document.querySelector("[data-settings-create-note]"),
   heroImage: document.querySelector("[data-hero-image]"),
   heroMemoryLine: document.querySelector("[data-hero-memory-line]"),
   heroPhoto: document.querySelector("[data-hero-photo]"),
@@ -176,6 +181,17 @@ function handleClick(event) {
   const navTarget = event.target.closest("[data-nav]")?.dataset.nav;
   if (navTarget) {
     showScreen(navTarget);
+    return;
+  }
+
+  const memorialTarget = event.target.closest("[data-select-memorial]")?.dataset.selectMemorial;
+  if (memorialTarget) {
+    selectMemorial(memorialTarget);
+    return;
+  }
+
+  if (event.target.closest("[data-create-memorial]")) {
+    startMemorialCreation();
     return;
   }
 
@@ -414,11 +430,17 @@ function zoomImageWithWheel(event) {
 }
 
 function showScreen(name) {
+  if (name === "selector") {
+    isCreatingMemorial = false;
+    state = getActiveMemorial();
+  }
+
   screens.forEach((screen) => {
     screen.classList.toggle("is-active", screen.dataset.screen === name);
   });
 
   document.querySelector(".phone-shell")?.classList.toggle("is-memorial-active", name === "memorial");
+  document.body.classList.toggle("is-selector-active", name === "selector");
 
   navButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.nav === name);
@@ -426,7 +448,30 @@ function showScreen(name) {
 
   document.scrollingElement?.scrollTo({ top: 0 });
   hideImagePickers();
+  renderMemorialSelector();
   if (name === "memorial") updateMemorialSky();
+}
+
+function selectMemorial(id) {
+  const memorial = appState.memorials.find((item) => item.id === id);
+  if (!memorial) return;
+
+  appState.activeMemorialId = id;
+  state = memorial;
+  isCreatingMemorial = false;
+  saveState();
+  renderAll();
+  showScreen("home");
+}
+
+function startMemorialCreation() {
+  const memorial = createBlankMemorial();
+  appState.memorials.push(memorial);
+  appState.activeMemorialId = memorial.id;
+  state = memorial;
+  isCreatingMemorial = true;
+  renderAll();
+  showScreen("settings");
 }
 
 function updateMemorialSky() {
@@ -827,8 +872,10 @@ async function saveSettings(event) {
   }
 
   saveState();
+  const targetScreen = isCreatingMemorial ? "home" : "memorial";
+  isCreatingMemorial = false;
   renderAll();
-  showScreen("memorial");
+  showScreen(targetScreen);
 }
 
 function isVideoFile(file) {
@@ -844,13 +891,49 @@ function handleSettingsChange(event) {
 }
 
 function renderAll() {
+  state = getActiveMemorial();
   applyTheme();
+  renderMemorialSelector();
   renderHome();
   renderMemories();
   renderLetters();
   renderCalendar();
   renderMemorial();
   renderSettings();
+}
+
+function renderMemorialSelector() {
+  if (!elements.memorialPlaceList) return;
+
+  if (!appState.memorials.length) {
+    elements.memorialPlaceList.innerHTML = `
+      <article class="selector-empty card">
+        <h2>Luo ensimmäinen muistopaikka</h2>
+        <p>Aloita lisäämällä muistettavan nimi ja tärkeät perustiedot.</p>
+      </article>
+    `;
+    return;
+  }
+
+  elements.memorialPlaceList.innerHTML = appState.memorials
+    .map((memorial) => {
+      const image = memorial.heroImage || memorial.memorialImage || "";
+      const isActive = memorial.id === appState.activeMemorialId;
+      const title = `${toGenitive(memorial.horseName || "Muisto")} muistopaikka`;
+      const subtitle = memorial.memorialName || "Muistopaikka";
+      const imageStyle = image ? ` style="background-image:url('${image}')"` : "";
+      return `
+        <button class="memorial-place-card${isActive ? " is-active" : ""}" type="button" data-select-memorial="${memorial.id}">
+          <span class="memorial-place-image"${imageStyle}></span>
+          <span class="memorial-place-copy">
+            <strong>${escapeHtml(title)}</strong>
+            <span>${escapeHtml(subtitle)}</span>
+          </span>
+          <span class="memorial-place-arrow" aria-hidden="true">›</span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 function renderHome() {
@@ -1268,6 +1351,7 @@ function getDayOfYear(date) {
 }
 
 renderAll();
+showScreen("selector");
 updateMemorialSky();
 memorialSkyTimer = window.setInterval(updateMemorialSky, 60 * 1000);
 
@@ -1466,6 +1550,9 @@ function renderSettings() {
   elements.settingsForm.memorialNote.value = state.memorialNote || "";
   const themeInput = elements.settingsForm.querySelector(`input[name="theme"][value="${normalizeTheme(state.theme)}"]`);
   if (themeInput) themeInput.checked = true;
+  if (elements.settingsCreateNote) elements.settingsCreateNote.hidden = !isCreatingMemorial;
+  const saveButton = elements.settingsForm.querySelector('button[type="submit"]');
+  if (saveButton) saveButton.textContent = "Tallenna muutokset";
 }
 
 function applyTheme() {
@@ -2036,35 +2123,107 @@ function resizeImageToDataUrl(image, maxSide, quality) {
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    const loaded = { ...structuredClone(defaultState), ...stored };
-    loaded.theme = normalizeTheme(loaded.theme);
-    loaded.petType = loaded.petType || "horse";
-    loaded.petTypeCustom = loaded.petTypeCustom || "";
-    loaded.heroImagePosition = normalizePosition(loaded.heroImagePosition);
-    loaded.memorialImagePosition = normalizePosition(loaded.memorialImagePosition);
-    loaded.monthPhotoPositions = loaded.monthPhotoPositions || {};
-    loaded.memories = (loaded.memories || []).map((memory) => ({
-      ...memory,
-      imagePosition: normalizePosition(memory.imagePosition),
-    }));
-    loaded.memorialNote = loaded.memorialNote || "";
-    loaded.memorialText = buildMemorialText(loaded);
-    return loaded;
+    if (stored?.memorials) return normalizeAppState(stored);
+
+    const migratedMemorial = normalizeMemorial(stored || defaultState);
+    return {
+      version: 2,
+      activeMemorialId: migratedMemorial.id,
+      memorials: [migratedMemorial],
+    };
   } catch {
-    const fresh = structuredClone(defaultState);
-    fresh.memorialText = buildMemorialText(fresh);
-    return fresh;
+    const firstMemorial = normalizeMemorial(defaultState);
+    return {
+      version: 2,
+      activeMemorialId: firstMemorial.id,
+      memorials: [firstMemorial],
+    };
   }
 }
 
 function saveState() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
     return true;
   } catch (error) {
     console.warn("Tallessa local save failed", error);
     return false;
   }
+}
+
+function normalizeAppState(value) {
+  const memorials = (value.memorials || []).map((memorial) => normalizeMemorial(memorial));
+  const fallback = memorials[0] || normalizeMemorial(defaultState);
+  const activeMemorialId = memorials.some((memorial) => memorial.id === value.activeMemorialId)
+    ? value.activeMemorialId
+    : fallback.id;
+
+  return {
+    version: 2,
+    activeMemorialId,
+    memorials: memorials.length ? memorials : [fallback],
+  };
+}
+
+function normalizeMemorial(value) {
+  const loaded = { ...structuredClone(defaultState), ...(value || {}) };
+  loaded.id = loaded.id || crypto.randomUUID();
+  loaded.theme = normalizeTheme(loaded.theme);
+  loaded.petType = loaded.petType || "horse";
+  loaded.petTypeCustom = loaded.petTypeCustom || "";
+  loaded.horseName = loaded.horseName || "Muisto";
+  loaded.memorialName = loaded.memorialName || `${toGenitive(loaded.horseName)} päivä`;
+  loaded.heroImagePosition = normalizePosition(loaded.heroImagePosition);
+  loaded.memorialImagePosition = normalizePosition(loaded.memorialImagePosition);
+  loaded.monthPhotos = loaded.monthPhotos || {};
+  loaded.monthPhotoPositions = loaded.monthPhotoPositions || {};
+  loaded.importantDays = loaded.importantDays || [];
+  loaded.memories = (loaded.memories || []).map((memory) => ({
+    ...memory,
+    id: memory.id || crypto.randomUUID(),
+    imagePosition: normalizePosition(memory.imagePosition),
+  }));
+  loaded.letters = (loaded.letters || []).map((letter) => ({
+    ...letter,
+    id: letter.id || crypto.randomUUID(),
+  }));
+  loaded.memorialNote = loaded.memorialNote || "";
+  loaded.memorialText = buildMemorialText(loaded);
+  return loaded;
+}
+
+function createBlankMemorial() {
+  return normalizeMemorial({
+    id: crypto.randomUUID(),
+    theme: state?.theme || "classic",
+    horseName: "Muisto",
+    petType: "horse",
+    petTypeCustom: "",
+    memorialName: "Muiston päivä",
+    memorialDate: new Date().toISOString().slice(0, 10),
+    heroImage: "",
+    heroImagePosition: { x: 50, y: 50, zoom: 1 },
+    memorialNote: "",
+    memorialText: "",
+    memorialImage: "",
+    memorialImagePosition: { x: 50, y: 50, zoom: 1 },
+    candleLit: false,
+    memories: [],
+    letters: [],
+    importantDays: [],
+    monthPhotos: {},
+    monthPhotoPositions: {},
+  });
+}
+
+function getActiveMemorial() {
+  if (!appState.memorials.length) {
+    const firstMemorial = normalizeMemorial(defaultState);
+    appState.memorials.push(firstMemorial);
+    appState.activeMemorialId = firstMemorial.id;
+  }
+
+  return appState.memorials.find((memorial) => memorial.id === appState.activeMemorialId) || appState.memorials[0];
 }
 
 function escapeHtml(value) {
