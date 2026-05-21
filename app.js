@@ -1011,7 +1011,7 @@ function renderMemorialSelector() {
 }
 
 function renderHome() {
-  const memory = state.memories[0];
+  const memory = getHomeMemoryOfDay();
   const today = new Date();
   const dailyElement = getDailyMemoryElement(today);
   const quote = getDailyQuote(today);
@@ -1025,7 +1025,7 @@ function renderHome() {
     <div class="memory-of-day-copy">
       <p class="eyebrow">Päivän muisto</p>
       <h3>${escapeHtml(toGenitive(state.horseName))} päivän muisto</h3>
-      <p>Hetki, jonka lämpö jäi sydämeen kulkemaan.</p>
+      <p>${escapeHtml(memory?.text || "Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.")}</p>
       <span class="memory-of-day-link">Avaa muisto <span aria-hidden="true">→</span></span>
     </div>
     <div class="daily-memory-element" aria-hidden="true">
@@ -1641,6 +1641,10 @@ function renderSettings() {
   if (elements.memorialDanger) elements.memorialDanger.hidden = isCreatingMemorial;
   const saveButton = elements.settingsForm.querySelector('button[type="submit"]');
   if (saveButton) saveButton.textContent = "Tallenna muutokset";
+}
+
+function getHomeMemoryOfDay() {
+  return state.memories.find((memory) => memory.isFirstMemorialMemory) || state.memories[0];
 }
 
 function applyTheme() {
