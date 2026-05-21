@@ -1593,7 +1593,8 @@ label {
 }
 
 .memory-card,
-.letter-card {
+.letter-card,
+.day-card[data-deletable-item] {
   cursor: pointer;
 }
 

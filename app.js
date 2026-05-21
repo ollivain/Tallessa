@@ -77,6 +77,7 @@ const navButtons = [...document.querySelectorAll("[data-nav]")];
 const elements = {
   appNav: document.querySelector("[data-app-nav]"),
   memorialPlaceList: document.querySelector("[data-memorial-place-list]"),
+  createMemorialButton: document.querySelector("[data-create-memorial]"),
   settingsCreateNote: document.querySelector("[data-settings-create-note]"),
   settingsTitle: document.querySelector("[data-settings-title]"),
   memorialDanger: document.querySelector("[data-memorial-danger]"),
@@ -379,10 +380,12 @@ async function handleDeleteAction(button) {
     if (memory?.storagePath) deleteSupabaseFile(memory.storagePath);
   }
   if (type === "letter") state.letters = state.letters.filter((letter) => letter.id !== id);
+  if (type === "day") state.importantDays = state.importantDays.filter((day) => day.id !== id);
   saveState();
   renderHome();
   renderMemories();
   renderLetters();
+  renderCalendar();
 }
 
 function startImageCompose(event) {
@@ -932,8 +935,13 @@ async function saveSettings(event) {
   state.memorialText = buildMemorialText(state);
 
   if (image instanceof File && image.size) {
-    state.memorialImage = await prepareImageFile(image);
+    const memorialImage = await prepareImageFile(image);
+    state.memorialImage = memorialImage;
     state.memorialImagePosition = { x: 50, y: 50 };
+    if (isCreatingMemorial) {
+      state.heroImage = memorialImage;
+      state.heroImagePosition = { x: 50, y: 50 };
+    }
     fillFirstMemorialMemoryImage(state);
   }
 
@@ -982,6 +990,7 @@ function renderMemorialSelector() {
   if (!elements.memorialPlaceList) return;
 
   if (!appState.memorials.length) {
+    if (elements.createMemorialButton) elements.createMemorialButton.textContent = "Luo ensimmäinen muistopaikka";
     elements.memorialPlaceList.innerHTML = `
       <article class="selector-empty card">
         <h2>Luo ensimmäinen muistopaikka</h2>
@@ -991,6 +1000,7 @@ function renderMemorialSelector() {
     return;
   }
 
+  if (elements.createMemorialButton) elements.createMemorialButton.textContent = "Lisää muistopaikka";
   elements.memorialPlaceList.innerHTML = appState.memorials
     .map((memorial) => {
       const image = memorial.heroImage || memorial.memorialImage || "";
@@ -1575,7 +1585,7 @@ function renderDayList() {
   const year = visibleMonth.getFullYear();
   const days = [
     {
-      name: state.memorialName,
+      name: `${toGenitive(state.horseName)} päivä`,
       date: state.memorialDate,
       note: "Toistuu automaattisesti joka vuosi.",
       symbol: "♡",
@@ -1586,17 +1596,28 @@ function renderDayList() {
     const date = parseDate(day.date);
     return date && date.getMonth() === month && (day.recurring || date.getFullYear() === year);
   });
+  const memories = state.memories.filter((memory) => {
+    const date = new Date(memory.createdAt);
+    return Number.isFinite(date.getTime()) && date.getMonth() === month && date.getFullYear() === year;
+  });
 
-  if (!days.length) {
+  if (!days.length && !memories.length) {
     elements.dayList.innerHTML = `<p class="empty-state">Tässä kuussa ei ole vielä omia muistopäiviä.</p>`;
     return;
   }
 
-  elements.dayList.innerHTML = days
+  const dayCards = days
     .map((day) => {
       const date = parseDate(day.date);
+      const deletableAttributes = day.recurring
+        ? ""
+        : ` data-deletable-item="day" data-item-id="${day.id}"`;
+      const deleteButton = day.recurring
+        ? ""
+        : `<button class="delete-action" type="button" data-delete-item="day" data-item-id="${day.id}" hidden>Poista</button>`;
       return `
-        <article class="day-card card">
+        <article class="day-card card"${deletableAttributes}>
+          ${deleteButton}
           <span class="day-symbol">${escapeHtml(day.symbol)}</span>
           <div>
             <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
@@ -1607,6 +1628,25 @@ function renderDayList() {
       `;
     })
     .join("");
+  const memoryCards = memories
+    .map((memory) => renderCalendarMemoryCard(memory))
+    .join("");
+
+  elements.dayList.innerHTML = `${dayCards}${memoryCards}`;
+}
+
+function renderCalendarMemoryCard(memory) {
+  const date = new Date(memory.createdAt);
+  return `
+    <article class="day-card card">
+      <span class="day-symbol">&#9825;</span>
+      <div>
+        <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
+        <h3>Muisto</h3>
+        <p>${escapeHtml(memory.text || "Muisto ilman sanoja.")}</p>
+      </div>
+    </article>
+  `;
 }
 
 function renderMemorial() {
@@ -2251,23 +2291,30 @@ function resizeImageToDataUrl(image, maxSide, quality) {
 
 function loadState() {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (stored?.memorials) return normalizeAppState(stored);
+    const storedValue = localStorage.getItem(STORAGE_KEY);
+    if (!storedValue) return createEmptyAppState();
 
-    const migratedMemorial = normalizeMemorial(stored || defaultState);
+    const stored = JSON.parse(storedValue);
+    if (stored?.memorials) return normalizeAppState(stored);
+    if (!stored) return createEmptyAppState();
+
+    const migratedMemorial = normalizeMemorial(stored);
     return {
       version: 2,
       activeMemorialId: migratedMemorial.id,
       memorials: [migratedMemorial],
     };
   } catch {
-    const firstMemorial = normalizeMemorial(defaultState);
-    return {
-      version: 2,
-      activeMemorialId: firstMemorial.id,
-      memorials: [firstMemorial],
-    };
+    return createEmptyAppState();
   }
+}
+
+function createEmptyAppState() {
+  return {
+    version: 2,
+    activeMemorialId: "",
+    memorials: [],
+  };
 }
 
 function saveState() {
