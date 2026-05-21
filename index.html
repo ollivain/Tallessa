@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260521-selector-iphone-fit" />
+    <link rel="stylesheet" href="styles.css?v=20260521-date-picker-trigger" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -327,12 +327,14 @@
         <form class="card form-card" data-settings-form>
           <p class="settings-create-note" data-settings-create-note hidden>Luo uusi muistopaikka täyttämällä perustiedot. Tallennuksen jälkeen siirryt sen kotisivulle.</p>
           <label>
-            Lemmikin nimi
-            <input name="horseName" type="text" maxlength="40" />
+            Muistettavan nimi
+            <input name="horseName" type="text" maxlength="40" placeholder="Esim. Pepe" />
           </label>
           <label>
-            Lemmikki / eläin
+            Muistettava on
             <select name="petType" data-pet-type>
+              <option value="" disabled>Esim. Hevonen</option>
+              <option value="human">Ihminen</option>
               <option value="horse">Hevonen</option>
               <option value="dog">Koira</option>
               <option value="cat">Kissa</option>
@@ -342,28 +344,23 @@
               <option value="hamster">Hamsteri</option>
               <option value="ferret">Fretti</option>
               <option value="turtle">Kilpikonna</option>
-              <option value="human">Ihminen</option>
               <option value="other">Muu eläin</option>
             </select>
           </label>
           <label>
-            Jos valitsit muu eläin
+            Tarkenna halutessasi
             <input name="petTypeCustom" type="text" maxlength="40" placeholder="Esim. poni, papukaija tai akvaariokala" />
           </label>
           <label>
             Muistopäivän nimi
-            <input name="memorialName" type="text" maxlength="48" />
+            <input name="memorialName" type="text" maxlength="48" placeholder="Esim. Pepen päivä" />
           </label>
           <label>
             Kuolinpäivä
             <span class="date-picker-field">
               <input name="memorialDate" data-memorial-date-input type="date" />
-              <span data-memorial-date-display>19.5.2026</span>
+              <span data-memorial-date-display data-open-memorial-date-picker>19.5.2026</span>
             </span>
-          </label>
-          <label>
-            Oma lisäteksti muistopäivälle
-            <textarea name="memorialNote" maxlength="320"></textarea>
           </label>
           <label>
             Muistopäivän kuva
@@ -461,6 +458,6 @@
     </nav>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260521-first-memorial-memory-2" type="module"></script>
+    <script src="app.js?v=20260521-date-picker-trigger" type="module"></script>
   </body>
 </html>

@@ -193,6 +193,9 @@ input[name="memorialDate"] {
   border: 0;
   padding: 0;
   opacity: 0;
+  pointer-events: none;
+  -webkit-appearance: auto;
+  appearance: auto;
 }
 
 .date-picker-field span {
@@ -205,6 +208,7 @@ input[name="memorialDate"] {
   color: var(--text);
   background: rgba(255, 252, 246, 0.88);
   line-height: 1.35;
+  cursor: pointer;
 }
 
 textarea {
@@ -378,7 +382,6 @@ body.is-selector-active .bottom-nav {
 
 .memorial-place-copy {
   display: grid;
-  gap: 4px;
   min-width: 0;
 }
 
@@ -389,15 +392,6 @@ body.is-selector-active .bottom-nav {
   font-size: clamp(1.26rem, 4.6vw, 1.5rem);
   line-height: 1.05;
   text-overflow: clip;
-  white-space: nowrap;
-}
-
-.memorial-place-copy span {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: clamp(0.96rem, 4vw, 1.14rem);
-  font-weight: 600;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

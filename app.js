@@ -38,6 +38,7 @@ const defaultState = {
   memorialImage: "",
   memorialImagePosition: { x: 50, y: 50, zoom: 1 },
   candleLit: false,
+  firstMemorialMemoryCreated: false,
   memories: [
     {
       id: crypto.randomUUID(),
@@ -135,6 +136,11 @@ document.addEventListener("pointercancel", stopImageCompose);
 document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
 
 function handleClick(event) {
+  if (event.target.closest("[data-open-memorial-date-picker]")) {
+    openMemorialDatePicker();
+    return;
+  }
+
   if (event.target.closest("[data-image-change]")) return;
 
   const imagePicker = event.target.closest("[data-image-picker], [data-draft-picker]");
@@ -211,6 +217,22 @@ function handleClick(event) {
     saveState();
     renderMemorial();
   }
+}
+
+function openMemorialDatePicker() {
+  const input = elements.memorialDateInput;
+  if (!input) return;
+
+  input.focus({ preventScroll: true });
+  try {
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
+      return;
+    }
+  } catch (error) {
+    // Safari may reject showPicker for some web app contexts; the click fallback stays in the tap gesture.
+  }
+  input.click();
 }
 
 function toggleImagePicker(picker) {
@@ -856,7 +878,6 @@ async function saveSettings(event) {
   const form = new FormData(event.currentTarget);
   const image = form.get("memorialImage");
   const selectedTheme = String(form.get("theme") || state.theme || "classic");
-  const hadMemorialDate = Boolean(parseDate(state.memorialDate));
   const nextMemorialDate = parseDateInput(String(form.get("memorialDate") || ""));
 
   state.theme = normalizeTheme(selectedTheme);
@@ -866,7 +887,6 @@ async function saveSettings(event) {
   state.memorialName =
     String(form.get("memorialName") || state.memorialName).trim() || state.memorialName;
   state.memorialDate = nextMemorialDate || state.memorialDate;
-  state.memorialNote = String(form.get("memorialNote") || "").trim();
   state.memorialText = buildMemorialText(state);
 
   if (image instanceof File && image.size) {
@@ -875,8 +895,9 @@ async function saveSettings(event) {
     fillFirstMemorialMemoryImage(state);
   }
 
-  if (!hadMemorialDate && nextMemorialDate) {
+  if (nextMemorialDate && !state.firstMemorialMemoryCreated) {
     state.memories.unshift(createFirstMemorialMemory(state));
+    state.firstMemorialMemoryCreated = true;
   }
 
   saveState();
@@ -928,14 +949,12 @@ function renderMemorialSelector() {
       const image = memorial.heroImage || memorial.memorialImage || "";
       const isActive = memorial.id === appState.activeMemorialId;
       const title = `${toGenitive(memorial.horseName || "Muisto")} muistopaikka`;
-      const subtitle = memorial.memorialName || "Muistopaikka";
       const imageStyle = image ? ` style="background-image:url('${image}')"` : "";
       return `
         <button class="memorial-place-card${isActive ? " is-active" : ""}" type="button" data-select-memorial="${memorial.id}">
           <span class="memorial-place-image"${imageStyle}></span>
           <span class="memorial-place-copy">
             <strong>${escapeHtml(title)}</strong>
-            <span>${escapeHtml(subtitle)}</span>
           </span>
           <span class="memorial-place-arrow" aria-hidden="true">›</span>
         </button>
@@ -1557,13 +1576,12 @@ function renderMemorial() {
 }
 
 function renderSettings() {
-  elements.settingsForm.horseName.value = state.horseName;
-  elements.settingsForm.petType.value = state.petType || "horse";
+  elements.settingsForm.horseName.value = isCreatingMemorial ? "" : state.horseName;
+  elements.settingsForm.petType.value = isCreatingMemorial ? "" : state.petType || "horse";
   elements.settingsForm.petTypeCustom.value = state.petTypeCustom || "";
-  elements.settingsForm.memorialName.value = state.memorialName;
+  elements.settingsForm.memorialName.value = isCreatingMemorial ? "" : state.memorialName;
   elements.settingsForm.memorialDate.value = state.memorialDate;
   updateMemorialDateDisplay();
-  elements.settingsForm.memorialNote.value = state.memorialNote || "";
   const themeInput = elements.settingsForm.querySelector(`input[name="theme"][value="${normalizeTheme(state.theme)}"]`);
   if (themeInput) themeInput.checked = true;
   if (elements.settingsCreateNote) elements.settingsCreateNote.hidden = !isCreatingMemorial;
@@ -1593,7 +1611,6 @@ function previewPetMemorialText() {
     horseName: form.horseName.value.trim() || state.horseName,
     petType: form.petType.value,
     petTypeCustom: form.petTypeCustom.value.trim(),
-    memorialNote: form.memorialNote.value.trim(),
   };
   state.memorialText = buildMemorialText(previewState);
   renderMemorial();
@@ -2236,6 +2253,8 @@ function normalizeMemorial(value) {
     id: memory.id || crypto.randomUUID(),
     imagePosition: normalizePosition(memory.imagePosition),
   }));
+  loaded.firstMemorialMemoryCreated =
+    Boolean(loaded.firstMemorialMemoryCreated) || loaded.memories.some((memory) => memory.isFirstMemorialMemory);
   loaded.letters = (loaded.letters || []).map((letter) => ({
     ...letter,
     id: letter.id || crypto.randomUUID(),
@@ -2249,10 +2268,10 @@ function createBlankMemorial() {
   return normalizeMemorial({
     id: crypto.randomUUID(),
     theme: state?.theme || "classic",
-    horseName: "Muisto",
+    horseName: "Pepe",
     petType: "horse",
     petTypeCustom: "",
-    memorialName: "Muiston päivä",
+    memorialName: "Pepen päivä",
     memorialDate: "",
     heroImage: "",
     heroImagePosition: { x: 50, y: 50, zoom: 1 },
@@ -2261,6 +2280,7 @@ function createBlankMemorial() {
     memorialImage: "",
     memorialImagePosition: { x: 50, y: 50, zoom: 1 },
     candleLit: false,
+    firstMemorialMemoryCreated: false,
     memories: [],
     letters: [],
     importantDays: [],
