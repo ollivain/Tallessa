@@ -381,6 +381,7 @@ async function handleDeleteAction(button) {
   }
   if (type === "letter") state.letters = state.letters.filter((letter) => letter.id !== id);
   if (type === "day") state.importantDays = state.importantDays.filter((day) => day.id !== id);
+  if (type === "memorial-day") state.memorialDate = "";
   saveState();
   renderHome();
   renderMemories();
@@ -565,6 +566,7 @@ async function addMemory(event) {
   const form = new FormData(event.currentTarget);
   const file = form.get("media");
   const text = String(form.get("text") || "").trim();
+  const calendarDate = parseDateInput(String(form.get("calendarDate") || ""));
 
   if (!text && !(file instanceof File && file.size)) return;
 
@@ -630,6 +632,7 @@ async function addMemory(event) {
     clipEnd: memoryDraft?.clipEnd || (type === "video" ? VIDEO_CLIP_SECONDS : 0),
     imagePosition: memoryDraft?.position || { x: 50, y: 50, zoom: 1 },
     text: text || "Muisto ilman sanoja.",
+    calendarDate,
     createdAt: new Date().toISOString(),
   });
 
@@ -651,6 +654,7 @@ async function addMemory(event) {
   closeCard("memory");
   renderHome();
   renderMemories();
+  renderCalendar();
 }
 
 async function updateMemoryFileMessage(event) {
@@ -893,7 +897,6 @@ async function updateMemorialPhoto(event) {
 
   state.memorialImage = await prepareImageFile(file);
   state.memorialImagePosition = { x: 50, y: 50 };
-  fillFirstMemorialMemoryImage(state);
   saveState();
   event.target.value = "";
   hideImagePickers();
@@ -942,12 +945,6 @@ async function saveSettings(event) {
       state.heroImage = memorialImage;
       state.heroImagePosition = { x: 50, y: 50 };
     }
-    fillFirstMemorialMemoryImage(state);
-  }
-
-  if (nextMemorialDate && !state.firstMemorialMemoryCreated) {
-    state.memories.unshift(createFirstMemorialMemory(state));
-    state.firstMemorialMemoryCreated = true;
   }
 
   if (isCreatingMemorial && !appState.memorials.some((memorial) => memorial.id === state.id)) {
@@ -971,7 +968,6 @@ function handleSettingsChange(event) {
   state.theme = normalizeTheme(event.target.value);
   applyTheme();
   saveState();
-  renderSettings();
 }
 
 function renderAll() {
@@ -1486,7 +1482,7 @@ function renderMemoryCard(memory) {
       <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
       ${media}
       <div class="memory-body">
-        <p class="date-line">${formatDate(memory.createdAt)}</p>
+        <p class="date-line">${formatDate(memory.calendarDate || memory.createdAt)}</p>
         <p>${escapeHtml(memory.text)}</p>
       </div>
     </article>
@@ -1563,17 +1559,18 @@ function renderCalendar() {
     const isCurrentMonth = date.getMonth() === month;
     const note = getDayNote(date);
     const isMemorial = isMemorialDate(date);
+    const hasMemory = hasCalendarMemory(date);
     const classes = [
       "day-cell",
       !isCurrentMonth ? "is-muted" : "",
       dateKey === todayKey ? "is-today" : "",
-      note || isMemorial ? "has-note" : "",
+      note || isMemorial || hasMemory ? "has-note" : "",
       isMemorial ? "is-memorial" : "",
     ]
       .filter(Boolean)
       .join(" ");
 
-    return `<div class="${classes}" data-symbol="${escapeHtml(isMemorial ? "♡" : note?.symbol || "")}">${date.getDate()}</div>`;
+    return `<div class="${classes}" data-symbol="${escapeHtml(isMemorial || hasMemory ? "♡" : note?.symbol || "")}">${date.getDate()}</div>`;
   });
 
   elements.calendarGrid.innerHTML = cells.join("");
@@ -1589,6 +1586,7 @@ function renderDayList() {
       date: state.memorialDate,
       note: "Toistuu automaattisesti joka vuosi.",
       symbol: "♡",
+      type: "memorial-day",
       recurring: true,
     },
     ...state.importantDays,
@@ -1597,8 +1595,8 @@ function renderDayList() {
     return date && date.getMonth() === month && (day.recurring || date.getFullYear() === year);
   });
   const memories = state.memories.filter((memory) => {
-    const date = new Date(memory.createdAt);
-    return Number.isFinite(date.getTime()) && date.getMonth() === month && date.getFullYear() === year;
+    const date = parseDate(memory.calendarDate);
+    return date && date.getMonth() === month && date.getFullYear() === year;
   });
 
   if (!days.length && !memories.length) {
@@ -1609,12 +1607,11 @@ function renderDayList() {
   const dayCards = days
     .map((day) => {
       const date = parseDate(day.date);
-      const deletableAttributes = day.recurring
-        ? ""
-        : ` data-deletable-item="day" data-item-id="${day.id}"`;
-      const deleteButton = day.recurring
-        ? ""
-        : `<button class="delete-action" type="button" data-delete-item="day" data-item-id="${day.id}" hidden>Poista</button>`;
+      const deleteType = day.type || "day";
+      const itemId = day.id || "";
+      const deletableAttributes = ` data-deletable-item="${deleteType}" data-item-id="${itemId}"`;
+      const deleteButton =
+        `<button class="delete-action" type="button" data-delete-item="${deleteType}" data-item-id="${itemId}" hidden>Poista</button>`;
       return `
         <article class="day-card card"${deletableAttributes}>
           ${deleteButton}
@@ -1636,9 +1633,10 @@ function renderDayList() {
 }
 
 function renderCalendarMemoryCard(memory) {
-  const date = new Date(memory.createdAt);
+  const date = parseDate(memory.calendarDate);
   return `
-    <article class="day-card card">
+    <article class="day-card card" data-deletable-item="memory" data-item-id="${memory.id}">
+      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
       <span class="day-symbol">&#9825;</span>
       <div>
         <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
@@ -1746,43 +1744,6 @@ function buildMemorialText(source) {
   return source.memorialNote ? `${base} ${source.memorialNote}` : base;
 }
 
-function createFirstMemorialMemory(source) {
-  const texts = {
-    horse: "Aamu, jolloin laitumen valo tuntui pysähtyvän hetkeksi.",
-    dog: "Päivä, jolloin tutut tassut jäivät kulkemaan sydämeen.",
-    cat: "Hiljainen hetki, jossa tuttu kehräys jäi lähelle.",
-    rabbit: "Pehmeä muisto pienistä hypyistä ja lempeästä rauhasta.",
-    bird: "Hetki, jolloin tuttu ääni jäi valoksi muistoihin.",
-    guineaPig: "Lämmin muisto pienistä äänistä ja läheisyydestä.",
-    hamster: "Pieni hetki, joka jäi sydämeen suureksi muistoksi.",
-    ferret: "Muisto vilkkaasta ilosta ja omasta ainutlaatuisesta lämmöstä.",
-    turtle: "Rauhallinen hetki, jonka viisaus jäi mukaan.",
-    human: "Hetki, jonka lämpö jäi sydämeen kulkemaan.",
-    other: "Ensimmäinen muisto, joka sai oman paikkansa Tallessa.",
-  };
-
-  return {
-    id: crypto.randomUUID(),
-    type: "image",
-    media: source.memorialImage || "",
-    text: texts[source.petType] || texts.other,
-    createdAt: new Date().toISOString(),
-    imagePosition: normalizePosition(source.memorialImagePosition),
-    isFirstMemorialMemory: true,
-  };
-}
-
-function fillFirstMemorialMemoryImage(source) {
-  if (!source.memorialImage) return;
-
-  const memory = source.memories.find((item) => item.isFirstMemorialMemory && !item.media);
-  if (!memory) return;
-
-  memory.type = "image";
-  memory.media = source.memorialImage;
-  memory.imagePosition = normalizePosition(source.memorialImagePosition);
-}
-
 function getImagePositionKey(surface) {
   if (surface.matches("[data-draft-preview]")) return "draft";
   if (surface.matches("[data-hero-image]")) return "hero";
@@ -1876,6 +1837,11 @@ function toGenitive(name) {
 function getDayNote(date) {
   const dateKey = toDateKey(date);
   return state.importantDays.find((day) => day.date === dateKey);
+}
+
+function hasCalendarMemory(date) {
+  const dateKey = toDateKey(date);
+  return state.memories.some((memory) => memory.calendarDate === dateKey);
 }
 
 function isMemorialDate(date) {
@@ -2356,6 +2322,7 @@ function normalizeMemorial(value) {
   loaded.memories = (loaded.memories || []).map((memory) => ({
     ...memory,
     id: memory.id || crypto.randomUUID(),
+    calendarDate: parseDateInput(memory.calendarDate),
     imagePosition: normalizePosition(memory.imagePosition),
   }));
   loaded.firstMemorialMemoryCreated =
