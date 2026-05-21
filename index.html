@@ -11,6 +11,7 @@
 
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="icon" type="image/png" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <meta name="apple-mobile-web-app-title" content="Tallessa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -23,7 +24,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260521-delete-memorial" />
+    <link rel="stylesheet" href="styles.css?v=20260521-native-date-field" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -358,8 +359,7 @@
           <label>
             Kuolinpäivä
             <span class="date-picker-field">
-              <input name="memorialDate" data-memorial-date-input type="date" />
-              <span data-memorial-date-display data-open-memorial-date-picker>19.5.2026</span>
+              <input name="memorialDate" data-memorial-date-input type="date" aria-label="Kuolinpäivä" />
             </span>
           </label>
           <label>
@@ -474,6 +474,6 @@
     </dialog>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260521-delete-memorial" type="module"></script>
+    <script src="app.js?v=20260521-native-date-field" type="module"></script>
   </body>
 </html>

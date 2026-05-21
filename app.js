@@ -140,11 +140,6 @@ document.addEventListener("pointercancel", stopImageCompose);
 document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
 
 function handleClick(event) {
-  if (event.target.closest("[data-open-memorial-date-picker]")) {
-    openMemorialDatePicker();
-    return;
-  }
-
   const dailyMemory = event.target.closest("[data-open-daily-memory]");
   if (dailyMemory) {
     openDailyMemory(dailyMemory.dataset.openDailyMemory);
@@ -242,22 +237,6 @@ function handleClick(event) {
     saveState();
     renderMemorial();
   }
-}
-
-function openMemorialDatePicker() {
-  const input = elements.memorialDateInput;
-  if (!input) return;
-
-  input.focus({ preventScroll: true });
-  try {
-    if (typeof input.showPicker === "function") {
-      input.showPicker();
-      return;
-    }
-  } catch (error) {
-    // Safari may reject showPicker for some web app contexts; the click fallback stays in the tap gesture.
-  }
-  input.click();
 }
 
 function openDailyMemory(memoryId) {
@@ -553,8 +532,6 @@ function selectMemorial(id) {
 
 function startMemorialCreation() {
   const memorial = createBlankMemorial(state.theme);
-  appState.memorials.push(memorial);
-  appState.activeMemorialId = memorial.id;
   state = memorial;
   isCreatingMemorial = true;
   renderAll();
@@ -965,6 +942,11 @@ async function saveSettings(event) {
     state.firstMemorialMemoryCreated = true;
   }
 
+  if (isCreatingMemorial && !appState.memorials.some((memorial) => memorial.id === state.id)) {
+    appState.memorials.push(state);
+    appState.activeMemorialId = state.id;
+  }
+
   saveState();
   const targetScreen = isCreatingMemorial ? "home" : "memorial";
   isCreatingMemorial = false;
@@ -985,7 +967,7 @@ function handleSettingsChange(event) {
 }
 
 function renderAll() {
-  state = getActiveMemorial();
+  if (!isCreatingMemorial) state = getActiveMemorial();
   applyTheme();
   renderMemorialSelector();
   renderHome();
@@ -1672,6 +1654,7 @@ function normalizeTheme(theme) {
 }
 
 function updateMemorialDateDisplay() {
+  if (!elements.memorialDateDisplay) return;
   elements.memorialDateDisplay.textContent =
     formatDateInput(elements.memorialDateInput.value) || "Valitse päivä";
 }

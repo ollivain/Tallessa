@@ -1,0 +1,17 @@
+{
+  "name": "Tallessa",
+  "short_name": "Tallessa",
+  "lang": "fi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5eddf",
+  "theme_color": "#ede4c9",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
