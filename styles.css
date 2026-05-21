@@ -272,7 +272,7 @@ body.is-selector-active .bottom-nav {
 
 .selector-screen {
   position: relative;
-  min-height: calc(100dvh - max(18px, calc(env(safe-area-inset-top) + 14px)) - 22px);
+  min-height: 100dvh;
   justify-content: center;
   gap: 24px;
   margin: calc(-1 * max(18px, calc(env(safe-area-inset-top) + 14px))) -16px calc(-1 * (150px + env(safe-area-inset-bottom)));
@@ -342,12 +342,12 @@ body.is-selector-active .bottom-nav {
 
 .memorial-place-card {
   display: grid;
-  grid-template-columns: 86px 1fr auto;
+  grid-template-columns: 78px minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   min-height: 122px;
-  padding: 14px 18px 14px 14px;
+  padding: 14px 14px 14px 14px;
   border: 1px solid rgba(255, 255, 255, 0.82);
   border-radius: 30px;
   background: rgba(255, 253, 247, 0.78);
@@ -366,7 +366,7 @@ body.is-selector-active .bottom-nav {
 }
 
 .memorial-place-image {
-  width: 86px;
+  width: 78px;
   aspect-ratio: 1;
   border-radius: 24px;
   background:
@@ -386,9 +386,9 @@ body.is-selector-active .bottom-nav {
   overflow: hidden;
   color: var(--color-primary);
   font-family: var(--serif);
-  font-size: clamp(1.42rem, 5.2vw, 1.72rem);
+  font-size: clamp(1.26rem, 4.6vw, 1.5rem);
   line-height: 1.05;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
@@ -403,7 +403,7 @@ body.is-selector-active .bottom-nav {
 
 .memorial-place-arrow {
   color: rgba(81, 87, 75, 0.82);
-  font-size: 2.8rem;
+  font-size: 2.25rem;
   line-height: 1;
 }
 

@@ -826,6 +826,7 @@ async function updateMemorialPhoto(event) {
 
   state.memorialImage = await prepareImageFile(file);
   state.memorialImagePosition = { x: 50, y: 50 };
+  fillFirstMemorialMemoryImage(state);
   saveState();
   event.target.value = "";
   hideImagePickers();
@@ -855,6 +856,8 @@ async function saveSettings(event) {
   const form = new FormData(event.currentTarget);
   const image = form.get("memorialImage");
   const selectedTheme = String(form.get("theme") || state.theme || "classic");
+  const hadMemorialDate = Boolean(parseDate(state.memorialDate));
+  const nextMemorialDate = parseDateInput(String(form.get("memorialDate") || ""));
 
   state.theme = normalizeTheme(selectedTheme);
   state.horseName = String(form.get("horseName") || state.horseName).trim() || state.horseName;
@@ -862,13 +865,18 @@ async function saveSettings(event) {
   state.petTypeCustom = String(form.get("petTypeCustom") || "").trim();
   state.memorialName =
     String(form.get("memorialName") || state.memorialName).trim() || state.memorialName;
-  state.memorialDate = parseDateInput(String(form.get("memorialDate") || "")) || state.memorialDate;
+  state.memorialDate = nextMemorialDate || state.memorialDate;
   state.memorialNote = String(form.get("memorialNote") || "").trim();
   state.memorialText = buildMemorialText(state);
 
   if (image instanceof File && image.size) {
     state.memorialImage = await prepareImageFile(image);
     state.memorialImagePosition = { x: 50, y: 50 };
+    fillFirstMemorialMemoryImage(state);
+  }
+
+  if (!hadMemorialDate && nextMemorialDate) {
+    state.memories.unshift(createFirstMemorialMemory(state));
   }
 
   saveState();
@@ -1382,7 +1390,15 @@ function renderMemoryCard(memory) {
             <span class="image-compose-hint memory-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
           </div>
         `
-    : `<div class="media-preview" data-memory-image-id="${memory.id}"></div>`;
+    : `
+        <div class="memory-media-frame" data-image-picker>
+          <div class="media-preview" data-memory-image-id="${memory.id}"></div>
+          <label class="image-change memory-change" data-image-change hidden>
+            Vaihda kuva
+            <input data-memory-photo="${memory.id}" type="file" accept="image/*" />
+          </label>
+        </div>
+      `;
 
   return `
     <article class="memory-card card" data-deletable-item="memory" data-item-id="${memory.id}">
@@ -1612,6 +1628,43 @@ function buildMemorialText(source) {
   };
   const base = templates[source.petType] || templates.other;
   return source.memorialNote ? `${base} ${source.memorialNote}` : base;
+}
+
+function createFirstMemorialMemory(source) {
+  const texts = {
+    horse: "Aamu, jolloin laitumen valo tuntui pysähtyvän hetkeksi.",
+    dog: "Päivä, jolloin tutut tassut jäivät kulkemaan sydämeen.",
+    cat: "Hiljainen hetki, jossa tuttu kehräys jäi lähelle.",
+    rabbit: "Pehmeä muisto pienistä hypyistä ja lempeästä rauhasta.",
+    bird: "Hetki, jolloin tuttu ääni jäi valoksi muistoihin.",
+    guineaPig: "Lämmin muisto pienistä äänistä ja läheisyydestä.",
+    hamster: "Pieni hetki, joka jäi sydämeen suureksi muistoksi.",
+    ferret: "Muisto vilkkaasta ilosta ja omasta ainutlaatuisesta lämmöstä.",
+    turtle: "Rauhallinen hetki, jonka viisaus jäi mukaan.",
+    human: "Hetki, jonka lämpö jäi sydämeen kulkemaan.",
+    other: "Ensimmäinen muisto, joka sai oman paikkansa Tallessa.",
+  };
+
+  return {
+    id: crypto.randomUUID(),
+    type: "image",
+    media: source.memorialImage || "",
+    text: texts[source.petType] || texts.other,
+    createdAt: new Date().toISOString(),
+    imagePosition: normalizePosition(source.memorialImagePosition),
+    isFirstMemorialMemory: true,
+  };
+}
+
+function fillFirstMemorialMemoryImage(source) {
+  if (!source.memorialImage) return;
+
+  const memory = source.memories.find((item) => item.isFirstMemorialMemory && !item.media);
+  if (!memory) return;
+
+  memory.type = "image";
+  memory.media = source.memorialImage;
+  memory.imagePosition = normalizePosition(source.memorialImagePosition);
 }
 
 function getImagePositionKey(surface) {
@@ -2200,7 +2253,7 @@ function createBlankMemorial() {
     petType: "horse",
     petTypeCustom: "",
     memorialName: "Muiston päivä",
-    memorialDate: new Date().toISOString().slice(0, 10),
+    memorialDate: "",
     heroImage: "",
     heroImagePosition: { x: 50, y: 50, zoom: 1 },
     memorialNote: "",

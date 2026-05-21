@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260521-selector-bg-image" />
+    <link rel="stylesheet" href="styles.css?v=20260521-selector-iphone-fit" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -41,7 +41,6 @@
       </section>
 
       <section class="screen home-screen" data-screen="home">
-        <button class="memory-switch-button" type="button" data-nav="selector">Muistopaikat</button>
         <div class="home-memory-stack">
           <header class="hero" data-image-picker>
             <div class="hero-image" data-hero-image role="img" aria-label="Rauhallinen hevonen aamuauringossa"></div>
@@ -322,10 +321,8 @@
           </span>
         </header>
 
-        <button class="add-card-toggle memory-place-switch" type="button" data-nav="selector">
-          <span aria-hidden="true">↺</span>
-          <strong>Vaihda muistopaikkaa</strong>
-        </button>
+        <button class="memory-switch-button memory-place-switch" type="button" data-nav="selector">Muistopaikat</button>
+
 
         <form class="card form-card" data-settings-form>
           <p class="settings-create-note" data-settings-create-note hidden>Luo uusi muistopaikka täyttämällä perustiedot. Tallennuksen jälkeen siirryt sen kotisivulle.</p>
@@ -464,6 +461,6 @@
     </nav>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260521-settings-cleanup" type="module"></script>
+    <script src="app.js?v=20260521-first-memorial-memory-2" type="module"></script>
   </body>
 </html>
