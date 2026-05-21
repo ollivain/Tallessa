@@ -78,6 +78,10 @@ const elements = {
   appNav: document.querySelector("[data-app-nav]"),
   memorialPlaceList: document.querySelector("[data-memorial-place-list]"),
   settingsCreateNote: document.querySelector("[data-settings-create-note]"),
+  settingsTitle: document.querySelector("[data-settings-title]"),
+  memorialDanger: document.querySelector("[data-memorial-danger]"),
+  deleteMemorialDialog: document.querySelector("[data-delete-memorial-dialog]"),
+  deleteMemorialMessage: document.querySelector("[data-delete-memorial-message]"),
   heroImage: document.querySelector("[data-hero-image]"),
   heroMemoryLine: document.querySelector("[data-hero-memory-line]"),
   heroPhoto: document.querySelector("[data-hero-photo]"),
@@ -138,6 +142,27 @@ document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
 function handleClick(event) {
   if (event.target.closest("[data-open-memorial-date-picker]")) {
     openMemorialDatePicker();
+    return;
+  }
+
+  const dailyMemory = event.target.closest("[data-open-daily-memory]");
+  if (dailyMemory) {
+    openDailyMemory(dailyMemory.dataset.openDailyMemory);
+    return;
+  }
+
+  if (event.target.closest("[data-delete-memorial]")) {
+    openDeleteMemorialDialog();
+    return;
+  }
+
+  if (event.target.closest("[data-cancel-delete-memorial]")) {
+    elements.deleteMemorialDialog?.close();
+    return;
+  }
+
+  if (event.target.closest("[data-confirm-delete-memorial]")) {
+    deleteActiveMemorial();
     return;
   }
 
@@ -233,6 +258,46 @@ function openMemorialDatePicker() {
     // Safari may reject showPicker for some web app contexts; the click fallback stays in the tap gesture.
   }
   input.click();
+}
+
+function openDailyMemory(memoryId) {
+  showScreen("wall");
+  if (!memoryId) return;
+
+  window.requestAnimationFrame(() => {
+    const memoryCard = [...elements.memoryList.querySelectorAll('[data-deletable-item="memory"]')].find(
+      (card) => card.dataset.itemId === memoryId,
+    );
+    if (!memoryCard) return;
+
+    elements.memoryList.querySelectorAll(".is-daily-memory-target").forEach((card) => {
+      card.classList.remove("is-daily-memory-target");
+    });
+    memoryCard.classList.add("is-daily-memory-target");
+    memoryCard.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    window.setTimeout(() => memoryCard.classList.remove("is-daily-memory-target"), 2200);
+  });
+}
+
+function openDeleteMemorialDialog() {
+  if (!elements.deleteMemorialDialog || !elements.deleteMemorialMessage) return;
+
+  const name = `${toGenitive(state.horseName || "Muisto")} muistopaikka`;
+  elements.deleteMemorialMessage.textContent =
+    `Haluatko varmasti poistaa muistopaikan ‘${name}’? Tämä poistaa kaikki siihen liittyvät muistot, kirjeet ja kuvat. Tätä toimintoa ei voi perua.`;
+  elements.deleteMemorialDialog.showModal();
+}
+
+function deleteActiveMemorial() {
+  const removedId = appState.activeMemorialId;
+  appState.memorials = appState.memorials.filter((memorial) => memorial.id !== removedId);
+  appState.activeMemorialId = appState.memorials[0]?.id || "";
+  state = appState.memorials[0] || createBlankMemorial(state.theme);
+  isCreatingMemorial = false;
+  elements.deleteMemorialDialog?.close();
+  saveState();
+  renderAll();
+  showScreen("selector");
 }
 
 function toggleImagePicker(picker) {
@@ -487,7 +552,7 @@ function selectMemorial(id) {
 }
 
 function startMemorialCreation() {
-  const memorial = createBlankMemorial();
+  const memorial = createBlankMemorial(state.theme);
   appState.memorials.push(memorial);
   appState.activeMemorialId = memorial.id;
   state = memorial;
@@ -973,13 +1038,18 @@ function renderHome() {
     : "";
   applyImagePosition(elements.heroImage, state.heroImagePosition);
   elements.heroMemoryLine.textContent = `${toGenitive(state.horseName)} muistot, jotka pysyvät mukana.`;
+  elements.memoryOfDay.dataset.openDailyMemory = memory?.id || "";
   elements.memoryOfDay.innerHTML = `
     <div class="memory-of-day-copy">
       <p class="eyebrow">Päivän muisto</p>
-      <h3>${escapeHtml(state.horseName)} on tässä mukana</h3>
-      <p>${escapeHtml(memory?.text || "Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.")}</p>
+      <h3>${escapeHtml(toGenitive(state.horseName))} päivän muisto</h3>
+      <p>Hetki, jonka lämpö jäi sydämeen kulkemaan.</p>
+      <span class="memory-of-day-link">Avaa muisto <span aria-hidden="true">→</span></span>
     </div>
-    <div class="daily-memory-element" aria-hidden="true">${dailyElement}</div>
+    <div class="daily-memory-element" aria-hidden="true">
+      ${dailyElement}
+      <span class="memory-of-day-chevron">›</span>
+    </div>
   `;
   elements.dailyQuote.innerHTML = `
     <p class="eyebrow">Päivän lause</p>
@@ -1585,6 +1655,8 @@ function renderSettings() {
   const themeInput = elements.settingsForm.querySelector(`input[name="theme"][value="${normalizeTheme(state.theme)}"]`);
   if (themeInput) themeInput.checked = true;
   if (elements.settingsCreateNote) elements.settingsCreateNote.hidden = !isCreatingMemorial;
+  if (elements.settingsTitle) elements.settingsTitle.hidden = isCreatingMemorial;
+  if (elements.memorialDanger) elements.memorialDanger.hidden = isCreatingMemorial;
   const saveButton = elements.settingsForm.querySelector('button[type="submit"]');
   if (saveButton) saveButton.textContent = "Tallenna muutokset";
 }
@@ -2223,15 +2295,14 @@ function saveState() {
 
 function normalizeAppState(value) {
   const memorials = (value.memorials || []).map((memorial) => normalizeMemorial(memorial));
-  const fallback = memorials[0] || normalizeMemorial(defaultState);
   const activeMemorialId = memorials.some((memorial) => memorial.id === value.activeMemorialId)
     ? value.activeMemorialId
-    : fallback.id;
+    : memorials[0]?.id || "";
 
   return {
     version: 2,
     activeMemorialId,
-    memorials: memorials.length ? memorials : [fallback],
+    memorials,
   };
 }
 
@@ -2264,10 +2335,10 @@ function normalizeMemorial(value) {
   return loaded;
 }
 
-function createBlankMemorial() {
+function createBlankMemorial(theme = "classic") {
   return normalizeMemorial({
     id: crypto.randomUUID(),
-    theme: state?.theme || "classic",
+    theme,
     horseName: "Pepe",
     petType: "horse",
     petTypeCustom: "",
@@ -2291,9 +2362,7 @@ function createBlankMemorial() {
 
 function getActiveMemorial() {
   if (!appState.memorials.length) {
-    const firstMemorial = normalizeMemorial(defaultState);
-    appState.memorials.push(firstMemorial);
-    appState.activeMemorialId = firstMemorial.id;
+    return createBlankMemorial();
   }
 
   return appState.memorials.find((memorial) => memorial.id === appState.activeMemorialId) || appState.memorials[0];

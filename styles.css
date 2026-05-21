@@ -990,11 +990,29 @@ h3 {
   align-items: end;
   overflow: hidden;
   padding: 14px 16px 15px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   border-color: rgba(255, 250, 240, 0.72);
   border-radius: 22px;
   background:
     radial-gradient(circle at 100% 100%, rgba(230, 216, 192, 0.48) 0 3.2rem, transparent 3.3rem),
     linear-gradient(135deg, rgba(255, 253, 246, 0.99), rgba(248, 240, 226, 0.95));
+}
+
+.memory-of-day-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: var(--moss);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.memory-of-day-link span {
+  font-size: 0.94rem;
+  line-height: 1;
 }
 
 .home-memory-stack .memory-of-day {
@@ -1050,6 +1068,18 @@ h3 {
   margin: -4px -9px -15px 0;
   opacity: 0.56;
   color: rgba(154, 118, 87, 0.46);
+}
+
+.memory-of-day-chevron {
+  position: absolute;
+  right: 8px;
+  bottom: 22px;
+  z-index: 1;
+  color: rgba(48, 56, 45, 0.68);
+  font-family: var(--font-body);
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .daily-memory-element::before {
@@ -1216,6 +1246,103 @@ h3 {
   background: var(--moss);
   box-shadow: 0 13px 30px rgba(88, 98, 68, 0.18);
   font-weight: 700;
+}
+
+.danger-zone {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(143, 77, 56, 0.16);
+  padding-top: 18px;
+}
+
+.danger-zone[hidden] {
+  display: none;
+}
+
+.danger-zone-label {
+  margin: 0;
+  color: #8f4d38;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.danger-zone p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.danger-action,
+.secondary-action {
+  min-height: 48px;
+  border-radius: 16px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.danger-action {
+  border: 1px solid rgba(143, 77, 56, 0.28);
+  color: #8f4d38;
+  background: rgba(252, 236, 230, 0.72);
+}
+
+.danger-action--solid {
+  color: #fff8f3;
+  border-color: transparent;
+  background: #98543f;
+}
+
+.secondary-action {
+  border: 1px solid var(--line);
+  color: var(--moss-dark);
+  background: rgba(255, 252, 246, 0.9);
+}
+
+.confirm-dialog {
+  width: min(calc(100% - 32px), 390px);
+  border: 0;
+  border-radius: 26px;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  box-shadow: 0 24px 64px rgba(44, 42, 34, 0.28);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(37, 38, 31, 0.42);
+  backdrop-filter: blur(5px);
+}
+
+.confirm-dialog-card {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+  border: 1px solid rgba(255, 250, 240, 0.74);
+  border-radius: inherit;
+  padding: 22px 18px 18px;
+  background: rgba(255, 248, 237, 0.98);
+}
+
+.confirm-dialog h2 {
+  font-size: clamp(1.52rem, 7vw, 1.95rem);
+}
+
+.confirm-dialog p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.confirm-dialog-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 4px;
 }
 
 .form-card {
@@ -1479,6 +1606,13 @@ label {
 .day-card {
   position: relative;
   overflow: hidden;
+}
+
+.memory-card.is-daily-memory-target {
+  border-color: rgba(90, 108, 70, 0.36);
+  box-shadow:
+    0 0 0 3px rgba(116, 135, 92, 0.16),
+    var(--soft-shadow);
 }
 
 .memory-card,

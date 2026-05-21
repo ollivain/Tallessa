@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260521-date-picker-trigger" />
+    <link rel="stylesheet" href="styles.css?v=20260521-delete-memorial" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -54,7 +54,7 @@
             </div>
           </header>
 
-          <article class="memory-of-day card" data-memory-of-day></article>
+          <button class="memory-of-day card" type="button" data-memory-of-day></button>
         </div>
         <article class="daily-quote card" data-daily-quote></article>
 
@@ -303,7 +303,7 @@
       <section class="screen" data-screen="settings">
         <header class="topbar topbar--ornate">
           <div>
-            <h2>Asetukset</h2>
+            <h2 data-settings-title>Asetukset</h2>
           </div>
           <span class="topbar-ornament" aria-hidden="true">
             <svg viewBox="0 0 92 118" focusable="false">
@@ -404,6 +404,11 @@
             </fieldset>
           </details>
           <button class="primary-action" type="submit">Tallenna muutokset</button>
+          <section class="danger-zone" data-memorial-danger>
+            <p class="danger-zone-label">Vaarallinen toiminto</p>
+            <button class="danger-action" type="button" data-delete-memorial>Poista tämä muistopaikka</button>
+            <p>Tämä poistaa muistot, kirjeet ja kuvat pysyvästi.</p>
+          </section>
         </form>
         <p class="privacy-note">Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.</p>
       </section>
@@ -457,7 +462,18 @@
       </button>
     </nav>
 
+    <dialog class="confirm-dialog" data-delete-memorial-dialog>
+      <form method="dialog" class="confirm-dialog-card">
+        <h2>Poistetaanko muistopaikka?</h2>
+        <p data-delete-memorial-message></p>
+        <div class="confirm-dialog-actions">
+          <button class="secondary-action" type="button" data-cancel-delete-memorial>Peruuta</button>
+          <button class="danger-action danger-action--solid" type="button" data-confirm-delete-memorial>Poista muistopaikka</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260521-date-picker-trigger" type="module"></script>
+    <script src="app.js?v=20260521-delete-memorial" type="module"></script>
   </body>
 </html>
