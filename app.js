@@ -13,11 +13,16 @@ import {
   renderMemoriesView,
   updateMemoryImage as updateMemoryImageView,
 } from "./memories.js";
+import { onAuthChange } from "./auth.js";
 import {
   createBlankMemorial as createStoredBlankMemorial,
   getActiveMemorial as getStoredActiveMemorial,
+  getSupabaseClient,
+  isSupabaseConfigured,
   loadState as loadStoredState,
   saveState as saveStoredState,
+  setAuthUser,
+  syncFromCloud,
 } from "./storage.js";
 import {
   applyImagePosition as positionImage,
@@ -40,7 +45,6 @@ const VIDEO_PROCESSING_TIMEOUT = 20_000;
 const SUPABASE_CONFIG = window.TallessaSupabase || {};
 const SUPABASE_BUCKET = SUPABASE_CONFIG.bucket || "memories";
 
-let supabaseClientPromise = null;
 let ffmpegClientPromise = null;
 
 let appState = loadStoredState();
@@ -1413,6 +1417,27 @@ showScreen("selector");
 updateMemorialSky();
 memorialSkyTimer = window.setInterval(updateMemorialSky, 60 * 1000);
 
+syncFromCloud(appState, (cloudState) => {
+  appState = cloudState;
+  state = getStoredActiveMemorial(appState);
+  renderAll();
+});
+
+// Auth runs silently in the background — no UI change, no mandatory login.
+// When a user is signed in, cloud saves/reads switch to their user-scoped path.
+// TODO: Show a login/logout option in the settings screen when auth UI is ready.
+onAuthChange((user) => {
+  setAuthUser(user);
+  if (user) {
+    // User just signed in — pull their cloud data and re-render if it is newer.
+    syncFromCloud(appState, (cloudState) => {
+      appState = cloudState;
+      state = getStoredActiveMemorial(appState);
+      renderAll();
+    });
+  }
+});
+
 function renderMemories() {
   renderMemoriesView({
     elements,
@@ -1879,19 +1904,6 @@ async function deleteSupabaseFile(path) {
   } catch (error) {
     console.warn("Supabase file cleanup failed", error);
   }
-}
-
-async function getSupabaseClient() {
-  if (!supabaseClientPromise) {
-    supabaseClientPromise = import("https://esm.sh/@supabase/supabase-js@2").then(({ createClient }) =>
-      createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey),
-    );
-  }
-  return supabaseClientPromise;
-}
-
-function isSupabaseConfigured() {
-  return Boolean(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey && SUPABASE_BUCKET);
 }
 
 function createStoragePath(file) {
