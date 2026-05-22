@@ -1576,6 +1576,38 @@ h3 {
   line-height: 1.5;
 }
 
+.calendar-photos-bulk-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 52px;
+  border: 1.5px dashed color-mix(in srgb, var(--moss) 38%, transparent);
+  border-radius: 14px;
+  padding: 10px 16px;
+  background: rgba(88, 98, 68, 0.04);
+  cursor: pointer;
+  text-align: center;
+  transition: background 150ms, border-color 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calendar-photos-bulk-btn:active {
+  background: rgba(88, 98, 68, 0.1);
+  border-color: color-mix(in srgb, var(--moss) 55%, transparent);
+}
+
+.calendar-photos-bulk-label {
+  color: var(--moss-dark);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.calendar-photos-bulk-hint {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
 .calendar-photo-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -120,6 +120,7 @@ elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
 document.querySelectorAll("[data-cal-photo]").forEach((input) => {
   input.addEventListener("change", updateCalendarMonthPhoto);
 });
+document.querySelector("[data-cal-photos-bulk]").addEventListener("change", updateCalendarMonthPhotosBulk);
 elements.settingsForm.addEventListener("submit", saveSettings);
 elements.settingsForm.addEventListener("change", handleSettingsChange);
 elements.petType.addEventListener("change", previewPetMemorialText);
@@ -875,6 +876,24 @@ async function updateCalendarMonthPhoto(event) {
   saveState();
   event.target.value = "";
   renderCalendarPhotoThumbs();
+  renderCalendar();
+}
+
+async function updateCalendarMonthPhotosBulk(event) {
+  const files = [...(event.target.files || [])].slice(0, 12);
+  if (!files.length) return;
+
+  // Process sequentially so thumbnails update one by one as each image loads —
+  // gives the user visual feedback on mobile without blocking the whole batch.
+  for (let i = 0; i < files.length; i++) {
+    const monthNum = String(i + 1).padStart(2, "0");
+    state.monthPhotos[monthNum] = await prepareImageFile(files[i]);
+    state.monthPhotoPositions[monthNum] = { x: 50, y: 50 };
+    renderCalendarPhotoThumbs(); // update UI after each photo
+  }
+
+  saveState();
+  event.target.value = "";
   renderCalendar();
 }
 
