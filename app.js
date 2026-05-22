@@ -1,5 +1,39 @@
-const STORAGE_KEY = "tallessa.prototype.v2";
-const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
+import {
+  formatDate as formatCalendarDate,
+  formatDateInput as formatCalendarDateInput,
+  getMonthKey as getCalendarMonthKey,
+  monthNames,
+  parseDate as parseCalendarDate,
+  parseDateInput as parseCalendarDateInput,
+  renderCalendarView,
+} from "./calendar.js";
+import {
+  createMemory,
+  getHomeMemoryOfDay as getMemoryOfDay,
+  renderMemoriesView,
+  updateMemoryImage as updateMemoryImageView,
+} from "./memories.js";
+import {
+  createBlankMemorial as createStoredBlankMemorial,
+  getActiveMemorial as getStoredActiveMemorial,
+  loadState as loadStoredState,
+  saveState as saveStoredState,
+} from "./storage.js";
+import {
+  applyImagePosition as positionImage,
+  applyTheme as applyDocumentTheme,
+  buildMemorialText as buildPetMemorialText,
+  capitalize as capitalizeText,
+  clamp as clampNumber,
+  escapeHtml as escapeMarkup,
+  getComposedBackgroundSize as composeBackgroundSize,
+  getPointerDistance as measurePointerDistance,
+  normalizePosition as normalizeImagePosition,
+  normalizeTheme as normalizeThemeId,
+  setActiveView,
+  toAllative as toAllativeName,
+  toGenitive as toGenitiveName,
+} from "./ui.js";
 const VIDEO_CLIP_SECONDS = 10;
 const MAX_STANDARD_VIDEO_SIZE = 50 * 1024 * 1024;
 const VIDEO_PROCESSING_TIMEOUT = 20_000;
@@ -9,60 +43,7 @@ const SUPABASE_BUCKET = SUPABASE_CONFIG.bucket || "memories";
 let supabaseClientPromise = null;
 let ffmpegClientPromise = null;
 
-const monthNames = [
-  "tammikuu",
-  "helmikuu",
-  "maaliskuu",
-  "huhtikuu",
-  "toukokuu",
-  "kesäkuu",
-  "heinäkuu",
-  "elokuu",
-  "syyskuu",
-  "lokakuu",
-  "marraskuu",
-  "joulukuu",
-];
-
-const defaultState = {
-  theme: "classic",
-  horseName: "Pepe",
-  petType: "horse",
-  petTypeCustom: "",
-  memorialName: "Pepen päivä",
-  memorialDate: "2026-05-19",
-  heroImage: "",
-  heroImagePosition: { x: 50, y: 50, zoom: 1 },
-  memorialNote: "",
-  memorialText: "",
-  memorialImage: "",
-  memorialImagePosition: { x: 50, y: 50, zoom: 1 },
-  candleLit: false,
-  firstMemorialMemoryCreated: false,
-  memories: [
-    {
-      id: crypto.randomUUID(),
-      type: "image",
-      media:
-        "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=900&q=80",
-      text: "Aamu, jolloin laitumen valo tuntui pysähtyvän hetkeksi.",
-      createdAt: new Date().toISOString(),
-    },
-  ],
-  letters: [
-    {
-      id: crypto.randomUUID(),
-      title: "Rakas Pepe",
-      body: "Kirjoitan tämän, jotta muistan hengittää hitaammin. Sinä olet yhä mukana pienissä paikoissa: tallin hiljaisuudessa, käsissäni ja niissä päivissä, joihin palaan lempeästi.",
-      createdAt: new Date().toISOString(),
-    },
-  ],
-  importantDays: [],
-  monthPhotos: {},
-  monthPhotoPositions: {},
-};
-
-let appState = loadState();
+let appState = loadStoredState();
 let state = getActiveMemorial();
 let visibleMonth = new Date();
 let imageDrag = null;
@@ -70,6 +51,8 @@ let suppressImageToggle = false;
 let memoryDraft = null;
 let memorialSkyTimer = null;
 let isCreatingMemorial = false;
+
+registerServiceWorker();
 
 const screens = [...document.querySelectorAll("[data-screen]")];
 const navButtons = [...document.querySelectorAll("[data-nav]")];
@@ -139,6 +122,16 @@ document.addEventListener("pointermove", moveImageCompose);
 document.addEventListener("pointerup", stopImageCompose);
 document.addEventListener("pointercancel", stopImageCompose);
 document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.warn("Tallessa service worker registration failed", error);
+    });
+  });
+}
 
 function handleClick(event) {
   const dailyMemory = event.target.closest("[data-open-daily-memory]");
@@ -505,18 +498,7 @@ function showScreen(name) {
     state = getActiveMemorial();
   }
 
-  screens.forEach((screen) => {
-    screen.classList.toggle("is-active", screen.dataset.screen === name);
-  });
-
-  document.querySelector(".phone-shell")?.classList.toggle("is-memorial-active", name === "memorial");
-  document.body.classList.toggle("is-selector-active", name === "selector");
-
-  navButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.nav === name);
-  });
-
-  document.scrollingElement?.scrollTo({ top: 0 });
+  setActiveView({ name, screens, navButtons });
   hideImagePickers();
   renderMemorialSelector();
   if (name === "memorial") updateMemorialSky();
@@ -623,18 +605,15 @@ async function addMemory(event) {
     return;
   }
 
-  state.memories.unshift({
-    id: crypto.randomUUID(),
+  state.memories.unshift(createMemory({
     type,
     media,
     storagePath,
-    clipStart: memoryDraft?.clipStart || 0,
-    clipEnd: memoryDraft?.clipEnd || (type === "video" ? VIDEO_CLIP_SECONDS : 0),
-    imagePosition: memoryDraft?.position || { x: 50, y: 50, zoom: 1 },
-    text: text || "Muisto ilman sanoja.",
+    draft: memoryDraft,
+    text,
     calendarDate,
-    createdAt: new Date().toISOString(),
-  });
+    videoClipSeconds: VIDEO_CLIP_SECONDS,
+  }));
 
   if (!saveState()) {
     state.memories.shift();
@@ -904,21 +883,15 @@ async function updateMemorialPhoto(event) {
 }
 
 async function updateMemoryImage(event) {
-  const input = event.target.closest("[data-memory-photo]");
-  if (!input) return;
-
-  const memory = findMemory(input.dataset.memoryPhoto);
-  const file = input.files?.[0];
-  if (!memory || !file) return;
-
-  memory.media = await prepareImageFile(file);
-  memory.type = "image";
-  memory.imagePosition = { x: 50, y: 50, zoom: 1 };
-  saveState();
-  input.value = "";
-  hideImagePickers();
-  renderHome();
-  renderMemories();
+  await updateMemoryImageView({
+    event,
+    findMemory,
+    prepareImageFile,
+    saveState,
+    hideImagePickers,
+    renderHome,
+    renderMemories,
+  });
 }
 
 async function saveSettings(event) {
@@ -1441,77 +1414,12 @@ updateMemorialSky();
 memorialSkyTimer = window.setInterval(updateMemorialSky, 60 * 1000);
 
 function renderMemories() {
-  if (!state.memories.length) {
-    elements.memoryList.innerHTML = `<p class="empty-state">Muistoseinä odottaa ensimmäistä kuvaa, videota tai lausetta.</p>`;
-    return;
-  }
-
-  elements.memoryList.innerHTML = state.memories.map(renderMemoryCard).join("");
-  applyMemoryImagePositions();
-  setupMemoryVideoClips();
-}
-
-function renderMemoryCard(memory) {
-  const clipStart = Number(memory.clipStart) || 0;
-  const clipEnd = Number(memory.clipEnd) || 0;
-  const media = memory.media
-    ? memory.type === "video"
-      ? `<video src="${memory.media}" controls playsinline preload="metadata" data-video-clip-start="${clipStart}" data-video-clip-end="${clipEnd}"></video>`
-      : `
-          <div class="memory-media-frame" data-image-picker>
-            <div class="media-preview" data-memory-image-id="${memory.id}" style="background-image:url('${memory.media}')"></div>
-            <label class="image-change memory-change" data-image-change hidden>
-              Vaihda kuva
-              <input data-memory-photo="${memory.id}" type="file" accept="image/*" />
-            </label>
-            <span class="image-compose-hint memory-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
-          </div>
-        `
-    : `
-        <div class="memory-media-frame" data-image-picker>
-          <div class="media-preview" data-memory-image-id="${memory.id}"></div>
-          <label class="image-change memory-change" data-image-change hidden>
-            Vaihda kuva
-            <input data-memory-photo="${memory.id}" type="file" accept="image/*" />
-          </label>
-        </div>
-      `;
-
-  return `
-    <article class="memory-card card" data-deletable-item="memory" data-item-id="${memory.id}">
-      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
-      ${media}
-      <div class="memory-body">
-        <p class="date-line">${formatDate(memory.calendarDate || memory.createdAt)}</p>
-        <p>${escapeHtml(memory.text)}</p>
-      </div>
-    </article>
-  `;
-}
-
-function setupMemoryVideoClips() {
-  elements.memoryList.querySelectorAll("video[data-video-clip-start]").forEach((video) => {
-    const start = Number(video.dataset.videoClipStart) || 0;
-    const end = Number(video.dataset.videoClipEnd) || start + VIDEO_CLIP_SECONDS;
-
-    video.addEventListener("loadedmetadata", () => {
-      if (Number.isFinite(video.duration) && start < video.duration) {
-        video.currentTime = start;
-      }
-    });
-
-    video.addEventListener("play", () => {
-      if (Number.isFinite(video.currentTime) && (video.currentTime < start || video.currentTime >= end)) {
-        video.currentTime = start;
-      }
-    });
-
-    video.addEventListener("timeupdate", () => {
-      if (end > start && video.currentTime >= end) {
-        video.pause();
-        video.currentTime = start;
-      }
-    });
+  renderMemoriesView({
+    elements,
+    state,
+    formatDate,
+    applyMemoryImagePositions,
+    videoClipSeconds: VIDEO_CLIP_SECONDS,
   });
 }
 
@@ -1536,112 +1444,13 @@ function renderLetters() {
 }
 
 function renderCalendar() {
-  const year = visibleMonth.getFullYear();
-  const month = visibleMonth.getMonth();
-  const monthKey = getMonthKey(visibleMonth);
-  const customPhoto = state.monthPhotos[monthKey];
-
-  elements.currentMonth.textContent = `${capitalize(monthNames[month])} ${year}`;
-  elements.monthCover.style.backgroundImage = customPhoto
-    ? `linear-gradient(180deg, rgba(47,54,47,0), rgba(47,54,47,0.22)), url('${customPhoto}')`
-    : "";
-  applyImagePosition(elements.monthCover, getMonthPosition(monthKey));
-
-  const firstDay = new Date(year, month, 1);
-  const startOffset = (firstDay.getDay() + 6) % 7;
-  const gridStart = new Date(year, month, 1 - startOffset);
-  const todayKey = toDateKey(new Date());
-
-  const cells = Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(gridStart);
-    date.setDate(gridStart.getDate() + index);
-    const dateKey = toDateKey(date);
-    const isCurrentMonth = date.getMonth() === month;
-    const note = getDayNote(date);
-    const isMemorial = isMemorialDate(date);
-    const hasMemory = hasCalendarMemory(date);
-    const classes = [
-      "day-cell",
-      !isCurrentMonth ? "is-muted" : "",
-      dateKey === todayKey ? "is-today" : "",
-      note || isMemorial || hasMemory ? "has-note" : "",
-      isMemorial ? "is-memorial" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    return `<div class="${classes}" data-symbol="${escapeHtml(isMemorial || hasMemory ? "♡" : note?.symbol || "")}">${date.getDate()}</div>`;
+  renderCalendarView({
+    elements,
+    state,
+    visibleMonth,
+    applyImagePosition,
+    getMonthPosition,
   });
-
-  elements.calendarGrid.innerHTML = cells.join("");
-  renderDayList();
-}
-
-function renderDayList() {
-  const month = visibleMonth.getMonth();
-  const year = visibleMonth.getFullYear();
-  const days = [
-    {
-      name: `${toGenitive(state.horseName)} päivä`,
-      date: state.memorialDate,
-      note: "Toistuu automaattisesti joka vuosi.",
-      symbol: "♡",
-      type: "memorial-day",
-      recurring: true,
-    },
-    ...state.importantDays,
-  ].filter((day) => {
-    const date = parseDate(day.date);
-    return date && date.getMonth() === month && (day.recurring || date.getFullYear() === year);
-  });
-  const memories = state.memories.filter((memory) => parseDate(memory.calendarDate));
-
-  if (!days.length && !memories.length) {
-    elements.dayList.innerHTML = `<p class="empty-state">Tässä kuussa ei ole vielä omia muistopäiviä.</p>`;
-    return;
-  }
-
-  const dayCards = days
-    .map((day) => {
-      const date = parseDate(day.date);
-      const deleteType = day.type || "day";
-      const itemId = day.id || "";
-      const deletableAttributes = ` data-deletable-item="${deleteType}" data-item-id="${itemId}"`;
-      const deleteButton =
-        `<button class="delete-action" type="button" data-delete-item="${deleteType}" data-item-id="${itemId}" hidden>Poista</button>`;
-      return `
-        <article class="day-card card"${deletableAttributes}>
-          ${deleteButton}
-          <span class="day-symbol">${escapeHtml(day.symbol)}</span>
-          <div>
-            <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
-            <h3>${escapeHtml(day.name)}</h3>
-            <p>${escapeHtml(day.note || "Hiljainen, tärkeä päivä.")}</p>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-  const memoryCards = memories
-    .map((memory) => renderCalendarMemoryCard(memory))
-    .join("");
-
-  elements.dayList.innerHTML = `${dayCards}${memoryCards}`;
-}
-
-function renderCalendarMemoryCard(memory) {
-  const date = parseDate(memory.calendarDate);
-  return `
-    <article class="day-card card" data-deletable-item="memory" data-item-id="${memory.id}">
-      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
-      <span class="day-symbol">&#9825;</span>
-      <div>
-        <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
-        <h3>Muisto</h3>
-        <p>${escapeHtml(memory.text || "Muisto ilman sanoja.")}</p>
-      </div>
-    </article>
-  `;
 }
 
 function renderMemorial() {
@@ -1679,17 +1488,15 @@ function renderSettings() {
 }
 
 function getHomeMemoryOfDay() {
-  return state.memories.find((memory) => memory.isFirstMemorialMemory) || state.memories[0];
+  return getMemoryOfDay(state.memories);
 }
 
 function applyTheme() {
-  const theme = normalizeTheme(state.theme);
-  document.documentElement.classList.remove(...THEME_IDS.map((id) => `theme-${id}`));
-  document.documentElement.classList.add(`theme-${theme}`);
+  applyDocumentTheme(state.theme);
 }
 
 function normalizeTheme(theme) {
-  return THEME_IDS.includes(theme) ? theme : "classic";
+  return normalizeThemeId(theme);
 }
 
 function updateMemorialDateDisplay() {
@@ -1711,34 +1518,7 @@ function previewPetMemorialText() {
 }
 
 function buildMemorialText(source) {
-  const name = source.horseName || "rakas ystävä";
-  const customAnimal = source.petTypeCustom || "eläin";
-  const templates = {
-    horse:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pehmeä turpa, tutut askeleet ja rauha, jonka ${name} toi mukanaan.`,
-    dog:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: iloinen katse, tutut tassut ja uskollinen läsnäolo, jonka ${name} toi jokaiseen päivään.`,
-    cat:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: hiljainen kehräys, pehmeät tassut ja oma erityinen rauha, jonka ${name} toi kotiin.`,
-    rabbit:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pehmeä olemus, pienet hypyt ja lempeä hiljaisuus, jonka ${name} toi mukanaan.`,
-    bird:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: kevyt liike, tuttu ääni ja ilo, jonka ${name} toi huoneeseen.`,
-    guineaPig:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pienet äänet, lämmin läheisyys ja arjen suloinen rauha, jonka ${name} toi kotiin.`,
-    hamster:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pienet tassut, utelias katse ja hellä läsnäolo, jonka ${name} toi mukanaan.`,
-    ferret:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: vilkas olemus, leikkisät hetket ja persoonallinen lämpö, jonka ${name} toi elämään.`,
-    turtle:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: rauhallinen tahti, tuttu olemus ja hiljainen viisaus, jonka ${name} toi mukanaan.`,
-    human:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: yhteiset hetket, tutut sanat ja rakkaus, jonka ${name} jätti elämään.`,
-    other:
-      `Tänään muistetaan lämmöllä: ${name}, rakas ${customAnimal}, ja kaikkea sitä, mikä jäi sydämeen: tutut hetket, oma ainutlaatuinen luonne ja lämpö.`,
-  };
-  const base = templates[source.petType] || templates.other;
-  return source.memorialNote ? `${base} ${source.memorialNote}` : base;
+  return buildPetMemorialText(source);
 }
 
 function getImagePositionKey(surface) {
@@ -1778,9 +1558,7 @@ function getMonthPosition(monthKey) {
 }
 
 function applyImagePosition(element, position) {
-  const normalized = normalizePosition(position);
-  element.style.backgroundPosition = `${normalized.x}% ${normalized.y}%`;
-  element.style.backgroundSize = getComposedBackgroundSize(element, normalized.zoom);
+  positionImage(element, position);
 }
 
 function applyMemoryImagePositions() {
@@ -1795,102 +1573,47 @@ function findMemory(id) {
 }
 
 function normalizePosition(position) {
-  return {
-    x: clamp(Number(position?.x ?? 50), 0, 100),
-    y: clamp(Number(position?.y ?? 50), 0, 100),
-    zoom: clamp(Number(position?.zoom ?? 1), 1, 2.6),
-  };
+  return normalizeImagePosition(position);
 }
 
 function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+  return clampNumber(value, min, max);
 }
 
 function getComposedBackgroundSize(element, zoom) {
-  if (zoom <= 1.001) return "cover";
-
-  const rect = element.getBoundingClientRect();
-  const percent = `${Math.round(zoom * 100)}%`;
-  return rect.width / rect.height > 1.35 ? `${percent} auto` : `auto ${percent}`;
+  return composeBackgroundSize(element, zoom);
 }
 
 function getPointerDistance(first, second) {
-  return Math.hypot(first.x - second.x, first.y - second.y);
+  return measurePointerDistance(first, second);
 }
 
 function toAllative(name) {
-  if (!name) return "Rakkaalle ystävälle";
-  const lower = name.toLowerCase();
-  const suffix = /[aouå]$/.test(lower) ? "lle" : "lle";
-  return `${name}${suffix}`;
+  return toAllativeName(name);
 }
 
 function toGenitive(name) {
-  const trimmed = String(name || "").trim();
-  if (!trimmed) return "Rakkaan";
-  return /[aeiouyäöå]$/i.test(trimmed) ? `${trimmed}n` : `${trimmed}in`;
-}
-
-function getDayNote(date) {
-  const dateKey = toDateKey(date);
-  return state.importantDays.find((day) => day.date === dateKey);
-}
-
-function hasCalendarMemory(date) {
-  const dateKey = toDateKey(date);
-  return state.memories.some((memory) => memory.calendarDate === dateKey);
-}
-
-function isMemorialDate(date) {
-  const memorial = parseDate(state.memorialDate);
-  return memorial && memorial.getMonth() === date.getMonth() && memorial.getDate() === date.getDate();
+  return toGenitiveName(name);
 }
 
 function parseDate(value) {
-  if (!value) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
+  return parseCalendarDate(value);
 }
 
 function parseDateInput(value) {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return "";
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-
-  const match = trimmed.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
-  if (!match) return "";
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
-  const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "";
-
-  return toDateKey(date);
+  return parseCalendarDateInput(value);
 }
 
 function formatDateInput(value) {
-  const date = parseDate(value);
-  if (!date) return "";
-  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
-}
-
-function toDateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return formatCalendarDateInput(value);
 }
 
 function getMonthKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  return getCalendarMonthKey(date);
 }
 
 function formatDate(value) {
-  const date = new Date(value);
-  return `${date.getDate()}. ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  return formatCalendarDate(value);
 }
 
 function formatDuration(value) {
@@ -1905,7 +1628,7 @@ function formatFileSize(bytes) {
 }
 
 function capitalize(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  return capitalizeText(value);
 }
 
 function fileToDataUrl(file) {
@@ -2252,122 +1975,18 @@ function resizeImageToDataUrl(image, maxSide, quality) {
   return canvas.toDataURL("image/jpeg", quality);
 }
 
-function loadState() {
-  try {
-    const storedValue = localStorage.getItem(STORAGE_KEY);
-    if (!storedValue) return createEmptyAppState();
-
-    const stored = JSON.parse(storedValue);
-    if (stored?.memorials) return normalizeAppState(stored);
-    return createEmptyAppState();
-  } catch {
-    return createEmptyAppState();
-  }
-}
-
-function createEmptyAppState() {
-  return {
-    version: 2,
-    activeMemorialId: "",
-    memorials: [],
-  };
-}
-
 function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-    return true;
-  } catch (error) {
-    console.warn("Tallessa local save failed", error);
-    return false;
-  }
-}
-
-function normalizeAppState(value) {
-  const memorials = (value.memorials || []).map((memorial) => normalizeMemorial(memorial));
-  const activeMemorialId = memorials.some((memorial) => memorial.id === value.activeMemorialId)
-    ? value.activeMemorialId
-    : memorials[0]?.id || "";
-
-  return {
-    version: 2,
-    activeMemorialId,
-    memorials,
-  };
-}
-
-function normalizeMemorial(value) {
-  const loaded = { ...structuredClone(defaultState), ...(value || {}) };
-  loaded.id = loaded.id || crypto.randomUUID();
-  loaded.theme = normalizeTheme(loaded.theme);
-  loaded.petType = loaded.petType || "horse";
-  loaded.petTypeCustom = loaded.petTypeCustom || "";
-  loaded.horseName = loaded.horseName || "Muisto";
-  loaded.memorialName = loaded.memorialName || `${toGenitive(loaded.horseName)} päivä`;
-  loaded.heroImagePosition = normalizePosition(loaded.heroImagePosition);
-  loaded.memorialImagePosition = normalizePosition(loaded.memorialImagePosition);
-  loaded.monthPhotos = loaded.monthPhotos || {};
-  loaded.monthPhotoPositions = loaded.monthPhotoPositions || {};
-  loaded.importantDays = loaded.importantDays || [];
-  loaded.memories = (loaded.memories || []).map((memory) => ({
-    ...memory,
-    id: memory.id || crypto.randomUUID(),
-    calendarDate: parseDateInput(memory.calendarDate),
-    imagePosition: normalizePosition(memory.imagePosition),
-  }));
-  loaded.firstMemorialMemoryCreated =
-    Boolean(loaded.firstMemorialMemoryCreated) || loaded.memories.some((memory) => memory.isFirstMemorialMemory);
-  loaded.letters = (loaded.letters || []).map((letter) => ({
-    ...letter,
-    id: letter.id || crypto.randomUUID(),
-  }));
-  loaded.memorialNote = loaded.memorialNote || "";
-  loaded.memorialText = buildMemorialText(loaded);
-  return loaded;
+  return saveStoredState(appState);
 }
 
 function createBlankMemorial(theme = "classic") {
-  return normalizeMemorial({
-    id: crypto.randomUUID(),
-    theme,
-    horseName: "Pepe",
-    petType: "horse",
-    petTypeCustom: "",
-    memorialName: "Pepen päivä",
-    memorialDate: "",
-    heroImage: "",
-    heroImagePosition: { x: 50, y: 50, zoom: 1 },
-    memorialNote: "",
-    memorialText: "",
-    memorialImage: "",
-    memorialImagePosition: { x: 50, y: 50, zoom: 1 },
-    candleLit: false,
-    firstMemorialMemoryCreated: false,
-    memories: [],
-    letters: [],
-    importantDays: [],
-    monthPhotos: {},
-    monthPhotoPositions: {},
-  });
+  return createStoredBlankMemorial(theme);
 }
 
 function getActiveMemorial() {
-  if (!appState.memorials.length) {
-    return createBlankMemorial();
-  }
-
-  return appState.memorials.find((memorial) => memorial.id === appState.activeMemorialId) || appState.memorials[0];
+  return getStoredActiveMemorial(appState);
 }
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (char) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return entities[char];
-  });
+  return escapeMarkup(value);
 }
