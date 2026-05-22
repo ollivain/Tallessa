@@ -80,12 +80,21 @@ function renderDayList({ elements, state, visibleMonth }) {
     const date = parseDate(day.date);
     return date && date.getMonth() === month && (day.recurring || date.getFullYear() === year);
   });
-  const memories = state.memories.filter((memory) => parseDate(memory.calendarDate));
 
-  if (!days.length && !memories.length) {
+  // All memories that have a calendar date — never filtered out by current month.
+  const memoriesWithDate = state.memories.filter((memory) => parseDate(memory.calendarDate));
+
+  if (!days.length && !memoriesWithDate.length) {
     elements.dayList.innerHTML = `<p class="empty-state">Tässä kuussa ei ole vielä omia muistopäiviä.</p>`;
     return;
   }
+
+  // Visible month's memories first, the rest below — re-sorted on every month change.
+  const visiblePrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const sortedMemories = [
+    ...memoriesWithDate.filter((m) => m.calendarDate.startsWith(visiblePrefix)),
+    ...memoriesWithDate.filter((m) => !m.calendarDate.startsWith(visiblePrefix)),
+  ];
 
   const dayCards = days
     .map((day) => {
@@ -108,7 +117,7 @@ function renderDayList({ elements, state, visibleMonth }) {
       `;
     })
     .join("");
-  const memoryCards = memories.map((memory) => renderCalendarMemoryCard(memory)).join("");
+  const memoryCards = sortedMemories.map((memory) => renderCalendarMemoryCard(memory)).join("");
 
   elements.dayList.innerHTML = `${dayCards}${memoryCards}`;
 }

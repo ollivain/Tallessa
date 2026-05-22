@@ -1,4 +1,4 @@
-const CACHE_NAME = "tallessa-cache-v3";
+const CACHE_NAME = "tallessa-cache-v5";
 
 const APP_SHELL_URLS = [
   "./",
@@ -28,7 +28,17 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL_URLS))
+      .then((cache) =>
+        // Use no-store to always fetch fresh files from the server on install,
+        // bypassing the browser's HTTP cache so updated JS modules are picked up.
+        Promise.all(
+          APP_SHELL_URLS.map((url) =>
+            fetch(url, { cache: "no-store" })
+              .then((response) => response.ok && cache.put(url, response))
+              .catch(() => {}),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });
