@@ -1,4 +1,4 @@
-const CACHE_NAME = "tallessa-cache-v8";
+const CACHE_NAME = "tallessa-cache-v9";
 
 const APP_SHELL_URLS = [
   "./",

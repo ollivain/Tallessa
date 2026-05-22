@@ -117,9 +117,6 @@ elements.letterForm.addEventListener("submit", addLetter);
 elements.dayForm.addEventListener("submit", addImportantDay);
 elements.monthPhoto.addEventListener("change", updateMonthPhoto);
 elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
-document.querySelectorAll("[data-cal-photo]").forEach((input) => {
-  input.addEventListener("change", updateCalendarMonthPhoto);
-});
 document.querySelector("[data-cal-photos-bulk]").addEventListener("change", updateCalendarMonthPhotosBulk);
 elements.settingsForm.addEventListener("submit", saveSettings);
 elements.settingsForm.addEventListener("change", handleSettingsChange);
@@ -866,19 +863,6 @@ async function updateMonthPhoto(event) {
   renderCalendar();
 }
 
-async function updateCalendarMonthPhoto(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  const monthNum = event.target.dataset.calPhoto; // "01" … "12"
-  state.monthPhotos[monthNum] = await prepareImageFile(file);
-  state.monthPhotoPositions[monthNum] = { x: 50, y: 50 };
-  saveState();
-  event.target.value = "";
-  renderCalendarPhotoThumbs();
-  renderCalendar();
-}
-
 async function updateCalendarMonthPhotosBulk(event) {
   const files = [...(event.target.files || [])].slice(0, 12);
   if (!files.length) return;
@@ -898,19 +882,8 @@ async function updateCalendarMonthPhotosBulk(event) {
 }
 
 function renderCalendarPhotoThumbs() {
-  let count = 0;
-  document.querySelectorAll("[data-cal-thumb]").forEach((thumb) => {
-    const monthNum = thumb.dataset.calThumb;
-    const photo = state.monthPhotos[monthNum];
-    if (photo) {
-      thumb.style.backgroundImage = `url('${photo}')`;
-      thumb.classList.add("has-photo");
-      count++;
-    } else {
-      thumb.style.backgroundImage = "";
-      thumb.classList.remove("has-photo");
-    }
-  });
+  const count = ["01","02","03","04","05","06","07","08","09","10","11","12"]
+    .filter((m) => state.monthPhotos[m]).length;
   const countEl = document.querySelector("[data-cal-photo-count]");
   if (countEl) countEl.textContent = count ? `${count}/12` : "";
 }

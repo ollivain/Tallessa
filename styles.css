@@ -1608,62 +1608,6 @@ h3 {
   font-size: 0.76rem;
 }
 
-.calendar-photo-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.calendar-photo-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.calendar-photo-thumb {
-  width: 100%;
-  aspect-ratio: 3 / 2;
-  overflow: hidden;
-  border-radius: 10px;
-  border: 1.5px dashed color-mix(in srgb, var(--moss) 30%, transparent);
-  background: rgba(88, 98, 68, 0.06) center / cover no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--moss);
-  font-size: 1.1rem;
-  transition: border-color 150ms, opacity 150ms;
-}
-
-.calendar-photo-thumb::before {
-  content: "+";
-  opacity: 0.5;
-}
-
-.calendar-photo-thumb.has-photo {
-  border-style: solid;
-  border-color: rgba(88, 98, 68, 0.18);
-}
-
-.calendar-photo-thumb.has-photo::before {
-  display: none;
-}
-
-.calendar-photo-cell:active .calendar-photo-thumb {
-  opacity: 0.75;
-}
-
-.calendar-photo-month {
-  font-size: 0.69rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 /* ── Memory card add toggle ─────────────────────────────────────────────── */
 
 .add-card-toggle {
