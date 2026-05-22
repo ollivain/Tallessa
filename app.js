@@ -1594,10 +1594,7 @@ function renderDayList() {
     const date = parseDate(day.date);
     return date && date.getMonth() === month && (day.recurring || date.getFullYear() === year);
   });
-  const memories = state.memories.filter((memory) => {
-    const date = parseDate(memory.calendarDate);
-    return date && date.getMonth() === month && date.getFullYear() === year;
-  });
+  const memories = state.memories.filter((memory) => parseDate(memory.calendarDate));
 
   if (!days.length && !memories.length) {
     elements.dayList.innerHTML = `<p class="empty-state">Tässä kuussa ei ole vielä omia muistopäiviä.</p>`;
