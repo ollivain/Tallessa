@@ -1521,6 +1521,119 @@ h3 {
   --theme-bg: #f4e4df;
 }
 
+/* ── Calendar month photo picker (settings screen) ─────────────────────── */
+
+.calendar-photos-disclosure {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.calendar-photos-disclosure summary {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0 15px;
+  color: #fffaf0;
+  background: var(--moss);
+  box-shadow: 0 13px 30px rgba(88, 98, 68, 0.16);
+  font-weight: 800;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calendar-photos-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.calendar-photos-disclosure summary::after {
+  content: "›";
+  font-size: 1.6rem;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 180ms ease;
+}
+
+.calendar-photos-disclosure[open] summary::after {
+  transform: rotate(-90deg);
+}
+
+.calendar-photos-count {
+  margin-left: 6px;
+  opacity: 0.72;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+
+.calendar-photos-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.calendar-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calendar-photo-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calendar-photo-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1.5px dashed color-mix(in srgb, var(--moss) 30%, transparent);
+  background: rgba(88, 98, 68, 0.06) center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--moss);
+  font-size: 1.1rem;
+  transition: border-color 150ms, opacity 150ms;
+}
+
+.calendar-photo-thumb::before {
+  content: "+";
+  opacity: 0.5;
+}
+
+.calendar-photo-thumb.has-photo {
+  border-style: solid;
+  border-color: rgba(88, 98, 68, 0.18);
+}
+
+.calendar-photo-thumb.has-photo::before {
+  display: none;
+}
+
+.calendar-photo-cell:active .calendar-photo-thumb {
+  opacity: 0.75;
+}
+
+.calendar-photo-month {
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Memory card add toggle ─────────────────────────────────────────────── */
+
 .add-card-toggle {
   display: grid;
   min-height: 96px;

@@ -117,6 +117,9 @@ elements.letterForm.addEventListener("submit", addLetter);
 elements.dayForm.addEventListener("submit", addImportantDay);
 elements.monthPhoto.addEventListener("change", updateMonthPhoto);
 elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
+document.querySelectorAll("[data-cal-photo]").forEach((input) => {
+  input.addEventListener("change", updateCalendarMonthPhoto);
+});
 elements.settingsForm.addEventListener("submit", saveSettings);
 elements.settingsForm.addEventListener("change", handleSettingsChange);
 elements.petType.addEventListener("change", previewPetMemorialText);
@@ -862,6 +865,37 @@ async function updateMonthPhoto(event) {
   renderCalendar();
 }
 
+async function updateCalendarMonthPhoto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const monthNum = event.target.dataset.calPhoto; // "01" … "12"
+  state.monthPhotos[monthNum] = await prepareImageFile(file);
+  state.monthPhotoPositions[monthNum] = { x: 50, y: 50 };
+  saveState();
+  event.target.value = "";
+  renderCalendarPhotoThumbs();
+  renderCalendar();
+}
+
+function renderCalendarPhotoThumbs() {
+  let count = 0;
+  document.querySelectorAll("[data-cal-thumb]").forEach((thumb) => {
+    const monthNum = thumb.dataset.calThumb;
+    const photo = state.monthPhotos[monthNum];
+    if (photo) {
+      thumb.style.backgroundImage = `url('${photo}')`;
+      thumb.classList.add("has-photo");
+      count++;
+    } else {
+      thumb.style.backgroundImage = "";
+      thumb.classList.remove("has-photo");
+    }
+  });
+  const countEl = document.querySelector("[data-cal-photo-count]");
+  if (countEl) countEl.textContent = count ? `${count}/12` : "";
+}
+
 async function updateHeroPhoto(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -1510,6 +1544,7 @@ function renderSettings() {
   if (elements.memorialDanger) elements.memorialDanger.hidden = isCreatingMemorial;
   const saveButton = elements.settingsForm.querySelector('button[type="submit"]');
   if (saveButton) saveButton.textContent = "Tallenna muutokset";
+  renderCalendarPhotoThumbs();
 }
 
 function getHomeMemoryOfDay() {

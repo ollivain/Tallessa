@@ -25,13 +25,16 @@ export function renderCalendarView({
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const monthKey = getMonthKey(visibleMonth);
-  const customPhoto = state.monthPhotos[monthKey];
+  // Fall back to generic per-month photo ("01"…"12") when no year-specific one is set.
+  const monthNumber = String(month + 1).padStart(2, "0");
+  const customPhoto = state.monthPhotos[monthKey] || state.monthPhotos[monthNumber];
+  const positionKey = state.monthPhotos[monthKey] ? monthKey : monthNumber;
 
   elements.currentMonth.textContent = `${capitalize(monthNames[month])} ${year}`;
   elements.monthCover.style.backgroundImage = customPhoto
     ? `linear-gradient(180deg, rgba(47,54,47,0), rgba(47,54,47,0.22)), url('${customPhoto}')`
     : "";
-  applyImagePosition(elements.monthCover, getMonthPosition(monthKey));
+  applyImagePosition(elements.monthCover, getMonthPosition(positionKey));
 
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay() + 6) % 7;
