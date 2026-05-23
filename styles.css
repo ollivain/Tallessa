@@ -182,6 +182,10 @@ select {
   outline: 0;
 }
 
+select:has(option[value=""]:checked) {
+  color: var(--muted);
+}
+
 input[type="date"] {
   display: block;
   width: 100%;
@@ -1344,6 +1348,57 @@ h3 {
      ("Delete memorial space" / "Poista muistopaikka") never wrap. */
   grid-template-columns: 1fr;
   margin-top: 4px;
+}
+
+.lang-dialog-card {
+  padding: 28px 24px 24px;
+}
+
+.lang-dialog-heading {
+  font-size: clamp(1.4rem, 6.5vw, 1.75rem);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.lang-dialog-sub {
+  font-size: 0.65em;
+  opacity: 0.58;
+  font-weight: 600;
+}
+
+.lang-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.lang-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 12px;
+  border-radius: 18px;
+  border: 1.5px solid var(--border, rgba(80, 90, 60, 0.18));
+  background: rgba(255, 252, 246, 0.7);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.lang-option-btn:hover,
+.lang-option-btn:focus-visible {
+  background: rgba(var(--accent-rgb, 80, 90, 60), 0.08);
+  border-color: var(--accent, #4a5a3a);
+  outline: none;
+}
+
+.lang-option-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text, #2c2a1e);
+  letter-spacing: 0.01em;
 }
 
 .form-card {

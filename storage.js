@@ -1,6 +1,6 @@
-import { parseDateInput } from "./calendar.js?v=20260523-i18nv7";
-import { buildMemorialText, normalizePosition, normalizeTheme, toPossessive } from "./ui.js?v=20260523-i18nv7";
-import { t } from "./i18n.js?v=20260523-i18nv7";
+import { parseDateInput } from "./calendar.js?v=20260523-i18nv9";
+import { buildMemorialText, normalizePosition, normalizeTheme, toPossessive } from "./ui.js?v=20260523-i18nv9";
+import { t } from "./i18n.js?v=20260523-i18nv9";
 
 const STORAGE_KEY = "tallessa.prototype.v2";
 const LANGUAGE_KEY = "tallessa.language"; // device-wide UI language (not per memorial)
@@ -14,7 +14,9 @@ const DEFAULT_LANGUAGE = "en";
 export function loadLanguage() {
   try {
     const stored = localStorage.getItem(LANGUAGE_KEY);
-    return SUPPORTED_LANGUAGES.has(stored) ? stored : DEFAULT_LANGUAGE;
+    if (SUPPORTED_LANGUAGES.has(stored)) return stored;
+    const browserLang = (navigator.language || "").toLowerCase();
+    return browserLang.startsWith("fi") ? "fi" : DEFAULT_LANGUAGE;
   } catch {
     return DEFAULT_LANGUAGE;
   }

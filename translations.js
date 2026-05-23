@@ -16,10 +16,7 @@ export const en = {
   "app.title": "Tallessa",
   "app.tagline": "Memories that stay with you.",
   "app.subtitle": "A quiet place for memories, letters, and moments.",
-  // Brand name shown on the home/start (selector) page header. English
-  // is free to change to an international name later; Finnish must
-  // always stay as "Tallessa".
-  "brand.name": "Tallessa",
+  "brand.name": "Withen",
 
   // ── Generic actions (re-usable verbs across the UI)
   "action.save": "Save",
@@ -40,7 +37,7 @@ export const en = {
   "nav.aria": "App sections",
 
   // ── Selector screen
-  "selector.subtitle": "Memories that stay with you.",
+  "selector.subtitle": "Always with you.",
   "selector.addPlace": "Add a memorial space",
   "selector.firstTime.action": "Create first memorial space",
   "selector.firstTime.title": "Create your first memorial space",
@@ -130,7 +127,7 @@ export const en = {
   "settings.memorialPlaces": "Memorial spaces",
   "settings.createNote": "Create a new memorial space by filling in the basics. After saving, you'll be taken to its home page.",
   "settings.horseName": "Name of the loved one",
-  "settings.horseNamePlaceholder": "E.g. Pepper",
+  "settings.horseNamePlaceholder": "E.g. Pepe",
   "settings.petType": "Remembering",
   "settings.petType.placeholder": "E.g. Horse",
   "settings.petType.human": "Person",
@@ -147,7 +144,7 @@ export const en = {
   "settings.petTypeCustom": "Add details if you wish",
   "settings.petTypeCustomPlaceholder": "E.g. pony, parrot, or aquarium fish",
   "settings.memorialName": "Memorial day name",
-  "settings.memorialNamePlaceholder": "E.g. Pepper's day",
+  "settings.memorialNamePlaceholder": "E.g. Pepe's day",
   "settings.memorialDate": "Date of passing",
   "settings.memorialDateAria": "Date of passing",
   "settings.memorialImage": "Memorial day image",
@@ -170,7 +167,6 @@ export const en = {
   "settings.dangerZone": "Dangerous action",
   "settings.delete": "Delete this memorial space",
   "settings.deleteNote": "This permanently removes the memories, letters, and images.",
-  "settings.privacy": "In this prototype, everything you add is stored only in this browser.",
   "settings.memorialNameDefault": "{name} day", // "Pepe's day" — used when memorialName is empty
 
   // ── Delete dialog
@@ -407,7 +403,6 @@ export const fi = {
   "settings.dangerZone": "Vaarallinen toiminto",
   "settings.delete": "Poista tämä muistopaikka",
   "settings.deleteNote": "Tämä poistaa muistot, kirjeet ja kuvat pysyvästi.",
-  "settings.privacy": "Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.",
   "settings.memorialNameDefault": "{name} päivä",
 
   // ── Delete dialog
