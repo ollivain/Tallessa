@@ -1,19 +1,17 @@
-import { capitalize, escapeHtml, toGenitive } from "./ui.js";
+import { capitalize, escapeHtml, toPossessive } from "./ui.js?v=20260523-i18nv3";
+import { getLanguage, t } from "./i18n.js?v=20260523-i18nv3";
 
-export const monthNames = [
-  "tammikuu",
-  "helmikuu",
-  "maaliskuu",
-  "huhtikuu",
-  "toukokuu",
-  "kesäkuu",
-  "heinäkuu",
-  "elokuu",
-  "syyskuu",
-  "lokakuu",
-  "marraskuu",
-  "joulukuu",
-];
+// Returns the localized month name for a 0-indexed month (0 = January).
+export function monthName(monthIndex) {
+  return t(`month.${monthIndex + 1}`);
+}
+
+// Backwards-compatible array accessor: `monthNames[date.getMonth()]` still
+// works and now returns the localized name for the current language.
+export const monthNames = new Proxy(
+  {},
+  { get: (_, prop) => (prop === "length" ? 12 : monthName(Number(prop))) },
+);
 
 export function renderCalendarView({
   elements,
@@ -71,9 +69,9 @@ function renderDayList({ elements, state, visibleMonth }) {
   const year = visibleMonth.getFullYear();
   const days = [
     {
-      name: `${toGenitive(state.horseName)} päivä`,
+      name: t("calendar.memorialDayName", { name: toPossessive(state.horseName) }),
       date: state.memorialDate,
-      note: "Toistuu automaattisesti joka vuosi.",
+      note: t("calendar.memorialRecurring"),
       symbol: "♡",
       type: "memorial-day",
       recurring: true,
@@ -88,7 +86,7 @@ function renderDayList({ elements, state, visibleMonth }) {
   const memoriesWithDate = state.memories.filter((memory) => parseDate(memory.calendarDate));
 
   if (!days.length && !memoriesWithDate.length) {
-    elements.dayList.innerHTML = `<p class="empty-state">Tässä kuussa ei ole vielä omia muistopäiviä.</p>`;
+    elements.dayList.innerHTML = `<p class="empty-state">${escapeHtml(t("calendar.empty"))}</p>`;
     return;
   }
 
@@ -105,8 +103,9 @@ function renderDayList({ elements, state, visibleMonth }) {
       const deleteType = day.type || "day";
       const itemId = day.id || "";
       const deletableAttributes = ` data-deletable-item="${deleteType}" data-item-id="${itemId}"`;
+      const deleteLabel = escapeHtml(t("delete.item"));
       const deleteButton =
-        `<button class="delete-action" type="button" data-delete-item="${deleteType}" data-item-id="${itemId}" hidden>Poista</button>`;
+        `<button class="delete-action" type="button" data-delete-item="${deleteType}" data-item-id="${itemId}" hidden>${deleteLabel}</button>`;
       return `
         <article class="day-card card"${deletableAttributes}>
           ${deleteButton}
@@ -114,7 +113,7 @@ function renderDayList({ elements, state, visibleMonth }) {
           <div>
             <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
             <h3>${escapeHtml(day.name)}</h3>
-            <p>${escapeHtml(day.note || "Hiljainen, tärkeä päivä.")}</p>
+            <p>${escapeHtml(day.note || t("calendar.silentDay"))}</p>
           </div>
         </article>
       `;
@@ -127,14 +126,15 @@ function renderDayList({ elements, state, visibleMonth }) {
 
 function renderCalendarMemoryCard(memory) {
   const date = parseDate(memory.calendarDate);
+  const deleteLabel = escapeHtml(t("delete.item"));
   return `
     <article class="day-card card" data-deletable-item="memory" data-item-id="${memory.id}">
-      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
+      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>${deleteLabel}</button>
       <span class="day-symbol">&#9825;</span>
       <div>
         <p class="date-line">${date.getDate()}. ${monthNames[date.getMonth()]}</p>
-        <h3>Muisto</h3>
-        <p>${escapeHtml(memory.text || "Muisto ilman sanoja.")}</p>
+        <h3>${escapeHtml(t("calendar.memoryHeading"))}</h3>
+        <p>${escapeHtml(memory.text || t("wall.memoryNoWords"))}</p>
       </div>
     </article>
   `;

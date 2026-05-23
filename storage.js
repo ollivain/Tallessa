@@ -1,8 +1,34 @@
-import { parseDateInput } from "./calendar.js";
-import { buildMemorialText, normalizePosition, normalizeTheme, toGenitive } from "./ui.js";
+import { parseDateInput } from "./calendar.js?v=20260523-i18nv3";
+import { buildMemorialText, normalizePosition, normalizeTheme, toGenitive } from "./ui.js?v=20260523-i18nv3";
+import { t } from "./i18n.js?v=20260523-i18nv3";
 
 const STORAGE_KEY = "tallessa.prototype.v2";
+const LANGUAGE_KEY = "tallessa.language"; // device-wide UI language (not per memorial)
 const DEVICE_ID_KEY = "tallessa.deviceId";
+const SUPPORTED_LANGUAGES = new Set(["en", "fi"]);
+const DEFAULT_LANGUAGE = "en";
+
+// ── UI language persistence (separate from appState because it's device-wide,
+//    not per memorial) ────────────────────────────────────────────────────────
+
+export function loadLanguage() {
+  try {
+    const stored = localStorage.getItem(LANGUAGE_KEY);
+    return SUPPORTED_LANGUAGES.has(stored) ? stored : DEFAULT_LANGUAGE;
+  } catch {
+    return DEFAULT_LANGUAGE;
+  }
+}
+
+export function saveLanguage(lang) {
+  if (!SUPPORTED_LANGUAGES.has(lang)) return false;
+  try {
+    localStorage.setItem(LANGUAGE_KEY, lang);
+    return true;
+  } catch {
+    return false;
+  }
+}
 const SUPABASE_CONFIG = window.TallessaSupabase || {};
 const SUPABASE_BUCKET = SUPABASE_CONFIG.bucket || "memories";
 
@@ -110,7 +136,7 @@ async function pushToSupabase(appState) {
     if (error) throw error;
   } catch (error) {
     console.warn("Tallessa cloud save failed", error);
-    showCloudSyncError("Pilvitallennus ei onnistunut. Tiedot on tallennettu laitteelle.");
+    showCloudSyncError(t("msg.cloud.saveFailed"));
   }
 }
 

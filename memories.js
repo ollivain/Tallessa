@@ -1,4 +1,5 @@
-import { escapeHtml } from "./ui.js";
+import { escapeHtml } from "./ui.js?v=20260523-i18nv3";
+import { t } from "./i18n.js?v=20260523-i18nv3";
 
 export function createMemory({
   type,
@@ -17,7 +18,7 @@ export function createMemory({
     clipStart: draft?.clipStart || 0,
     clipEnd: draft?.clipEnd || (type === "video" ? videoClipSeconds : 0),
     imagePosition: draft?.position || { x: 50, y: 50, zoom: 1 },
-    text: text || "Muisto ilman sanoja.",
+    text: text || t("wall.memoryNoWords"),
     calendarDate,
     createdAt: new Date().toISOString(),
   };
@@ -35,7 +36,7 @@ export function renderMemoriesView({
   videoClipSeconds,
 }) {
   if (!state.memories.length) {
-    elements.memoryList.innerHTML = `<p class="empty-state">Muistoseinä odottaa ensimmäistä kuvaa, videota tai lausetta.</p>`;
+    elements.memoryList.innerHTML = `<p class="empty-state">${escapeHtml(t("wall.empty"))}</p>`;
     return;
   }
 
@@ -80,17 +81,17 @@ function renderMemoryCard(memory, formatDate) {
           <div class="memory-media-frame" data-image-picker>
             <div class="media-preview" data-memory-image-id="${memory.id}" style="background-image:url('${memory.media}')"></div>
             <label class="image-change memory-change" data-image-change hidden>
-              Vaihda kuva
+              ${escapeHtml(t("wall.changeImage"))}
               <input data-memory-photo="${memory.id}" type="file" accept="image/*" />
             </label>
-            <span class="image-compose-hint memory-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+            <span class="image-compose-hint memory-hint" data-image-hint hidden>${escapeHtml(t("wall.form.dragHint"))}</span>
           </div>
         `
     : `
         <div class="memory-media-frame" data-image-picker>
           <div class="media-preview" data-memory-image-id="${memory.id}"></div>
           <label class="image-change memory-change" data-image-change hidden>
-            Vaihda kuva
+            ${escapeHtml(t("wall.changeImage"))}
             <input data-memory-photo="${memory.id}" type="file" accept="image/*" />
           </label>
         </div>
@@ -98,7 +99,7 @@ function renderMemoryCard(memory, formatDate) {
 
   return `
     <article class="memory-card card" data-deletable-item="memory" data-item-id="${memory.id}">
-      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>Poista</button>
+      <button class="delete-action" type="button" data-delete-item="memory" data-item-id="${memory.id}" hidden>${escapeHtml(t("delete.item"))}</button>
       ${media}
       <div class="memory-body">
         <p class="date-line">${formatDate(memory.calendarDate || memory.createdAt)}</p>

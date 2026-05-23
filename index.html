@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -8,7 +8,7 @@
     <meta http-equiv="Expires" content="0" />
     <meta
       name="description"
-      content="Tallessa on yksityinen muistosovellus rakkaan lemmikin kuvien, kirjeiden ja muistopäivien säilyttämiseen."
+      content="Tallessa is a private memorial app for keeping the pictures, letters, and important days of a loved one."
     />
     <title>Tallessa</title>
 
@@ -27,34 +27,34 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260523-topbar-clean" />
+    <link rel="stylesheet" href="styles.css?v=20260523-i18nv3" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
       <section class="screen selector-screen is-active" data-screen="selector">
         <header class="selector-hero">
-          <h1>Tallessa</h1>
-          <p>Muistot, jotka pysyvät mukana.</p>
+          <h1 data-i18n="app.title">Tallessa</h1>
+          <p data-i18n="selector.subtitle">Memories that stay with you.</p>
         </header>
 
         <section class="memorial-place-list" data-memorial-place-list></section>
 
-        <button class="primary-action selector-add" type="button" data-create-memorial>
-          Lisää muistopaikka
+        <button class="primary-action selector-add" type="button" data-create-memorial data-i18n="selector.addPlace">
+          Add a memorial place
         </button>
       </section>
 
       <section class="screen home-screen" data-screen="home">
         <div class="home-memory-stack">
           <header class="hero" data-image-picker>
-            <div class="hero-image" data-hero-image role="img" aria-label="Rauhallinen hevonen aamuauringossa"></div>
+            <div class="hero-image" data-hero-image role="img" data-i18n-aria-label="home.heroAria" aria-label="A calm horse in morning light"></div>
             <label class="image-change hero-change" data-image-change hidden>
-              Vaihda kuva
+              <span data-i18n="wall.changeImage">Change image</span>
               <input data-hero-photo type="file" accept="image/*" />
             </label>
-            <span class="image-compose-hint hero-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+            <span class="image-compose-hint hero-hint" data-image-hint hidden data-i18n="wall.form.dragHint">Drag the image. Zoom with two fingers or the wheel.</span>
             <div class="hero-copy">
-              <p class="lead hero-memory-line" data-hero-memory-line>Pepen muistot, jotka pysyvät mukana.</p>
+              <p class="lead hero-memory-line" data-hero-memory-line></p>
             </div>
           </header>
 
@@ -62,7 +62,7 @@
         </div>
         <article class="daily-quote card" data-daily-quote></article>
 
-        <section class="quick-actions" aria-label="Tärkeimmät osiot">
+        <section class="quick-actions" data-i18n-aria-label="home.quickActions.aria" aria-label="Main sections">
           <button class="section-button" type="button" data-nav="wall">
             <span class="button-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -71,7 +71,7 @@
                 <path d="m5.8 17 4.3-4.4 3.1 3.1 2-2 3.2 3.3"></path>
               </svg>
             </span>
-            <span class="action-label action-label-wall"><span>Muisto-</span><span>seinä</span></span>
+            <span class="action-label action-label-wall"><span data-i18n="home.action.wall1">Memory</span><span data-i18n="home.action.wall2">wall</span></span>
           </button>
           <button class="section-button" type="button" data-nav="letters">
             <span class="button-icon" aria-hidden="true">
@@ -80,7 +80,7 @@
                 <path d="m4.5 8 7.5 5.4L19.5 8"></path>
               </svg>
             </span>
-            <span>Kirjeet</span>
+            <span data-i18n="home.action.letters">Letters</span>
           </button>
           <button class="section-button" type="button" data-nav="calendar">
             <span class="button-icon" aria-hidden="true">
@@ -89,7 +89,7 @@
                 <path d="M8 3.5v4M16 3.5v4M4 10h16"></path>
               </svg>
             </span>
-            <span>Kalenteri</span>
+            <span data-i18n="home.action.calendar">Calendar</span>
           </button>
           <button class="section-button" type="button" data-nav="memorial">
             <span class="button-icon" aria-hidden="true">
@@ -97,7 +97,7 @@
                 <path d="M12 20.5s-7.2-4.4-8.7-9.1C2.1 7.8 4.3 5 7.5 5c1.9 0 3.4 1 4.5 2.5C13.1 6 14.6 5 16.5 5c3.2 0 5.4 2.8 4.2 6.4C19.2 16.1 12 20.5 12 20.5Z"></path>
               </svg>
             </span>
-            <span data-memorial-button>Pepen päivä</span>
+            <span data-memorial-button></span>
           </button>
         </section>
       </section>
@@ -105,7 +105,7 @@
       <section class="screen" data-screen="wall">
         <header class="topbar topbar--ornate">
           <div>
-            <h2>Muistoseinä</h2>
+            <h2 data-i18n="wall.title">Memory wall</h2>
           </div>
           <span class="topbar-ornament" aria-hidden="true">
             <svg viewBox="0 0 92 118" focusable="false">
@@ -125,37 +125,37 @@
 
         <button class="add-card-toggle" type="button" data-open-card="memory">
           <span aria-hidden="true">+</span>
-          <strong>Lisää muisto</strong>
+          <strong data-i18n="wall.addMemory">Add memory</strong>
         </button>
 
         <form class="card form-card is-collapsed" data-card-panel="memory" data-memory-form>
-          <button class="close-card-button" type="button" data-close-card="memory" aria-label="Sulje muistokortti">×</button>
+          <button class="close-card-button" type="button" data-close-card="memory" data-i18n-aria-label="wall.form.close" aria-label="Close memory card">×</button>
           <label>
-            Kuva tai video
+            <span data-i18n="wall.form.media">Picture or video</span>
             <input name="media" data-memory-media type="file" accept="image/*,video/*" />
           </label>
           <div class="memory-draft-preview" data-draft-picker hidden>
             <div class="media-preview" data-draft-preview></div>
-            <span class="image-compose-hint draft-hint">Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+            <span class="image-compose-hint draft-hint" data-i18n="wall.form.dragHint">Drag the image. Zoom with two fingers or the wheel.</span>
           </div>
           <div class="video-trim" data-video-trim hidden>
             <video data-video-preview controls playsinline muted preload="metadata"></video>
             <label>
-              Valitse näytettävä 10 sekunnin kohta
+              <span data-i18n="wall.form.videoTrim">Pick the 10-second moment to show</span>
               <input data-video-start type="range" min="0" max="0" step="0.1" value="0" />
             </label>
             <p data-video-range-label>0:00-0:10</p>
           </div>
           <label>
-            Pieni teksti muistolle
-            <textarea name="text" maxlength="220" placeholder="Esim. Viimeinen kesälaidun, kun kaikki oli vielä tässä."></textarea>
+            <span data-i18n="wall.form.text">A short note for the memory</span>
+            <textarea name="text" maxlength="220" data-i18n-placeholder="wall.form.textPlaceholder" placeholder="E.g. The last summer pasture, when everything was still here."></textarea>
           </label>
           <label>
-            Päivä kalenterissa (valinnainen)
+            <span data-i18n="wall.form.calendarDate">Date in the calendar (optional)</span>
             <input name="calendarDate" type="date" />
           </label>
           <p class="form-message" data-memory-message></p>
-          <button class="primary-action" type="submit">Tallenna muisto</button>
+          <button class="primary-action" type="submit" data-i18n="wall.form.save">Save memory</button>
         </form>
 
         <section class="memory-grid" data-memory-list></section>
@@ -164,7 +164,7 @@
       <section class="screen" data-screen="letters">
         <header class="topbar topbar--ornate">
           <div>
-            <h2>Kirjeet</h2>
+            <h2 data-i18n="letters.title">Letters</h2>
           </div>
           <span class="topbar-ornament" aria-hidden="true">
             <svg viewBox="0 0 92 118" focusable="false">
@@ -184,20 +184,20 @@
 
         <button class="add-card-toggle" type="button" data-open-card="letter">
           <span aria-hidden="true">+</span>
-          <strong>Kirjoita kirje</strong>
+          <strong data-i18n="letters.addLetter">Write a letter</strong>
         </button>
 
         <form class="card form-card letter-editor is-collapsed" data-card-panel="letter" data-letter-form>
-          <button class="close-card-button" type="button" data-close-card="letter" aria-label="Sulje kirjekortti">×</button>
+          <button class="close-card-button" type="button" data-close-card="letter" data-i18n-aria-label="letters.form.close" aria-label="Close letter card">×</button>
           <label>
-            Otsikko
-            <input name="title" type="text" maxlength="60" placeholder="Rakas Pepe" />
+            <span data-i18n="letters.form.title">Title</span>
+            <input name="title" type="text" maxlength="60" data-i18n-placeholder="letters.form.titlePlaceholder" placeholder="Dear friend" />
           </label>
           <label>
-            Kirje
-            <textarea name="body" maxlength="1400" placeholder="Kirjoita rauhassa. Tätä ei julkaista eikä jaeta."></textarea>
+            <span data-i18n="letters.form.body">Letter</span>
+            <textarea name="body" maxlength="1400" data-i18n-placeholder="letters.form.bodyPlaceholder" placeholder="Write at your own pace. This won't be published or shared."></textarea>
           </label>
-          <button class="primary-action" type="submit">Tallenna kirje</button>
+          <button class="primary-action" type="submit" data-i18n="letters.form.save">Save letter</button>
         </form>
 
         <section class="letter-list" data-letter-list></section>
@@ -206,7 +206,7 @@
       <section class="screen" data-screen="calendar">
         <header class="topbar topbar--ornate">
           <div>
-            <h2>Muistokalenteri</h2>
+            <h2 data-i18n="calendar.title">Memorial calendar</h2>
           </div>
           <span class="topbar-ornament" aria-hidden="true">
             <svg viewBox="0 0 92 118" focusable="false">
@@ -228,54 +228,54 @@
           <div class="image-frame" data-image-picker>
             <div class="month-cover" data-month-cover></div>
             <label class="image-change cover-change" data-image-change hidden>
-              Vaihda kuva
+              <span data-i18n="calendar.changeImage">Change image</span>
               <input data-month-photo type="file" accept="image/*" />
             </label>
-            <span class="image-compose-hint cover-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+            <span class="image-compose-hint cover-hint" data-image-hint hidden data-i18n="calendar.dragHint">Drag the image. Zoom with two fingers or the wheel.</span>
           </div>
           <div class="calendar-controls">
-            <button class="icon-button" type="button" data-month="prev" aria-label="Edellinen kuukausi">‹</button>
+            <button class="icon-button" type="button" data-month="prev" data-i18n-aria-label="calendar.prevMonth" aria-label="Previous month">‹</button>
             <div>
-              <p class="eyebrow">Kuukausi</p>
+              <p class="eyebrow" data-i18n="calendar.eyebrow">Month</p>
               <h3 data-current-month></h3>
             </div>
-            <button class="icon-button" type="button" data-month="next" aria-label="Seuraava kuukausi">›</button>
+            <button class="icon-button" type="button" data-month="next" data-i18n-aria-label="calendar.nextMonth" aria-label="Next month">›</button>
           </div>
           <div class="weekdays" aria-hidden="true">
-            <span>Ma</span><span>Ti</span><span>Ke</span><span>To</span><span>Pe</span><span>La</span><span>Su</span>
+            <span data-i18n="wd.mon">Mon</span><span data-i18n="wd.tue">Tue</span><span data-i18n="wd.wed">Wed</span><span data-i18n="wd.thu">Thu</span><span data-i18n="wd.fri">Fri</span><span data-i18n="wd.sat">Sat</span><span data-i18n="wd.sun">Sun</span>
           </div>
           <div class="calendar-grid" data-calendar-grid></div>
         </section>
 
         <button class="add-card-toggle" type="button" data-open-card="day">
           <span aria-hidden="true">+</span>
-          <strong>Lisää muistopäivä</strong>
+          <strong data-i18n="calendar.addDay">Add memorial day</strong>
         </button>
 
         <form class="card form-card is-collapsed" data-card-panel="day" data-day-form>
-          <button class="close-card-button" type="button" data-close-card="day" aria-label="Sulje muistopäiväkortti">×</button>
+          <button class="close-card-button" type="button" data-close-card="day" data-i18n-aria-label="calendar.form.close" aria-label="Close memorial day card">×</button>
           <label>
-            Muistopäivän nimi
-            <input name="name" type="text" maxlength="48" placeholder="Esim. Ensimmäinen maastolenkki" />
+            <span data-i18n="calendar.form.name">Memorial day name</span>
+            <input name="name" type="text" maxlength="48" data-i18n-placeholder="calendar.form.namePlaceholder" placeholder="E.g. First trail ride" />
           </label>
           <label>
-            Päivämäärä
+            <span data-i18n="calendar.form.date">Date</span>
             <input name="date" type="date" />
           </label>
           <label>
-            Lempeä merkki
+            <span data-i18n="calendar.form.symbol">Gentle symbol</span>
             <select name="symbol">
-              <option value="♡">Sydän</option>
-              <option value="✦">Tähti</option>
-              <option value="♢">Muisto</option>
-              <option value="🕯">Kynttilä</option>
+              <option value="♡" data-i18n="calendar.form.symbolHeart">Heart</option>
+              <option value="✦" data-i18n="calendar.form.symbolStar">Star</option>
+              <option value="♢" data-i18n="calendar.form.symbolMemory">Memory</option>
+              <option value="🕯" data-i18n="calendar.form.symbolCandle">Candle</option>
             </select>
           </label>
           <label>
-            Teksti
-            <textarea name="note" maxlength="180" placeholder="Mitä haluat muistaa juuri tästä päivästä?"></textarea>
+            <span data-i18n="calendar.form.text">Text</span>
+            <textarea name="note" maxlength="180" data-i18n-placeholder="calendar.form.textPlaceholder" placeholder="What do you want to remember about this day?"></textarea>
           </label>
-          <button class="primary-action" type="submit">Lisää päivä</button>
+          <button class="primary-action" type="submit" data-i18n="calendar.form.save">Add day</button>
         </form>
 
         <section class="day-list" data-day-list></section>
@@ -284,18 +284,18 @@
       <section class="screen" data-screen="memorial">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Muistopäivä</p>
-            <h2 data-memorial-title>Pepen päivä</h2>
+            <p class="eyebrow" data-i18n="memorial.eyebrow">Memorial day</p>
+            <h2 data-memorial-title></h2>
           </div>
         </header>
 
         <article class="memorial-card card" data-candle-state data-image-picker>
           <div class="memorial-image" data-memorial-image></div>
           <label class="image-change memorial-change" data-image-change hidden>
-            Vaihda kuva
+            <span data-i18n="memorial.changeImage">Change image</span>
             <input data-memorial-photo type="file" accept="image/*" />
           </label>
-          <span class="image-compose-hint memorial-hint" data-image-hint hidden>Vedä kuvaa. Zoomaa kahdella sormella tai rullalla.</span>
+          <span class="image-compose-hint memorial-hint" data-image-hint hidden data-i18n="memorial.dragHint">Drag the image. Zoom with two fingers or the wheel.</span>
           <div class="candle" aria-hidden="true">
             <span class="flame"></span>
             <span class="wick"></span>
@@ -304,14 +304,14 @@
           <p class="italic-note" data-memorial-date></p>
           <h3 data-memorial-heading></h3>
           <p data-memorial-text></p>
-          <button class="primary-action" type="button" data-light-candle>Sytytä kynttilä</button>
+          <button class="primary-action" type="button" data-light-candle data-i18n="memorial.lightCandle">Light a candle</button>
         </article>
       </section>
 
       <section class="screen" data-screen="settings">
         <header class="topbar topbar--ornate">
           <div>
-            <h2 data-settings-title>Asetukset</h2>
+            <h2 data-settings-title data-i18n="settings.title">Settings</h2>
           </div>
           <span class="topbar-ornament" aria-hidden="true">
             <svg viewBox="0 0 92 118" focusable="false">
@@ -329,109 +329,116 @@
           </span>
         </header>
 
-        <button class="memory-switch-button memory-place-switch" type="button" data-nav="selector">Muistopaikat</button>
+        <button class="memory-switch-button memory-place-switch" type="button" data-nav="selector" data-i18n="settings.memorialPlaces">Memorial places</button>
 
 
         <form class="card form-card" data-settings-form>
-          <p class="settings-create-note" data-settings-create-note hidden>Luo uusi muistopaikka täyttämällä perustiedot. Tallennuksen jälkeen siirryt sen kotisivulle.</p>
+          <p class="settings-create-note" data-settings-create-note hidden data-i18n="settings.createNote">Create a new memorial place by filling in the basics. After saving, you'll be taken to its home page.</p>
           <label>
-            Muistettavan nimi
-            <input name="horseName" type="text" maxlength="40" placeholder="Esim. Pepe" />
+            <span data-i18n="settings.horseName">Name of the one you remember</span>
+            <input name="horseName" type="text" maxlength="40" data-i18n-placeholder="settings.horseNamePlaceholder" placeholder="E.g. Pepper" />
           </label>
           <label>
-            Muistettava on
+            <span data-i18n="settings.petType">They were a</span>
             <select name="petType" data-pet-type>
-              <option value="" disabled>Esim. Hevonen</option>
-              <option value="human">Ihminen</option>
-              <option value="horse">Hevonen</option>
-              <option value="dog">Koira</option>
-              <option value="cat">Kissa</option>
-              <option value="rabbit">Kani</option>
-              <option value="bird">Lintu</option>
-              <option value="guineaPig">Marsu</option>
-              <option value="hamster">Hamsteri</option>
-              <option value="ferret">Fretti</option>
-              <option value="turtle">Kilpikonna</option>
-              <option value="other">Muu eläin</option>
+              <option value="" disabled data-i18n="settings.petType.placeholder">E.g. Horse</option>
+              <option value="human" data-i18n="settings.petType.human">Person</option>
+              <option value="horse" data-i18n="settings.petType.horse">Horse</option>
+              <option value="dog" data-i18n="settings.petType.dog">Dog</option>
+              <option value="cat" data-i18n="settings.petType.cat">Cat</option>
+              <option value="rabbit" data-i18n="settings.petType.rabbit">Rabbit</option>
+              <option value="bird" data-i18n="settings.petType.bird">Bird</option>
+              <option value="guineaPig" data-i18n="settings.petType.guineaPig">Guinea pig</option>
+              <option value="hamster" data-i18n="settings.petType.hamster">Hamster</option>
+              <option value="ferret" data-i18n="settings.petType.ferret">Ferret</option>
+              <option value="turtle" data-i18n="settings.petType.turtle">Turtle</option>
+              <option value="other" data-i18n="settings.petType.other">Other animal</option>
             </select>
           </label>
           <label>
-            Tarkenna halutessasi
-            <input name="petTypeCustom" type="text" maxlength="40" placeholder="Esim. poni, papukaija tai akvaariokala" />
+            <span data-i18n="settings.petTypeCustom">Specify if you like</span>
+            <input name="petTypeCustom" type="text" maxlength="40" data-i18n-placeholder="settings.petTypeCustomPlaceholder" placeholder="E.g. pony, parrot, or aquarium fish" />
           </label>
           <label>
-            Muistopäivän nimi
-            <input name="memorialName" type="text" maxlength="48" placeholder="Esim. Pepen päivä" />
+            <span data-i18n="settings.memorialName">Memorial day name</span>
+            <input name="memorialName" type="text" maxlength="48" data-i18n-placeholder="settings.memorialNamePlaceholder" placeholder="E.g. Pepper's day" />
           </label>
           <label>
-            Kuolinpäivä
+            <span data-i18n="settings.memorialDate">Date of passing</span>
             <span class="date-picker-field">
-              <input name="memorialDate" data-memorial-date-input type="date" aria-label="Kuolinpäivä" />
+              <input name="memorialDate" data-memorial-date-input type="date" data-i18n-aria-label="settings.memorialDateAria" aria-label="Date of passing" />
             </span>
           </label>
           <label>
-            Muistopäivän kuva
+            <span data-i18n="settings.memorialImage">Memorial day image</span>
             <input name="memorialImage" type="file" accept="image/*" />
           </label>
 
           <details class="calendar-photos-disclosure">
-            <summary>Kalenterikuvat <span data-cal-photo-count class="calendar-photos-count"></span></summary>
-            <p class="calendar-photos-note">Kuvat näkyvät kalenterin yläosassa vuodesta riippumatta. Voit vaihtaa ne myöhemmin valitsemalla uudet kuvat.</p>
+            <summary><span data-i18n="settings.calendarPhotos">Calendar images</span> <span data-cal-photo-count class="calendar-photos-count"></span></summary>
+            <p class="calendar-photos-note" data-i18n="settings.calendarPhotos.note">These images appear at the top of the calendar regardless of the year. You can change them later by picking new ones.</p>
             <label class="calendar-photos-bulk-btn">
-              <span class="calendar-photos-bulk-label">Valitse 12 kuvaa</span>
-              <span class="calendar-photos-bulk-hint">Valitse järjestyksessä Tam → Jou</span>
+              <span class="calendar-photos-bulk-label" data-i18n="settings.calendarPhotos.bulk">Pick 12 images</span>
+              <span class="calendar-photos-bulk-hint" data-i18n="settings.calendarPhotos.bulkHint">Pick in order from Jan → Dec</span>
               <input type="file" accept="image/*" multiple data-cal-photos-bulk hidden />
             </label>
           </details>
 
           <details class="theme-disclosure">
-            <summary>Teemat</summary>
+            <summary data-i18n="settings.themes">Themes</summary>
             <fieldset class="theme-picker">
-              <legend>Valitse teema</legend>
+              <legend data-i18n="settings.themes.pick">Pick a theme</legend>
             <label class="theme-card theme-card--classic">
               <input name="theme" type="radio" value="classic" />
               <span class="theme-check" aria-hidden="true">✓</span>
-              <span class="theme-name">Klassinen</span>
-              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+              <span class="theme-name" data-i18n="settings.themes.classic">Classic</span>
+              <span class="theme-sample" data-i18n="settings.themes.sample">Memories that stay with you.</span>
             </label>
             <label class="theme-card theme-card--timeless">
               <input name="theme" type="radio" value="timeless" />
               <span class="theme-check" aria-hidden="true">✓</span>
-              <span class="theme-name">Ajaton</span>
-              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+              <span class="theme-name" data-i18n="settings.themes.timeless">Timeless</span>
+              <span class="theme-sample" data-i18n="settings.themes.sample">Memories that stay with you.</span>
             </label>
             <label class="theme-card theme-card--soft">
               <input name="theme" type="radio" value="soft" />
               <span class="theme-check" aria-hidden="true">✓</span>
-              <span class="theme-name">Pehmeä</span>
-              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+              <span class="theme-name" data-i18n="settings.themes.soft">Soft</span>
+              <span class="theme-sample" data-i18n="settings.themes.sample">Memories that stay with you.</span>
             </label>
             <label class="theme-card theme-card--modern">
               <input name="theme" type="radio" value="modern" />
               <span class="theme-check" aria-hidden="true">✓</span>
-              <span class="theme-name">Moderni</span>
-              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+              <span class="theme-name" data-i18n="settings.themes.modern">Modern</span>
+              <span class="theme-sample" data-i18n="settings.themes.sample">Memories that stay with you.</span>
             </label>
             <label class="theme-card theme-card--romantic">
               <input name="theme" type="radio" value="romantic" />
               <span class="theme-check" aria-hidden="true">✓</span>
-              <span class="theme-name">Romanttinen</span>
-              <span class="theme-sample">Muistot, jotka pysyvät mukana.</span>
+              <span class="theme-name" data-i18n="settings.themes.romantic">Romantic</span>
+              <span class="theme-sample" data-i18n="settings.themes.sample">Memories that stay with you.</span>
             </label>
             </fieldset>
           </details>
-          <button class="primary-action" type="submit">Tallenna muutokset</button>
+          <label class="language-picker">
+            <span data-i18n="settings.language">Language</span>
+            <select name="language" data-language-select>
+              <option value="en" data-i18n="settings.language.en">English</option>
+              <option value="fi" data-i18n="settings.language.fi">Suomi</option>
+            </select>
+          </label>
+          <button class="primary-action" type="submit" data-i18n="settings.save">Save changes</button>
           <section class="danger-zone" data-memorial-danger>
-            <p class="danger-zone-label">Vaarallinen toiminto</p>
-            <button class="danger-action" type="button" data-delete-memorial>Poista tämä muistopaikka</button>
-            <p>Tämä poistaa muistot, kirjeet ja kuvat pysyvästi.</p>
+            <p class="danger-zone-label" data-i18n="settings.dangerZone">Dangerous action</p>
+            <button class="danger-action" type="button" data-delete-memorial data-i18n="settings.delete">Delete this memorial place</button>
+            <p data-i18n="settings.deleteNote">This permanently removes the memories, letters, and images.</p>
           </section>
         </form>
-        <p class="privacy-note">Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.</p>
+        <p class="privacy-note" data-i18n="settings.privacy">In this prototype, everything you add is stored only in this browser.</p>
       </section>
     </main>
 
-    <nav class="bottom-nav" data-app-nav aria-label="Sovelluksen osiot">
+    <nav class="bottom-nav" data-app-nav data-i18n-aria-label="nav.aria" aria-label="App sections">
       <button class="is-active" type="button" data-nav="home">
         <span class="nav-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -440,7 +447,7 @@
             <path d="M10 20v-5h4v5"></path>
           </svg>
         </span>
-        <span>Koti</span>
+        <span data-i18n="nav.home">Home</span>
       </button>
       <button type="button" data-nav="wall">
         <span class="nav-icon" aria-hidden="true">
@@ -448,7 +455,7 @@
             <path d="M12 20.5s-7.2-4.4-8.7-9.1C2.1 7.8 4.3 5 7.5 5c1.9 0 3.4 1 4.5 2.5C13.1 6 14.6 5 16.5 5c3.2 0 5.4 2.8 4.2 6.4C19.2 16.1 12 20.5 12 20.5Z"></path>
           </svg>
         </span>
-        <span>Muistot</span>
+        <span data-i18n="nav.memories">Memories</span>
       </button>
       <button type="button" data-nav="letters">
         <span class="nav-icon" aria-hidden="true">
@@ -457,7 +464,7 @@
             <path d="m5 8.5 7 5 7-5"></path>
           </svg>
         </span>
-        <span>Kirjeet</span>
+        <span data-i18n="nav.letters">Letters</span>
       </button>
       <button type="button" data-nav="calendar">
         <span class="nav-icon" aria-hidden="true">
@@ -466,7 +473,7 @@
             <path d="M8 3.5v4M16 3.5v4M4.5 10h15"></path>
           </svg>
         </span>
-        <span>Kalenteri</span>
+        <span data-i18n="nav.calendar">Calendar</span>
       </button>
       <button type="button" data-nav="settings">
         <span class="nav-icon" aria-hidden="true">
@@ -475,22 +482,22 @@
             <path d="M19 12a7.7 7.7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5l-.3 3.1a8 8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7.7 7.7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.3 3.1h5l.3-3.1a8 8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"></path>
           </svg>
         </span>
-        <span>Asetukset</span>
+        <span data-i18n="nav.settings">Settings</span>
       </button>
     </nav>
 
     <dialog class="confirm-dialog" data-delete-memorial-dialog>
       <form method="dialog" class="confirm-dialog-card">
-        <h2>Poistetaanko muistopaikka?</h2>
+        <h2 data-i18n="delete.title">Delete this memorial place?</h2>
         <p data-delete-memorial-message></p>
         <div class="confirm-dialog-actions">
-          <button class="secondary-action" type="button" data-cancel-delete-memorial>Peruuta</button>
-          <button class="danger-action danger-action--solid" type="button" data-confirm-delete-memorial>Poista muistopaikka</button>
+          <button class="secondary-action" type="button" data-cancel-delete-memorial data-i18n="delete.cancel">Cancel</button>
+          <button class="danger-action danger-action--solid" type="button" data-confirm-delete-memorial data-i18n="delete.confirm">Delete memorial place</button>
         </div>
       </form>
     </dialog>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260523-topbar-clean" type="module"></script>
+    <script src="app.js?v=20260523-i18nv3" type="module"></script>
   </body>
 </html>

@@ -1,4 +1,21 @@
+import { getLanguage, t } from "./i18n.js?v=20260523-i18nv3";
+
 const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
+const PET_TYPES = ["horse", "dog", "cat", "rabbit", "bird", "guineaPig", "hamster", "ferret", "turtle", "human", "other"];
+
+/**
+ * Returns a name in possessive form ("Pepe's" in EN, "Pepen" in FI).
+ * Used in templates so the rest of the string stays in translations.js.
+ */
+export function toPossessive(name, lang = getLanguage()) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) {
+    return lang === "fi" ? "Rakkaan" : "Beloved";
+  }
+  if (lang === "fi") return toGenitive(trimmed);
+  // English: standard "'s", "'" for names already ending in s
+  return /s$/i.test(trimmed) ? `${trimmed}'` : `${trimmed}'s`;
+}
 
 export function setActiveView({ name, screens, navButtons }) {
   screens.forEach((screen) => {
@@ -57,46 +74,23 @@ export function getPointerDistance(first, second) {
 }
 
 export function toAllative(name) {
-  if (!name) return "Rakkaalle ystävälle";
-  const lower = name.toLowerCase();
-  const suffix = /[aouå]$/.test(lower) ? "lle" : "lle";
-  return `${name}${suffix}`;
+  // Finnish allative case ("-lle"). English version uses a translated wrapper instead.
+  if (!name) return t("memorialText.fallbackName");
+  return `${name}lle`;
 }
 
 export function toGenitive(name) {
+  // Finnish genitive case ("-n" / "-in"). English version uses toPossessive() above.
   const trimmed = String(name || "").trim();
   if (!trimmed) return "Rakkaan";
   return /[aeiouyäöå]$/i.test(trimmed) ? `${trimmed}n` : `${trimmed}in`;
 }
 
 export function buildMemorialText(source) {
-  const name = source.horseName || "rakas ystävä";
-  const customAnimal = source.petTypeCustom || "eläin";
-  const templates = {
-    horse:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pehmeä turpa, tutut askeleet ja rauha, jonka ${name} toi mukanaan.`,
-    dog:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: iloinen katse, tutut tassut ja uskollinen läsnäolo, jonka ${name} toi jokaiseen päivään.`,
-    cat:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: hiljainen kehräys, pehmeät tassut ja oma erityinen rauha, jonka ${name} toi kotiin.`,
-    rabbit:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pehmeä olemus, pienet hypyt ja lempeä hiljaisuus, jonka ${name} toi mukanaan.`,
-    bird:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: kevyt liike, tuttu ääni ja ilo, jonka ${name} toi huoneeseen.`,
-    guineaPig:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pienet äänet, lämmin läheisyys ja arjen suloinen rauha, jonka ${name} toi kotiin.`,
-    hamster:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: pienet tassut, utelias katse ja hellä läsnäolo, jonka ${name} toi mukanaan.`,
-    ferret:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: vilkas olemus, leikkisät hetket ja persoonallinen lämpö, jonka ${name} toi elämään.`,
-    turtle:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: rauhallinen tahti, tuttu olemus ja hiljainen viisaus, jonka ${name} toi mukanaan.`,
-    human:
-      `Tänään muistetaan kaikkea sitä, mikä jäi sydämeen: yhteiset hetket, tutut sanat ja rakkaus, jonka ${name} jätti elämään.`,
-    other:
-      `Tänään muistetaan lämmöllä: ${name}, rakas ${customAnimal}, ja kaikkea sitä, mikä jäi sydämeen: tutut hetket, oma ainutlaatuinen luonne ja lämpö.`,
-  };
-  const base = templates[source.petType] || templates.other;
+  const name = source.horseName || t("memorialText.fallbackName");
+  const animal = source.petTypeCustom || t("memorialText.fallbackAnimal");
+  const petType = PET_TYPES.includes(source.petType) ? source.petType : "other";
+  const base = t(`memorialText.${petType}`, { name, animal });
   return source.memorialNote ? `${base} ${source.memorialNote}` : base;
 }
 

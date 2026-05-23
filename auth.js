@@ -12,7 +12,8 @@
  *   supabase.auth.signInWithOAuth({ provider: "google" }).
  */
 
-import { getSupabaseClient, isSupabaseConfigured } from "./storage.js";
+import { getSupabaseClient, isSupabaseConfigured } from "./storage.js?v=20260523-i18nv3";
+import { t } from "./i18n.js?v=20260523-i18nv3";
 
 /**
  * Returns the currently signed-in Supabase user, or null if anonymous.
@@ -37,7 +38,7 @@ export async function getCurrentUser() {
  */
 export async function signInWithEmail(email, password) {
   if (!isSupabaseConfigured()) {
-    throw new Error("Kirjautuminen ei ole käytössä tässä versiossa.");
+    throw new Error(t("msg.auth.unavailable"));
   }
   const supabase = await getSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
