@@ -16,8 +16,12 @@ import {
 import { onAuthChange } from "./auth.js?v=20260523-i18nv9";
 import {
   createBlankMemorial as createStoredBlankMemorial,
+  createMediaStoragePath,
   getActiveMemorial as getStoredActiveMemorial,
+  getStoredSizeKB,
   getSupabaseClient,
+  importAppState,
+  isOwnedMediaPath,
   isSupabaseConfigured,
   loadLanguage,
   loadState as loadStoredState,
@@ -105,6 +109,7 @@ const elements = {
   draftPreview: document.querySelector("[data-draft-preview]"),
   videoTrim: document.querySelector("[data-video-trim]"),
   videoPreview: document.querySelector("[data-video-preview]"),
+  videoTrimSlider: document.querySelector("[data-video-trim-slider]"),
   videoStart: document.querySelector("[data-video-start]"),
   videoRangeLabel: document.querySelector("[data-video-range-label]"),
   memoryList: document.querySelector("[data-memory-list]"),
@@ -127,6 +132,10 @@ const elements = {
   memorialPhoto: document.querySelector("[data-memorial-photo]"),
   candleState: document.querySelector("[data-candle-state]"),
   settingsForm: document.querySelector("[data-settings-form]"),
+  settingsMessage: document.querySelector("[data-settings-message]"),
+  storageUsage: document.querySelector("[data-storage-usage]"),
+  exportMemoriesBtn: document.querySelector("[data-export-memories]"),
+  importMemoriesInput: document.querySelector("[data-import-memories]"),
   petType: document.querySelector("[data-pet-type]"),
   langDialog: document.querySelector("[data-lang-dialog]"),
 };
@@ -144,6 +153,13 @@ elements.memorialPhoto.addEventListener("change", updateMemorialPhoto);
 document.querySelector("[data-cal-photos-bulk]").addEventListener("change", updateCalendarMonthPhotosBulk);
 elements.settingsForm.addEventListener("submit", saveSettings);
 elements.settingsForm.addEventListener("change", handleSettingsChange);
+elements.exportMemoriesBtn?.addEventListener("click", exportMemories);
+elements.importMemoriesInput?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  await importMemoriesFromFile(file);
+  event.target.value = "";
+});
 elements.petType.addEventListener("change", previewPetMemorialText);
 elements.memorialDateInput.addEventListener("change", updateMemorialDateDisplay);
 document.addEventListener("pointerdown", startImageCompose);
@@ -151,6 +167,23 @@ document.addEventListener("pointermove", moveImageCompose);
 document.addEventListener("pointerup", stopImageCompose);
 document.addEventListener("pointercancel", stopImageCompose);
 document.addEventListener("wheel", zoomImageWithWheel, { passive: false });
+
+// ── Virtual keyboard detection (Android Chrome + Samsung Internet) ───────────
+// visualViewport.height shrinks when the soft keyboard opens; layout viewport
+// (window.innerHeight) does NOT shrink in Chrome 92+.  When the visible area
+// drops below 75 % of the full height we treat the keyboard as open and toggle
+// the "keyboard-open" class on <body> so CSS can slide the bottom-nav away.
+// API supported: Chrome 61+, Samsung Internet 12.1+, Safari 13+.
+(function registerKeyboardListener() {
+  if (!("visualViewport" in window)) return;
+  let lastOpen = false;
+  window.visualViewport.addEventListener("resize", () => {
+    const keyboardOpen = window.visualViewport.height < window.innerHeight * 0.75;
+    if (keyboardOpen === lastOpen) return;
+    lastOpen = keyboardOpen;
+    document.body.classList.toggle("keyboard-open", keyboardOpen);
+  });
+})();
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -580,7 +613,7 @@ async function addMemory(event) {
 
   if (!text && !(file instanceof File && file.size)) return;
 
-  setMemoryMessage("Tallennetaan muistoa...");
+  setMemoryMessage(t("msg.saving"));
   const type = memoryDraft?.type || (file instanceof File && isVideoFile(file) ? "video" : "image");
   let media = memoryDraft?.media || "";
   let storagePath = memoryDraft?.storagePath || "";
@@ -607,6 +640,12 @@ async function addMemory(event) {
   }
 
   if (shouldTrimVideo) {
+    // Bail fast when the browser can't trim — avoids a confusing multi-second
+    // wait followed by a generic error. The user already saw the tooLong
+    // warning at pick time; this is the save-path safety net.
+    if (!canTrimVideoInBrowser()) {
+      throw new Error("capture-stream-unavailable");
+    }
     setMemoryMessage(t("msg.video.preparingTrim"));
     videoToUpload = await trimVideoFile(videoFile, memoryDraft?.clipStart || 0);
   }
@@ -692,15 +731,26 @@ async function updateMemoryFileMessage(event) {
       position: { x: 50, y: 50, zoom: 1 },
     };
     renderMemoryDraft();
-    setMemoryMessage(
-      type === "image"
-        ? t("msg.image.ready")
-        : file.size > MAX_STANDARD_VIDEO_SIZE
-          ? t("msg.video.trimmedNote", { size: formatFileSize(file.size) })
-          : isSupabaseConfigured()
-          ? t("msg.video.ready")
-          : t("msg.video.needConfig"),
-    );
+    if (type === "image") {
+      setMemoryMessage(t("msg.image.ready"));
+    } else {
+      const duration = memoryDraft?.duration ?? 0;
+      const needsTrim = duration > VIDEO_CLIP_SECONDS;
+      if (needsTrim && !canTrimVideoInBrowser()) {
+        // Device can't trim (iOS Safari). Tell user exactly what to do so
+        // they don't hit a confusing error on save.
+        setMemoryMessage(
+          t("msg.video.tooLong", { duration: Math.ceil(duration) }),
+          true,
+        );
+      } else if (file.size > MAX_STANDARD_VIDEO_SIZE) {
+        setMemoryMessage(t("msg.video.trimmedNote", { size: formatFileSize(file.size) }));
+      } else if (isSupabaseConfigured()) {
+        setMemoryMessage(t("msg.video.ready"));
+      } else {
+        setMemoryMessage(t("msg.video.needConfig"));
+      }
+    }
   } catch {
     resetMemoryDraft();
     setMemoryMessage(t("msg.file.unreadable"), true);
@@ -710,6 +760,104 @@ async function updateMemoryFileMessage(event) {
 function setMemoryMessage(text, isError = false) {
   elements.memoryMessage.textContent = text;
   elements.memoryMessage.classList.toggle("is-error", isError);
+}
+
+function showSettingsMessage(text, isError = false) {
+  if (!elements.settingsMessage) return;
+  elements.settingsMessage.textContent = text;
+  elements.settingsMessage.classList.toggle("is-error", isError);
+  // Auto-clear success messages after 5 s so the area stays clean
+  if (!isError) {
+    clearTimeout(showSettingsMessage._timer);
+    showSettingsMessage._timer = setTimeout(() => {
+      if (elements.settingsMessage.textContent === text) elements.settingsMessage.textContent = "";
+    }, 5000);
+  }
+}
+
+// A floating toast for save failures that happen outside of the settings form
+// (hero photo, memorial photo, month photo, memory image update).
+function showSaveErrorToast(message) {
+  let el = document.getElementById("tallessa-save-status");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "tallessa-save-status";
+    Object.assign(el.style, {
+      position: "fixed",
+      bottom: "80px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "rgba(143, 77, 56, 0.94)",
+      color: "#f5efdf",
+      padding: "8px 18px",
+      borderRadius: "10px",
+      fontSize: "13px",
+      lineHeight: "1.45",
+      zIndex: "9999",
+      maxWidth: "88vw",
+      textAlign: "center",
+      pointerEvents: "none",
+      opacity: "0",
+      transition: "opacity 0.35s",
+    });
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.style.opacity = "1";
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => { el.style.opacity = "0"; }, 5500);
+}
+
+function renderStorageUsage() {
+  if (!elements.storageUsage) return;
+  const kb = getStoredSizeKB();
+  if (!kb) {
+    elements.storageUsage.textContent = "";
+    return;
+  }
+  const mb = (kb / 1024).toFixed(1);
+  elements.storageUsage.textContent = t("settings.storage.usage", { used: mb });
+}
+
+function exportMemories() {
+  try {
+    const json = JSON.stringify(appState);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    anchor.href = url;
+    anchor.download = `withen-backup-${date}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.warn("Tallessa: export failed", error);
+  }
+}
+
+async function importMemoriesFromFile(file) {
+  try {
+    const text = await file.text();
+    const raw = JSON.parse(text);
+    const normalized = importAppState(raw);
+    if (!normalized) {
+      showSettingsMessage(t("settings.storage.importError"), true);
+      return;
+    }
+    if (!window.confirm(t("settings.storage.importConfirm"))) return;
+    if (!saveStoredState(normalized)) {
+      showSettingsMessage(t("msg.save.failed"), true);
+      return;
+    }
+    appState = normalized;
+    state = getActiveMemorial();
+    renderAll();
+    // Scroll to top of settings so the user sees the success message
+    showSettingsMessage(t("settings.storage.importOk"));
+    renderStorageUsage();
+  } catch {
+    showSettingsMessage(t("settings.storage.importError"), true);
+  }
 }
 
 function renderMemoryDraft() {
@@ -738,6 +886,8 @@ function resetMemoryDraft() {
   elements.videoTrim.hidden = true;
   elements.videoPreview.removeAttribute("src");
   elements.videoPreview.load();
+  elements.videoTrimSlider.hidden = true;
+  elements.videoRangeLabel.hidden = true;
   elements.videoStart.value = "0";
   elements.videoStart.max = "0";
   elements.videoRangeLabel.textContent = "0:00-0:10";
@@ -793,15 +943,26 @@ function renderVideoTrim() {
     return;
   }
 
+  // Always show the video preview so the user can confirm they picked the right clip.
   elements.videoTrim.hidden = false;
   if (elements.videoPreview.src !== memoryDraft.previewUrl) {
     elements.videoPreview.src = memoryDraft.previewUrl;
   }
+
+  // Only show the start-point slider when:
+  //   • The browser supports captureStream-based trimming (desktop Chrome, Firefox, Android Chrome), AND
+  //   • The video is actually longer than the clip limit (slider would have range > 0)
   const maxStart = Math.max(0, memoryDraft.duration - VIDEO_CLIP_SECONDS);
-  elements.videoStart.max = String(maxStart.toFixed(1));
-  elements.videoStart.value = String(memoryDraft.clipStart || 0);
-  updateVideoRangeLabel();
-  previewVideoClipStart();
+  const showSlider = canTrimVideoInBrowser() && maxStart > 0;
+  elements.videoTrimSlider.hidden = !showSlider;
+  elements.videoRangeLabel.hidden = !showSlider;
+
+  if (showSlider) {
+    elements.videoStart.max = String(maxStart.toFixed(1));
+    elements.videoStart.value = String(memoryDraft.clipStart || 0);
+    updateVideoRangeLabel();
+    previewVideoClipStart();
+  }
 }
 
 function updateVideoClipSelection() {
@@ -835,14 +996,18 @@ function addLetter(event) {
 
   if (!title && !body) return;
 
-  state.letters.unshift({
+  const letter = {
     id: crypto.randomUUID(),
     title: title || `Kirje ${toAllative(state.horseName)}`,
     body,
     createdAt: new Date().toISOString(),
-  });
-
-  saveState();
+  };
+  state.letters.unshift(letter);
+  if (!saveState()) {
+    state.letters.shift();
+    showSaveErrorToast(t("msg.save.failed"));
+    return;
+  }
   event.currentTarget.reset();
   closeCard("letter");
   renderLetters();
@@ -858,15 +1023,19 @@ function addImportantDay(event) {
 
   if (!name || !date) return;
 
-  state.importantDays.push({
+  const day = {
     id: crypto.randomUUID(),
     name,
     date,
     note,
     symbol,
-  });
-
-  saveState();
+  };
+  state.importantDays.push(day);
+  if (!saveState()) {
+    state.importantDays.pop();
+    showSaveErrorToast(t("msg.save.failed"));
+    return;
+  }
   event.currentTarget.reset();
   closeCard("day");
   renderCalendar();
@@ -876,9 +1045,16 @@ async function updateMonthPhoto(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  state.monthPhotos[getMonthKey(visibleMonth)] = await prepareImageFile(file);
-  state.monthPhotoPositions[getMonthKey(visibleMonth)] = { x: 50, y: 50 };
-  saveState();
+  const monthKey = getMonthKey(visibleMonth);
+  const prevPhoto = state.monthPhotos[monthKey];
+  const prevPosition = state.monthPhotoPositions[monthKey];
+  state.monthPhotos[monthKey] = await prepareImageFile(file);
+  state.monthPhotoPositions[monthKey] = { x: 50, y: 50 };
+  if (!saveState()) {
+    state.monthPhotos[monthKey] = prevPhoto;
+    state.monthPhotoPositions[monthKey] = prevPosition;
+    showSaveErrorToast(t("msg.image.tooLarge"));
+  }
   event.target.value = "";
   hideImagePickers();
   renderCalendar();
@@ -897,8 +1073,12 @@ async function updateCalendarMonthPhotosBulk(event) {
     renderCalendarPhotoThumbs(); // update UI after each photo
   }
 
-  saveState();
   event.target.value = "";
+  if (!saveState()) {
+    showSettingsMessage(t("msg.image.tooLarge"), true);
+  } else {
+    renderStorageUsage();
+  }
   renderCalendar();
 }
 
@@ -913,9 +1093,15 @@ async function updateHeroPhoto(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
+  const prevImage = state.heroImage;
+  const prevPosition = state.heroImagePosition;
   state.heroImage = await prepareImageFile(file);
   state.heroImagePosition = { x: 50, y: 50 };
-  saveState();
+  if (!saveState()) {
+    state.heroImage = prevImage;
+    state.heroImagePosition = prevPosition;
+    showSaveErrorToast(t("msg.image.tooLarge"));
+  }
   event.target.value = "";
   hideImagePickers();
   renderHome();
@@ -925,9 +1111,15 @@ async function updateMemorialPhoto(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
+  const prevImage = state.memorialImage;
+  const prevPosition = state.memorialImagePosition;
   state.memorialImage = await prepareImageFile(file);
   state.memorialImagePosition = { x: 50, y: 50 };
-  saveState();
+  if (!saveState()) {
+    state.memorialImage = prevImage;
+    state.memorialImagePosition = prevPosition;
+    showSaveErrorToast(t("msg.image.tooLarge"));
+  }
   event.target.value = "";
   hideImagePickers();
   renderMemorial();
@@ -942,6 +1134,7 @@ async function updateMemoryImage(event) {
     hideImagePickers,
     renderHome,
     renderMemories,
+    onSaveError: (msg) => showSaveErrorToast(msg),
   });
 }
 
@@ -976,7 +1169,11 @@ async function saveSettings(event) {
     appState.activeMemorialId = state.id;
   }
 
-  saveState();
+  if (!saveState()) {
+    showSettingsMessage(t("msg.image.tooLarge"), true);
+    return;
+  }
+  renderStorageUsage();
   const targetScreen = isCreatingMemorial ? "home" : "memorial";
   isCreatingMemorial = false;
   renderAll();
@@ -985,6 +1182,16 @@ async function saveSettings(event) {
 
 function isVideoFile(file) {
   return file.type.startsWith("video/") || /\.(mov|mp4|m4v|webm)$/i.test(file.name);
+}
+
+// Returns true if this browser can trim a video clip via MediaRecorder + captureStream.
+// iOS Safari has MediaRecorder but NOT captureStream — so it returns false there.
+// Called both at selection time (to show/hide slider + set message) and at save
+// time (to bail early instead of discovering the failure after a slow seek).
+function canTrimVideoInBrowser() {
+  if (typeof MediaRecorder === "undefined") return false;
+  const probe = document.createElement("video");
+  return !!(probe.captureStream || probe.mozCaptureStream || probe.webkitCaptureStream);
 }
 
 function handleSettingsChange(event) {
@@ -1106,8 +1313,10 @@ syncFromCloud(appState, (cloudState) => {
 });
 
 // Auth runs silently in the background — no UI change, no mandatory login.
-// When a user is signed in, cloud saves/reads switch to their user-scoped path.
-// TODO: Show a login/logout option in the settings screen when auth UI is ready.
+// When a user is signed in, cloud saves/reads switch to their user-scoped path
+// (see setAuthUser in storage.js). Currently no UI calls signIn/signOut, so
+// this listener will only ever fire with `null` — but the wiring is in place
+// for the day the login screen is built (see auth.js header for the checklist).
 onAuthChange((user) => {
   setAuthUser(user);
   if (user) {
@@ -1208,6 +1417,7 @@ function renderSettings() {
     }
   }
   renderCalendarPhotoThumbs();
+  renderStorageUsage();
 }
 
 function getHomeMemoryOfDay() {
@@ -1347,7 +1557,7 @@ function formatDuration(value) {
 }
 
 function formatFileSize(bytes) {
-  return `${(bytes / 1024 / 1024).toFixed(1)} Mt`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} ${t("msg.fileSize.mb")}`;
 }
 
 function capitalize(value) {
@@ -1364,12 +1574,25 @@ function fileToDataUrl(file) {
 }
 
 async function uploadMemoryVideo(file) {
+  // SECURITY GATES — every guard here must be in place before we touch
+  // Supabase. The bucket-side RLS policy (see README "Supabase deployment
+  // checklist") is the real enforcement, but we fail fast on the client to
+  // give the user a clear message and to prevent confusing "Bad Request"
+  // toasts when basic preconditions aren't met.
   if (!isSupabaseConfigured()) {
+    throw new Error("supabase-not-configured");
+  }
+  if (!(file instanceof File) || !file.size) {
+    throw new Error("missing-video-file");
+  }
+  const path = createMediaStoragePath(getFileExtension(file) || "mp4");
+  if (!path) {
+    // No stable owner id → either localStorage is broken or device id couldn't
+    // be created. Bail rather than uploading to a colliding "anonymous" path.
     throw new Error("supabase-not-configured");
   }
 
   const supabase = await getSupabaseClient();
-  const path = createStoragePath(file);
   const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, file, {
     cacheControl: "31536000",
     contentType: file.type || "video/mp4",
@@ -1378,13 +1601,17 @@ async function uploadMemoryVideo(file) {
 
   if (error) throw error;
 
+  // NOTE: getPublicUrl returns an unguessable URL (the path contains a v4 UUID
+  // and the owner namespace) but is still publicly readable to anyone with the
+  // link. If you need stronger privacy, swap to createSignedUrl() and refresh
+  // URLs on demand — see README.
   const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
   return { path, publicUrl: data.publicUrl };
 }
 
 async function trimVideoFile(file, startTime) {
   try {
-    setMemoryMessage("Leikataan video selaimessa...");
+    setMemoryMessage(t("msg.video.trimming"));
     return await withTimeout(trimVideoWithMediaRecorder(file, startTime), VIDEO_PROCESSING_TIMEOUT, "media-recorder-timeout");
   } catch (error) {
     console.warn("Browser video trim failed", error);
@@ -1595,6 +1822,15 @@ function createClipFileName(file, extension = "mp4") {
 
 async function deleteSupabaseFile(path) {
   if (!isSupabaseConfigured() || !path) return;
+  // SECURITY: refuse to call .remove() with a path that doesn't belong to the
+  // current owner's namespace. RLS is the real enforcer on the server side,
+  // but a corrupt/migrated state.json that somehow held another user's path
+  // would otherwise trigger a noisy 403; worse, if RLS were ever misconfigured
+  // this client-side guard is the last line of defence.
+  if (!isOwnedMediaPath(path)) {
+    console.warn("Tallessa: refused to delete unrelated storage path", path);
+    return;
+  }
 
   try {
     const supabase = await getSupabaseClient();
@@ -1602,11 +1838,6 @@ async function deleteSupabaseFile(path) {
   } catch (error) {
     console.warn("Supabase file cleanup failed", error);
   }
-}
-
-function createStoragePath(file) {
-  const extension = getFileExtension(file) || "mp4";
-  return `memories/${new Date().getFullYear()}/${crypto.randomUUID()}.${extension}`;
 }
 
 function getFileExtension(file) {

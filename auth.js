@@ -1,15 +1,33 @@
 /**
- * auth.js — Supabase Auth wrapper for Tallessa
+ * auth.js — Supabase Auth wrapper for Tallessa / Withen.
  *
- * The app works fully without authentication (anonymous/device-scoped storage).
- * These functions are wired up in app.js so that when a user is signed in,
- * cloud data is scoped to their user ID instead of the anonymous device ID.
+ * STATUS: DORMANT SCAFFOLDING.
+ *   The app currently runs anonymously and stores everything in localStorage.
+ *   No UI in index.html calls any of the functions below except onAuthChange()
+ *   (used silently by app.js to scope cloud sync per user when/if a user is
+ *   signed in). Because no UI calls signInWithEmail/signOut, no user can
+ *   currently sign in — and that is intentional until the login screen is
+ *   designed.
  *
- * TODO (future login UI): Import showLoginScreen() and call it from onAuthChange
- *   when the app transitions to mandatory authentication.
- * TODO (future login UI): Add a login/logout button in the settings screen.
- * TODO (future providers): Add signInWithGoogle() / signInWithApple() using
- *   supabase.auth.signInWithOAuth({ provider: "google" }).
+ * SAFETY GUARANTEES (do not break these when finishing the login flow):
+ *   - The app must keep working with localStorage when Supabase is unreachable
+ *     or the user is signed out. storage.js already enforces this: both
+ *     schedulePush() and syncFromCloud() early-return when currentUserId is
+ *     null, so anonymous use never hits the network for state sync.
+ *   - No function here throws to top-level. getCurrentUser/signOut/onAuthChange
+ *     all swallow errors and return safe defaults so missing Supabase config
+ *     can never surface a broken UI.
+ *
+ * TO ENABLE LOGIN LATER (checklist for whoever picks this up):
+ *   1. Add a login screen / settings-row UI in index.html + styles.css.
+ *   2. Wire a submit handler that calls signInWithEmail(email, password) and
+ *      shows the thrown error string inline.
+ *   3. Add a "Kirjaudu ulos" / "Sign out" button that calls signOut().
+ *   4. Add translation keys for the button labels and error messages.
+ *   5. (Optional) Implement signInWithGoogle/signInWithApple using
+ *      supabase.auth.signInWithOAuth({ provider: "google" | "apple" }).
+ *      Apple requires extra Supabase project configuration.
+ *   6. Add a friendly "signed in as <email>" indicator if desired.
  */
 
 import { getSupabaseClient, isSupabaseConfigured } from "./storage.js?v=20260523-i18nv9";
@@ -34,7 +52,9 @@ export async function getCurrentUser() {
  * Sign in with email + password.
  * Throws a localised error string on failure so the caller can show it.
  *
- * TODO (login UI): Call this from the login form submit handler.
+ * DORMANT: not called by any current UI. Wire up from a login form submit
+ * handler when the login screen exists. The throw is safe — callers should
+ * wrap in try/catch and surface error.message inline next to the form.
  */
 export async function signInWithEmail(email, password) {
   if (!isSupabaseConfigured()) {
@@ -49,7 +69,8 @@ export async function signInWithEmail(email, password) {
 /**
  * Sign out the current user. Falls back to no-op if not configured.
  *
- * TODO (login UI): Call this from a "Kirjaudu ulos" button in settings.
+ * DORMANT: not called by any current UI. Wire up from a "Sign out" /
+ * "Kirjaudu ulos" button in settings when the login screen exists.
  */
 export async function signOut() {
   if (!isSupabaseConfigured()) return;

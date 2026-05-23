@@ -1,12 +1,12 @@
-const CACHE_NAME = "tallessa-cache-v17";
+const CACHE_NAME = "tallessa-cache-v23";
 
 const APP_SHELL_URLS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./styles.css?v=20260523-i18nv9",
+  "./styles.css?v=20260524-android1",
   "./app.js",
-  "./app.js?v=20260523-i18nv9",
+  "./app.js?v=20260524-android1",
   "./auth.js",
   "./calendar.js",
   "./memories.js",
@@ -14,6 +14,7 @@ const APP_SHELL_URLS = [
   "./ui.js",
   "./i18n.js",
   "./translations.js",
+  "./translations.js?v=20260523-i18nv9",
   "./manifest.webmanifest",
   "./apple-touch-icon.png",
   "./supabase-config.js",

@@ -53,6 +53,7 @@ export async function updateMemoryImage({
   hideImagePickers,
   renderHome,
   renderMemories,
+  onSaveError,
 }) {
   const input = event.target.closest("[data-memory-photo]");
   if (!input) return;
@@ -61,10 +62,23 @@ export async function updateMemoryImage({
   const file = input.files?.[0];
   if (!memory || !file) return;
 
+  const prevMedia = memory.media;
+  const prevType = memory.type;
+  const prevPosition = memory.imagePosition;
   memory.media = await prepareImageFile(file);
   memory.type = "image";
   memory.imagePosition = { x: 50, y: 50, zoom: 1 };
-  saveState();
+
+  if (!saveState()) {
+    // Revert so in-memory state stays consistent with what's persisted
+    memory.media = prevMedia;
+    memory.type = prevType;
+    memory.imagePosition = prevPosition;
+    onSaveError?.(t("msg.image.tooLarge"));
+    input.value = "";
+    return;
+  }
+
   input.value = "";
   hideImagePickers();
   renderHome();

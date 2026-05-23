@@ -70,6 +70,61 @@ function getStateStoragePath() {
   return `state/${id}/appstate.json`;
 }
 
+// ── Per-owner media path helpers ─────────────────────────────────────────────
+//
+// SECURITY: every media upload must live under the current owner's namespace so
+// that (a) the bucket layout makes RLS policies trivial to write
+// (`(storage.foldername(name))[1] = auth.uid()::text` for authenticated writes)
+// and (b) a corrupted or malicious state.json cannot make this client delete or
+// overwrite another owner's file. Anonymous users get a stable device-scoped
+// folder so their own uploads don't collide with each other.
+//
+// NOTE: We intentionally accept the device-id fallback for anonymous uploads to
+// keep the app usable without login. If you tighten the bucket to require auth
+// (recommended for production — see README "Supabase deployment checklist"),
+// uploadMemoryVideo will surface the RLS rejection as a clear error.
+
+const MEDIA_ROOT = "memories";
+
+export function getCurrentOwnerId() {
+  // Returns the namespace this client should write under. Never throws — falls
+  // back through user id → device id → null. Callers MUST treat null as
+  // "do not upload" and surface a friendly error instead.
+  if (currentUserId) return currentUserId;
+  const deviceId = getOrCreateDeviceId();
+  if (deviceId && deviceId !== "anonymous") return deviceId;
+  return null;
+}
+
+export function isCurrentUserAuthenticated() {
+  return Boolean(currentUserId);
+}
+
+export function createMediaStoragePath(extension) {
+  const ownerId = getCurrentOwnerId();
+  if (!ownerId) return null;
+  const safeExt = String(extension || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+  const year = new Date().getFullYear();
+  return `${MEDIA_ROOT}/${ownerId}/${year}/${crypto.randomUUID()}.${safeExt}`;
+}
+
+export function isOwnedMediaPath(path) {
+  // Used as a defence-in-depth check before deleting a file from Supabase.
+  // Refuses paths under a *different* owner's namespace. Legacy paths from an
+  // earlier version of the app that were written without a per-owner folder
+  // (e.g. `memories/2026/<uuid>.mp4`) are accepted because such a URL can only
+  // appear in the current owner's own state.json.
+  if (!path || typeof path !== "string") return false;
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length < 3) return false;
+  if (parts[0] !== MEDIA_ROOT) return false;
+  // Legacy layout: memories/<4-digit-year>/<file>
+  if (/^\d{4}$/.test(parts[1])) return true;
+  const ownerId = getCurrentOwnerId();
+  if (!ownerId) return false;
+  return parts[1] === ownerId;
+}
+
 // ── Supabase client ───────────────────────────────────────────────────────────
 
 export function isSupabaseConfigured() {
@@ -180,7 +235,15 @@ export async function syncFromCloud(currentAppState, onUpdate) {
     const cloudSavedAt = cloudRaw.savedAt || 0;
     if (cloudSavedAt > localSavedAt) {
       const normalized = normalizeAppState(cloudRaw);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch { /* quota */ }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      } catch {
+        // Quota exceeded — the cloud data is newer but won't fit locally.
+        // Show the same cloud-save-failed toast (reusing the existing message)
+        // so the user knows something went wrong, rather than silently losing
+        // the cloud update.
+        showCloudSyncError(t("msg.cloud.saveFailed"));
+      }
       onUpdate(normalized);
     }
   } catch {
@@ -252,6 +315,37 @@ export function saveState(appState) {
   } catch (error) {
     console.warn("Tallessa local save failed", error);
     return false;
+  }
+}
+
+/**
+ * Returns the approximate size of the stored app state in kilobytes.
+ * Reads the raw JSON string directly from localStorage to avoid a double
+ * serialisation. Returns 0 if storage is unavailable or nothing is stored yet.
+ */
+export function getStoredSizeKB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? Math.round(raw.length / 1024) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Validates and normalises a raw object parsed from a backup JSON file.
+ * Returns a normalised appState, or null if the object doesn't look like a
+ * Tallessa backup (missing `memorials` array).
+ *
+ * This is intentionally permissive about extra fields and old schema
+ * versions — normalizeAppState() fills in defaults for anything missing.
+ */
+export function importAppState(raw) {
+  if (!raw || !Array.isArray(raw.memorials)) return null;
+  try {
+    return normalizeAppState(raw);
+  } catch {
+    return null;
   }
 }
 

@@ -8,14 +8,15 @@
     <meta http-equiv="Expires" content="0" />
     <meta
       name="description"
-      content="Tallessa is a private memorial app for keeping the pictures, letters, and important days of a loved one."
+      data-i18n-content="app.description"
+      content="Withen is a private memorial app for keeping the pictures, letters, and important days of a loved one."
     />
-    <title>Tallessa</title>
+    <title data-i18n="brand.name">Withen</title>
 
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="icon" type="image/png" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
-<meta name="apple-mobile-web-app-title" content="Tallessa" />
+<meta name="apple-mobile-web-app-title" data-i18n-content="brand.name" content="Withen" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -27,14 +28,14 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260523-i18nv9" />
+    <link rel="stylesheet" href="styles.css?v=20260524-android1" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
       <section class="screen selector-screen is-active" data-screen="selector">
         <header class="selector-hero">
-          <h1 data-i18n="brand.name">Tallessa</h1>
-          <p data-i18n="selector.subtitle">Memories that stay with you.</p>
+          <h1 data-i18n="brand.name">Withen</h1>
+          <p data-i18n="selector.subtitle">Always with you.</p>
         </header>
 
         <section class="memorial-place-list" data-memorial-place-list></section>
@@ -140,11 +141,11 @@
           </div>
           <div class="video-trim" data-video-trim hidden>
             <video data-video-preview controls playsinline muted preload="metadata"></video>
-            <label>
+            <label data-video-trim-slider hidden>
               <span data-i18n="wall.form.videoTrim">Pick the 10-second moment to show</span>
               <input data-video-start type="range" min="0" max="0" step="0.1" value="0" />
             </label>
-            <p data-video-range-label>0:00-0:10</p>
+            <p data-video-range-label hidden>0:00-0:10</p>
           </div>
           <label>
             <span data-i18n="wall.form.text">A short note for the memory</span>
@@ -433,6 +434,17 @@
             <button class="danger-action" type="button" data-delete-memorial data-i18n="settings.delete">Delete this memorial space</button>
             <p data-i18n="settings.deleteNote">This permanently removes the memories, letters, and images.</p>
           </section>
+          <section class="storage-info">
+            <p class="storage-info-label" data-i18n="settings.storage.heading">Data &amp; backup</p>
+            <p class="storage-info-text" data-i18n="settings.storage.info">Photos and memories are stored on this device only. They will be lost if you clear browser data or switch to a different device.</p>
+            <p class="storage-usage" data-storage-usage></p>
+            <button class="secondary-action storage-action" type="button" data-export-memories data-i18n="settings.storage.export">Download backup</button>
+            <label class="secondary-action storage-action storage-import-label">
+              <span data-i18n="settings.storage.import">Restore from backup</span>
+              <input type="file" accept=".json,application/json" data-import-memories hidden />
+            </label>
+            <p class="form-message" data-settings-message></p>
+          </section>
         </form>
       </section>
     </main>
@@ -497,6 +509,6 @@
     </dialog>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260523-i18nv9" type="module"></script>
+    <script src="app.js?v=20260524-android1" type="module"></script>
   </body>
 </html>

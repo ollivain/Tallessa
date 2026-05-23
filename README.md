@@ -1,0 +1,196 @@
+# Tallessa / Withen
+
+A private, offline-first memorial PWA. The app works fully without any
+server — memories live in `localStorage`. If a Supabase project is
+configured, signed-in users also get cross-device cloud sync.
+
+* **Finnish UI brand**: Tallessa
+* **English (default) UI brand**: Withen
+* **Stack**: vanilla HTML/CSS/ES modules, no build step. Serve as static files.
+* **Backend (optional)**: Supabase Storage for state JSON + memory videos.
+
+---
+
+## Local development
+
+```bash
+python -m http.server 8080
+# then open http://localhost:8080
+```
+
+The PWA service worker (`service-worker.js`) caches the app shell. After
+editing any cached file, bump `CACHE_NAME` so iOS/Android clients pick up the
+new build.
+
+---
+
+## Supabase deployment checklist (READ BEFORE PUBLISHING)
+
+> ⚠️ **The client cannot verify your Supabase project's Row Level Security
+> (RLS) and Storage policies.** Misconfigured policies are the single biggest
+> security risk for this app — they can expose every user's memorial data to
+> every other user. Treat this checklist as a hard prerequisite for going
+> live, not a "nice to have".
+
+### 1. Frontend keys
+
+* `supabase-config.js` MUST contain only the project URL, the **anon** public
+  key, and the storage bucket name.
+* The Supabase **service role** key is a god-mode credential. **Never** put
+  it in any file that ships to the browser, into the service worker, into
+  `index.html`, or into the cache list. The codebase intentionally has no
+  reference to it.
+* The anon key is safe to ship (it is, by design, a public token) — but only
+  when RLS is enabled on every table and storage object you care about. With
+  RLS off, the anon key is the same as service role for anonymous reads.
+
+### 2. Storage bucket layout
+
+The app writes to exactly one bucket (default name: `memories`). Inside the
+bucket it uses two top-level prefixes:
+
+| Prefix | Contents | Written by |
+|---|---|---|
+| `state/<owner-id>/appstate.json` | The user's full app state (memorials, memories, letters, calendar). One file per owner. | `storage.js` → `pushToSupabase()` |
+| `memories/<owner-id>/<year>/<uuid>.<ext>` | Memory videos (≤ 10 s clips, ≤ ~50 MB each). | `app.js` → `uploadMemoryVideo()` |
+
+`<owner-id>` is the authenticated user's `auth.uid()` when signed in, or a
+per-browser device UUID stored in `localStorage` when anonymous.
+
+### 3. Required Storage policies (this is the critical part)
+
+In the Supabase dashboard → Storage → Policies for the `memories` bucket, set
+**at minimum** the following. Adjust to taste, but never weaken them.
+
+#### a) State JSON — only the owner can read or write their own state
+
+```sql
+-- SELECT
+(bucket_id = 'memories'
+  AND name LIKE 'state/' || auth.uid()::text || '/%')
+
+-- INSERT / UPDATE / DELETE
+(bucket_id = 'memories'
+  AND name LIKE 'state/' || auth.uid()::text || '/%')
+```
+
+This guarantees that even if someone steals an owner-id string, they cannot
+read or overwrite another user's state without that user's auth token.
+
+#### b) Memory videos — only the owner can write or delete their own videos
+
+```sql
+-- INSERT / UPDATE / DELETE
+(bucket_id = 'memories'
+  AND name LIKE 'memories/' || auth.uid()::text || '/%')
+```
+
+#### c) Memory videos — read access (pick ONE of the two)
+
+**Public read (current default).** Convenient: `getPublicUrl()` works without
+extra round-trips. Acceptable because the path contains a random v4 UUID
+which is unguessable. Anyone who somehow obtains the URL can view the
+video, however.
+
+```sql
+-- SELECT
+bucket_id = 'memories' AND name LIKE 'memories/%'
+```
+
+**Private read (recommended for personal memorial content).** Switch the
+client to `createSignedUrl()` and refresh URLs on demand. With this policy,
+even the URL alone is not enough.
+
+```sql
+-- SELECT
+(bucket_id = 'memories'
+  AND name LIKE 'memories/' || auth.uid()::text || '/%')
+```
+
+#### d) Anonymous uploads (until login UI exists)
+
+Today the app lets anonymous users upload videos (their state.json is
+local-only, but the videos go to Supabase). If you want to **prevent abuse
+of your bucket** as an anonymous file host, add a final policy that requires
+`auth.role() = 'authenticated'` on `INSERT`. The client will surface the
+rejection as `msg.video.uploadFailed`.
+
+### 4. Database tables
+
+The app currently uses Supabase Storage only — no Postgres tables, no RPC.
+If you later add tables, enable RLS on each one (`alter table ... enable
+row level security;`) and write `auth.uid() = user_id` policies before
+inserting any production data.
+
+### 5. CORS and bucket size limits
+
+* Allow your production origin in the Supabase project's CORS settings.
+* Set the bucket's file size limit ≥ 60 MB (the client tries to keep clips
+  under `MAX_STANDARD_VIDEO_SIZE` in `app.js`, currently ~50 MB after trim).
+
+### 6. After deployment — verify
+
+From an unauthenticated browser, run this in the console:
+
+```js
+const c = await import('https://esm.sh/@supabase/supabase-js@2')
+  .then(m => m.createClient(window.TallessaSupabase.url, window.TallessaSupabase.anonKey));
+// Should return an error (or empty), NOT another user's state:
+await c.storage.from('memories').download('state/some-other-uuid/appstate.json');
+// Should return [], NOT a directory listing of every user's folder:
+await c.storage.from('memories').list('state');
+```
+
+If either call returns real data, your RLS is too permissive.
+
+---
+
+## Security model in code (defence in depth)
+
+Even with RLS done right, the client also enforces:
+
+* **Per-owner namespacing**: `createMediaStoragePath()` in `storage.js`
+  always builds `memories/<owner-id>/<year>/<uuid>.<ext>`. There is no
+  code path that writes to a different layout.
+* **Delete guard**: `deleteSupabaseFile()` in `app.js` refuses to call
+  `.remove()` on a path that doesn't belong to the current owner — checked
+  via `isOwnedMediaPath()`. Legacy unprefixed paths from older clients are
+  still cleanable.
+* **Auth-gated state sync**: `schedulePush()` and `syncFromCloud()` in
+  `storage.js` early-return when `currentUserId` is null. Anonymous users
+  never push or pull state.json from the network.
+* **Graceful Supabase failure**: every Supabase call is in a `try/catch`.
+  Failures surface a localised toast (`msg.cloud.saveFailed`,
+  `msg.video.uploadFailed`, etc.) and the app keeps working from
+  `localStorage`.
+* **No service role**: no admin key, JWT secret, or webhook secret is
+  referenced anywhere in the codebase.
+
+If you change any of the above, re-read this section and the bullet under
+"Required Storage policies" — they're designed to fail closed together.
+
+---
+
+## What works without Supabase
+
+Everything except cross-device sync and video uploads:
+
+* Creating memorial spaces, memories, letters, calendar entries
+* Switching themes, language, names
+* Adding images (stored as data URLs inside the local state)
+* PWA install + offline use
+
+If `supabase-config.js` is missing or has empty fields, `isSupabaseConfigured()`
+returns false and every cloud call short-circuits silently. The UI shows
+`msg.supabase.notConfigured` only when the user explicitly tries something
+that requires it (currently: uploading a video memory).
+
+---
+
+## Authentication (status: dormant scaffolding)
+
+The Supabase Auth wrapper exists in `auth.js` (`signInWithEmail`, `signOut`,
+`onAuthChange`) but no UI calls it yet. The app runs anonymously by design.
+See the header comment in `auth.js` for the 6-step checklist to enable a
+real login flow later. None of the dormant code is reachable from the UI,
+so users cannot click a button that does nothing.

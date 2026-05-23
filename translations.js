@@ -13,9 +13,10 @@
 
 export const en = {
   // ── App-level
-  "app.title": "Tallessa",
+  "app.title": "Withen",
   "app.tagline": "Memories that stay with you.",
   "app.subtitle": "A quiet place for memories, letters, and moments.",
+  "app.description": "Withen is a private memorial app for keeping the pictures, letters, and important days of a loved one.",
   "brand.name": "Withen",
 
   // ── Generic actions (re-usable verbs across the UI)
@@ -167,6 +168,15 @@ export const en = {
   "settings.dangerZone": "Dangerous action",
   "settings.delete": "Delete this memorial space",
   "settings.deleteNote": "This permanently removes the memories, letters, and images.",
+  "settings.storage.heading": "Data & backup",
+  "settings.storage.info": "Photos and memories are stored on this device only. They will be lost if you clear browser data or switch to a different device.",
+  "settings.storage.usage": "Used: ~{used} MB (device limit ~5 MB)",
+  "settings.storage.export": "Download backup",
+  "settings.storage.import": "Restore from backup",
+  "settings.storage.importConfirm": "This will replace all current memories and photos with the backup file. Continue?",
+  "settings.storage.importOk": "Memories restored from backup.",
+  "settings.storage.importError": "Could not read the backup file. It may be damaged or from a different app.",
+  "msg.save.failed": "Could not save — storage may be full. Try removing some photos to free up space.",
   "settings.memorialNameDefault": "{name} day", // "Pepe's day" — used when memorialName is empty
 
   // ── Delete dialog
@@ -198,6 +208,8 @@ export const en = {
   "msg.video.missing": "Video file not found. Pick the video again.",
   "msg.video.timeout": "Video trimming took too long. Try a shorter or smaller video.",
   "msg.video.unsupported": "This browser doesn't support video trimming. Try another browser or trim the video on your phone first.",
+  "msg.video.tooLong": "This video is {duration} s. Trim it to under 10 seconds in your Photos or gallery app, then pick it again.",
+  "msg.saving": "Saving memory…",
   "msg.video.trimFailed": "Video trimming failed in this browser. Try a shorter video or update your browser.",
   "msg.video.exceedsBucket": "Video exceeds Supabase's file size limit. Try a video of at most {size}.",
   "msg.video.uploadFailed": "Video trimming or upload failed. Check your connection and try a shorter video.",
@@ -252,6 +264,7 @@ export const fi = {
   "app.title": "Tallessa",
   "app.tagline": "Muistot, jotka pysyvät mukana.",
   "app.subtitle": "Rauhallinen paikka muistoille, kirjeille ja hetkille.",
+  "app.description": "Tallessa on yksityinen muistosovellus kuville, kirjeille ja läheisen tärkeille päiville.",
   // Home/start page brand title — locked to "Tallessa" in Finnish.
   "brand.name": "Tallessa",
 
@@ -403,6 +416,15 @@ export const fi = {
   "settings.dangerZone": "Vaarallinen toiminto",
   "settings.delete": "Poista tämä muistopaikka",
   "settings.deleteNote": "Tämä poistaa muistot, kirjeet ja kuvat pysyvästi.",
+  "settings.storage.heading": "Tiedot ja varmuuskopiointi",
+  "settings.storage.info": "Kuvat ja muistot tallentuvat vain tälle laitteelle. Ne häviävät, jos tyhjennät selaimen tallennustilan tai vaihdat laitetta.",
+  "settings.storage.usage": "Käytössä: ~{used} Mt (laiteraja ~5 Mt)",
+  "settings.storage.export": "Lataa varmuuskopio",
+  "settings.storage.import": "Palauta varmuuskopiosta",
+  "settings.storage.importConfirm": "Tämä korvaa kaikki nykyiset muistot ja kuvat varmuuskopiotiedostolla. Jatketaanko?",
+  "settings.storage.importOk": "Muistot palautettu varmuuskopiosta.",
+  "settings.storage.importError": "Varmuuskopiotiedostoa ei voitu lukea. Se voi olla vioittunut tai eri sovelluksesta.",
+  "msg.save.failed": "Tallennus epäonnistui — muisti saattaa olla täynnä. Kokeile poistaa joitakin kuvia.",
   "settings.memorialNameDefault": "{name} päivä",
 
   // ── Delete dialog
@@ -434,6 +456,8 @@ export const fi = {
   "msg.video.missing": "Videotiedostoa ei löytynyt. Valitse video uudelleen.",
   "msg.video.timeout": "Videon leikkaus kesti liian kauan. Kokeile lyhyempää tai pienempää videota.",
   "msg.video.unsupported": "Tämä selain ei tue videon leikkausta ennen latausta. Kokeile toista selainta tai lyhennä video ensin puhelimessa.",
+  "msg.video.tooLong": "Video on {duration} s pitkä. Lyhennä se alle 10 sekuntiin Kuvat-sovelluksessa ja valitse uudelleen.",
+  "msg.saving": "Tallennetaan muistoa…",
   "msg.video.trimFailed": "Videon leikkaus ei onnistunut tässä selaimessa. Kokeile lyhyempää videota tai päivitä selain.",
   "msg.video.exceedsBucket": "Video ylittää Supabasen tiedostokoon rajan. Kokeile enintään {size} videota.",
   "msg.video.uploadFailed": "Videon leikkaus tai lähetys ei onnistunut. Tarkista verkkoyhteys ja kokeile lyhyempää videota.",

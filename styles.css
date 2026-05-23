@@ -168,6 +168,13 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Suppress the blue tap-flash on Android Chrome for labels and <summary> that
+   act as interactive controls (file pickers, disclosure toggles, etc.). */
+label,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
 input,
 textarea,
 select {
@@ -180,6 +187,9 @@ select {
   color: var(--text);
   background: rgba(255, 252, 246, 0.88);
   outline: 0;
+  /* Keep font-size at ≥ 16 px so Android Chrome (which ignores user-scalable=no
+     for accessibility) does not auto-zoom when an input is tapped. */
+  font-size: max(1rem, 16px);
 }
 
 select:has(option[value=""]:checked) {
@@ -301,7 +311,8 @@ body.is-selector-active .bottom-nav {
 
 .selector-screen {
   position: relative;
-  min-height: 100dvh;
+  min-height: 100vh;   /* dvh fallback for older Samsung Internet / Android WebView */
+  min-height: 100dvh;  /* accounts for collapsing URL bar on modern mobile Chrome */
   justify-content: center;
   gap: 24px;
   margin:
@@ -515,8 +526,15 @@ body.is-selector-active .bottom-nav {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  /* Reset margins: the phone-shell already handles safe-area-top via its own
+     padding, so we must not inherit the base sticky-topbar's negative
+     margin-top (-14px) nor its safe-area-aware padding-top. Without this
+     reset, iPhones with a notch/Dynamic Island end up with ~138 px of dead
+     space above the title instead of the intended ~24 px. */
+  margin-top: 0;
   margin-left: 0;
   margin-right: 0;
+  padding-top: 6px;
   padding-left: 0;
   padding-right: 0;
   overflow: visible;
@@ -533,6 +551,7 @@ body.is-selector-active .bottom-nav {
 .screen[data-screen="memorial"] {
   position: relative;
   isolation: isolate;
+  min-height: 100vh;   /* dvh fallback */
   min-height: 100dvh;
   width: 100vw;
   max-width: 100vw;
@@ -1306,6 +1325,52 @@ h3 {
   background: rgba(255, 252, 246, 0.9);
 }
 
+/* ── Storage info / backup section in settings ─────────────────────────────── */
+
+.storage-info {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(79, 83, 62, 0.12);
+  padding-top: 18px;
+}
+
+.storage-info-label {
+  margin: 0;
+  color: var(--moss-dark);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.storage-info-text,
+.storage-usage {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.storage-usage {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Export / import buttons share .secondary-action sizing but need flex layout */
+.storage-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* The import label acts as a button; cursor + no text-select make it feel native */
+.storage-import-label {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .confirm-dialog {
   width: min(calc(100% - 32px), 390px);
   border: 0;
@@ -2031,6 +2096,16 @@ label {
   box-shadow: 0 -8px 26px rgba(55, 48, 35, 0.08);
   backdrop-filter: blur(22px) saturate(1.12);
   -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  /* Smooth slide when keyboard hides/reveals the nav (see keyboard-open JS) */
+  transition: transform 180ms ease;
+}
+
+/* Hide the bottom nav while a virtual keyboard is open on Android.
+   Detected via visualViewport resize — see app.js registerKeyboardListener().
+   This keeps form inputs visible above the keyboard without the nav competing
+   for space. Requires Chrome 61+ / Samsung Internet 12.1+ for the API. */
+body.keyboard-open .bottom-nav {
+  transform: translateY(100%);
 }
 
 .bottom-nav button {
