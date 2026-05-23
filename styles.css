@@ -1328,20 +1328,51 @@ h3 {
 /* ── Storage info / backup section in settings ─────────────────────────────── */
 
 .storage-info {
-  display: grid;
-  gap: 10px;
   margin-top: 6px;
   border-top: 1px solid rgba(79, 83, 62, 0.12);
   padding-top: 18px;
 }
 
+/* <summary> acting as the section toggle header */
 .storage-info-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;              /* Firefox: removes default triangle */
+  cursor: pointer;
   margin: 0;
   color: var(--moss-dark);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Chrome / Safari: remove default triangle */
+.storage-info-label::-webkit-details-marker {
+  display: none;
+}
+
+/* Custom expand arrow */
+.storage-info-label::after {
+  content: "›";
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1;
+  transition: transform 200ms ease;
+}
+
+.storage-info[open] > .storage-info-label::after {
+  transform: rotate(90deg);
+}
+
+/* Body that animates open; plain block — no animation needed for simplicity */
+.storage-info-body {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
 }
 
 .storage-info-text,
@@ -1356,9 +1387,9 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 
-/* Export / import buttons share .secondary-action sizing but need flex layout */
+/* Export / import buttons: override label's display:grid with flex so text centers */
 .storage-action {
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   text-align: center;

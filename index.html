@@ -28,7 +28,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260524-android1" />
+    <link rel="stylesheet" href="styles.css?v=20260524-storage1" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -434,17 +434,19 @@
             <button class="danger-action" type="button" data-delete-memorial data-i18n="settings.delete">Delete this memorial space</button>
             <p data-i18n="settings.deleteNote">This permanently removes the memories, letters, and images.</p>
           </section>
-          <section class="storage-info">
-            <p class="storage-info-label" data-i18n="settings.storage.heading">Data &amp; backup</p>
-            <p class="storage-info-text" data-i18n="settings.storage.info">Photos and memories are stored on this device only. They will be lost if you clear browser data or switch to a different device.</p>
-            <p class="storage-usage" data-storage-usage></p>
-            <button class="secondary-action storage-action" type="button" data-export-memories data-i18n="settings.storage.export">Download backup</button>
-            <label class="secondary-action storage-action storage-import-label">
-              <span data-i18n="settings.storage.import">Restore from backup</span>
-              <input type="file" accept=".json,application/json" data-import-memories hidden />
-            </label>
-            <p class="form-message" data-settings-message></p>
-          </section>
+          <details class="storage-info">
+            <summary class="storage-info-label" data-i18n="settings.storage.heading">Data &amp; backup</summary>
+            <div class="storage-info-body">
+              <p class="storage-info-text" data-i18n="settings.storage.info">Photos and memories are stored on this device only. They will be lost if you clear browser data or switch to a different device.</p>
+              <p class="storage-usage" data-storage-usage></p>
+              <button class="secondary-action storage-action" type="button" data-export-memories data-i18n="settings.storage.export">Download backup</button>
+              <label class="secondary-action storage-action storage-import-label">
+                <span data-i18n="settings.storage.import">Restore from backup</span>
+                <input type="file" accept=".json,application/json" data-import-memories hidden />
+              </label>
+              <p class="form-message" data-settings-message></p>
+            </div>
+          </details>
         </form>
       </section>
     </main>
