@@ -6,14 +6,14 @@ import {
   parseDate as parseCalendarDate,
   parseDateInput as parseCalendarDateInput,
   renderCalendarView,
-} from "./calendar.js?v=20260523-i18nv4";
+} from "./calendar.js?v=20260523-i18nv5";
 import {
   createMemory,
   getHomeMemoryOfDay as getMemoryOfDay,
   renderMemoriesView,
   updateMemoryImage as updateMemoryImageView,
-} from "./memories.js?v=20260523-i18nv4";
-import { onAuthChange } from "./auth.js?v=20260523-i18nv4";
+} from "./memories.js?v=20260523-i18nv5";
+import { onAuthChange } from "./auth.js?v=20260523-i18nv5";
 import {
   createBlankMemorial as createStoredBlankMemorial,
   getActiveMemorial as getStoredActiveMemorial,
@@ -25,7 +25,7 @@ import {
   saveState as saveStoredState,
   setAuthUser,
   syncFromCloud,
-} from "./storage.js?v=20260523-i18nv4";
+} from "./storage.js?v=20260523-i18nv5";
 import {
   applyImagePosition as positionImage,
   applyTheme as applyDocumentTheme,
@@ -41,7 +41,7 @@ import {
   toAllative as toAllativeName,
   toGenitive as toGenitiveName,
   toPossessive,
-} from "./ui.js?v=20260523-i18nv4";
+} from "./ui.js?v=20260523-i18nv5";
 import {
   applyTranslations,
   getDailyQuote,
@@ -49,7 +49,7 @@ import {
   onLanguageChange,
   setLanguage,
   t,
-} from "./i18n.js?v=20260523-i18nv4";
+} from "./i18n.js?v=20260523-i18nv5";
 
 // ── i18n bootstrap ──────────────────────────────────────────────────────────
 // Default new users to English. Restore the user's saved choice from

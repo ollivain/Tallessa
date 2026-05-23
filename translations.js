@@ -16,6 +16,10 @@ export const en = {
   "app.title": "Tallessa",
   "app.tagline": "Memories that stay with you.",
   "app.subtitle": "A quiet place for memories, letters, and moments.",
+  // Brand name shown on the home/start (selector) page header. English
+  // is free to change to an international name later; Finnish must
+  // always stay as "Tallessa".
+  "brand.name": "Tallessa",
 
   // ── Generic actions (re-usable verbs across the UI)
   "action.save": "Save",
@@ -253,6 +257,8 @@ export const fi = {
   "app.title": "Tallessa",
   "app.tagline": "Muistot, jotka pysyvät mukana.",
   "app.subtitle": "Rauhallinen paikka muistoille, kirjeille ja hetkille.",
+  // Home/start page brand title — locked to "Tallessa" in Finnish.
+  "brand.name": "Tallessa",
 
   // ── Geneeriset toiminnot
   "action.save": "Tallenna",

@@ -1,6 +1,6 @@
-import { parseDateInput } from "./calendar.js?v=20260523-i18nv4";
-import { buildMemorialText, normalizePosition, normalizeTheme, toPossessive } from "./ui.js?v=20260523-i18nv4";
-import { t } from "./i18n.js?v=20260523-i18nv4";
+import { parseDateInput } from "./calendar.js?v=20260523-i18nv5";
+import { buildMemorialText, normalizePosition, normalizeTheme, toPossessive } from "./ui.js?v=20260523-i18nv5";
+import { t } from "./i18n.js?v=20260523-i18nv5";
 
 const STORAGE_KEY = "tallessa.prototype.v2";
 const LANGUAGE_KEY = "tallessa.language"; // device-wide UI language (not per memorial)
