@@ -11,7 +11,7 @@
 //                             data-i18n[*] attributes
 //   getDailyQuote(date)     → deterministic per-day quote in current language
 
-import { dictionaries, quotePools } from "./translations.js?v=20260523-i18nv6";
+import { dictionaries, quotePools } from "./translations.js?v=20260523-i18nv7";
 
 const SUPPORTED = new Set(["en", "fi"]);
 const DEFAULT_LANGUAGE = "en";

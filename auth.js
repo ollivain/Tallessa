@@ -12,8 +12,8 @@
  *   supabase.auth.signInWithOAuth({ provider: "google" }).
  */
 
-import { getSupabaseClient, isSupabaseConfigured } from "./storage.js?v=20260523-i18nv6";
-import { t } from "./i18n.js?v=20260523-i18nv6";
+import { getSupabaseClient, isSupabaseConfigured } from "./storage.js?v=20260523-i18nv7";
+import { t } from "./i18n.js?v=20260523-i18nv7";
 
 /**
  * Returns the currently signed-in Supabase user, or null if anonymous.

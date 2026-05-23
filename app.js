@@ -6,14 +6,14 @@ import {
   parseDate as parseCalendarDate,
   parseDateInput as parseCalendarDateInput,
   renderCalendarView,
-} from "./calendar.js?v=20260523-i18nv6";
+} from "./calendar.js?v=20260523-i18nv7";
 import {
   createMemory,
   getHomeMemoryOfDay as getMemoryOfDay,
   renderMemoriesView,
   updateMemoryImage as updateMemoryImageView,
-} from "./memories.js?v=20260523-i18nv6";
-import { onAuthChange } from "./auth.js?v=20260523-i18nv6";
+} from "./memories.js?v=20260523-i18nv7";
+import { onAuthChange } from "./auth.js?v=20260523-i18nv7";
 import {
   createBlankMemorial as createStoredBlankMemorial,
   getActiveMemorial as getStoredActiveMemorial,
@@ -25,7 +25,7 @@ import {
   saveState as saveStoredState,
   setAuthUser,
   syncFromCloud,
-} from "./storage.js?v=20260523-i18nv6";
+} from "./storage.js?v=20260523-i18nv7";
 import {
   applyImagePosition as positionImage,
   applyTheme as applyDocumentTheme,
@@ -41,7 +41,7 @@ import {
   toAllative as toAllativeName,
   toGenitive as toGenitiveName,
   toPossessive,
-} from "./ui.js?v=20260523-i18nv6";
+} from "./ui.js?v=20260523-i18nv7";
 import {
   applyTranslations,
   getDailyQuote,
@@ -49,7 +49,7 @@ import {
   onLanguageChange,
   setLanguage,
   t,
-} from "./i18n.js?v=20260523-i18nv6";
+} from "./i18n.js?v=20260523-i18nv7";
 
 // ── i18n bootstrap ──────────────────────────────────────────────────────────
 // Default new users to English. Restore the user's saved choice from
@@ -1195,6 +1195,17 @@ function renderSettings() {
   // Reflect the currently chosen language in the dropdown
   const languageSelect = elements.settingsForm.querySelector("[data-language-select]");
   if (languageSelect) languageSelect.value = getLanguage();
+  // When creating a new memorial space, surface the language picker at the
+  // very top of the form so an English-speaking user can switch before
+  // reading anything else. In normal settings view it stays near the bottom.
+  const languagePicker = elements.settingsForm.querySelector(".language-picker");
+  if (languagePicker && saveButton) {
+    if (isCreatingMemorial) {
+      elements.settingsForm.insertBefore(languagePicker, elements.settingsForm.firstChild);
+    } else if (languagePicker.nextElementSibling !== saveButton) {
+      elements.settingsForm.insertBefore(languagePicker, saveButton);
+    }
+  }
   renderCalendarPhotoThumbs();
 }
 

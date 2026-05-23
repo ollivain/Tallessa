@@ -1,4 +1,4 @@
-const CACHE_NAME = "tallessa-cache-v16";
+const CACHE_NAME = "tallessa-cache-v17";
 
 const APP_SHELL_URLS = [
   "./",
@@ -6,7 +6,7 @@ const APP_SHELL_URLS = [
   "./styles.css",
   "./styles.css?v=20260523-i18nv7",
   "./app.js",
-  "./app.js?v=20260523-i18nv6",
+  "./app.js?v=20260523-i18nv7",
   "./auth.js",
   "./calendar.js",
   "./memories.js",
