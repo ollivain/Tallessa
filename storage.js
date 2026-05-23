@@ -1,6 +1,6 @@
-import { parseDateInput } from "./calendar.js?v=20260523-i18nv3";
-import { buildMemorialText, normalizePosition, normalizeTheme, toGenitive } from "./ui.js?v=20260523-i18nv3";
-import { t } from "./i18n.js?v=20260523-i18nv3";
+import { parseDateInput } from "./calendar.js?v=20260523-i18nv4";
+import { buildMemorialText, normalizePosition, normalizeTheme, toPossessive } from "./ui.js?v=20260523-i18nv4";
+import { t } from "./i18n.js?v=20260523-i18nv4";
 
 const STORAGE_KEY = "tallessa.prototype.v2";
 const LANGUAGE_KEY = "tallessa.language"; // device-wide UI language (not per memorial)
@@ -193,7 +193,8 @@ const defaultState = {
   horseName: "Pepe",
   petType: "horse",
   petTypeCustom: "",
-  memorialName: "Pepen päivä",
+  // Left empty so normalizeMemorial() fills it from the current UI language.
+  memorialName: "",
   memorialDate: "2026-05-19",
   heroImage: "",
   heroImagePosition: { x: 50, y: 50, zoom: 1 },
@@ -268,7 +269,9 @@ export function createBlankMemorial(theme = "classic") {
     horseName: "Pepe",
     petType: "horse",
     petTypeCustom: "",
-    memorialName: "Pepen päivä",
+    // Leave memorialName empty so normalizeMemorial() fills it in the
+    // active language (e.g. "Pepe's day" / "Pepen päivä").
+    memorialName: "",
     memorialDate: "",
     heroImage: "",
     heroImagePosition: { x: 50, y: 50, zoom: 1 },
@@ -378,7 +381,7 @@ function normalizeMemorial(value) {
   loaded.petType = loaded.petType || "horse";
   loaded.petTypeCustom = loaded.petTypeCustom || "";
   loaded.horseName = loaded.horseName || "Muisto";
-  loaded.memorialName = loaded.memorialName || `${toGenitive(loaded.horseName)} päivä`;
+  loaded.memorialName = loaded.memorialName || t("settings.memorialNameDefault", { name: toPossessive(loaded.horseName) });
   loaded.heroImagePosition = normalizePosition(loaded.heroImagePosition);
   loaded.memorialImagePosition = normalizePosition(loaded.memorialImagePosition);
   loaded.monthPhotos = loaded.monthPhotos || {};

@@ -15,6 +15,17 @@ export const en = {
   // ── App-level
   "app.title": "Tallessa",
   "app.tagline": "Memories that stay with you.",
+  "app.subtitle": "A quiet place for memories, letters, and moments.",
+
+  // ── Generic actions (re-usable verbs across the UI)
+  "action.save": "Save",
+  "action.cancel": "Cancel",
+  "action.delete": "Delete",
+  "action.edit": "Edit",
+  "action.other": "Other",
+  "action.createMemory": "Create memory",
+  "action.editMemory": "Edit memory",
+  "action.deleteMemory": "Delete memory",
 
   // ── Bottom navigation
   "nav.home": "Home",
@@ -26,11 +37,11 @@ export const en = {
 
   // ── Selector screen
   "selector.subtitle": "Memories that stay with you.",
-  "selector.addPlace": "Add a memorial place",
-  "selector.firstTime.action": "Create first memorial place",
-  "selector.firstTime.title": "Create your first memorial place",
+  "selector.addPlace": "Add a memorial space",
+  "selector.firstTime.action": "Create first memorial space",
+  "selector.firstTime.title": "Create your first memorial space",
   "selector.firstTime.body": "Start by adding the name and basic details. After saving, you'll be taken to its home page.",
-  "selector.placeSuffix": "memorial place", // "{Name}'s memorial place"
+  "selector.placeSuffix": "memorial space", // "{Name}'s memorial space"
 
   // ── Home screen
   "home.heroAria": "A calm horse in morning light",
@@ -65,13 +76,14 @@ export const en = {
 
   // ── Letters screen
   "letters.title": "Letters",
+  "letters.subtitle": "Letters to remember",
   "letters.addLetter": "Write a letter",
-  "letters.empty": "Letters are a private place for words that don't need to be sent anywhere.",
+  "letters.empty": "Letters are a quiet place for words that don't need to be sent anywhere.",
   "letters.form.close": "Close letter card",
   "letters.form.title": "Title",
   "letters.form.titlePlaceholder": "Dear friend",
   "letters.form.body": "Letter",
-  "letters.form.bodyPlaceholder": "Write at your own pace. This won't be published or shared.",
+  "letters.form.bodyPlaceholder": "Write at your own pace. This isn't published or shared.",
   "letters.form.save": "Save letter",
 
   // ── Calendar screen
@@ -110,11 +122,13 @@ export const en = {
 
   // ── Settings screen
   "settings.title": "Settings",
-  "settings.memorialPlaces": "Memorial places",
-  "settings.createNote": "Create a new memorial place by filling in the basics. After saving, you'll be taken to its home page.",
-  "settings.horseName": "Name of the one you remember",
+  "settings.appearance": "Appearance",
+  "settings.privacyHeading": "Privacy",
+  "settings.memorialPlaces": "Memorial spaces",
+  "settings.createNote": "Create a new memorial space by filling in the basics. After saving, you'll be taken to its home page.",
+  "settings.horseName": "Name of the loved one",
   "settings.horseNamePlaceholder": "E.g. Pepper",
-  "settings.petType": "They were a",
+  "settings.petType": "Remembering",
   "settings.petType.placeholder": "E.g. Horse",
   "settings.petType.human": "Person",
   "settings.petType.horse": "Horse",
@@ -127,7 +141,7 @@ export const en = {
   "settings.petType.ferret": "Ferret",
   "settings.petType.turtle": "Turtle",
   "settings.petType.other": "Other animal",
-  "settings.petTypeCustom": "Specify if you like",
+  "settings.petTypeCustom": "Add details if you wish",
   "settings.petTypeCustomPlaceholder": "E.g. pony, parrot, or aquarium fish",
   "settings.memorialName": "Memorial day name",
   "settings.memorialNamePlaceholder": "E.g. Pepper's day",
@@ -138,7 +152,7 @@ export const en = {
   "settings.calendarPhotos.note": "These images appear at the top of the calendar regardless of the year. You can change them later by picking new ones.",
   "settings.calendarPhotos.bulk": "Pick 12 images",
   "settings.calendarPhotos.bulkHint": "Pick in order from Jan → Dec",
-  "settings.themes": "Themes",
+  "settings.themes": "Theme",
   "settings.themes.pick": "Pick a theme",
   "settings.themes.classic": "Classic",
   "settings.themes.timeless": "Timeless",
@@ -151,15 +165,16 @@ export const en = {
   "settings.language.fi": "Suomi",
   "settings.save": "Save changes",
   "settings.dangerZone": "Dangerous action",
-  "settings.delete": "Delete this memorial place",
+  "settings.delete": "Delete this memorial space",
   "settings.deleteNote": "This permanently removes the memories, letters, and images.",
   "settings.privacy": "In this prototype, everything you add is stored only in this browser.",
+  "settings.memorialNameDefault": "{name} day", // "Pepe's day" — used when memorialName is empty
 
   // ── Delete dialog
-  "delete.title": "Delete this memorial place?",
+  "delete.title": "Delete this memorial space?",
   "delete.confirmMessage": "Do you really want to delete '{name}'? This removes all related memories, letters, and images. This action cannot be undone.",
   "delete.cancel": "Cancel",
-  "delete.confirm": "Delete memorial place",
+  "delete.confirm": "Delete memorial space",
   "delete.item": "Delete",
   "delete.itemConfirm": "Confirm delete",
 
@@ -237,6 +252,17 @@ export const fi = {
   // ── App-level
   "app.title": "Tallessa",
   "app.tagline": "Muistot, jotka pysyvät mukana.",
+  "app.subtitle": "Rauhallinen paikka muistoille, kirjeille ja hetkille.",
+
+  // ── Geneeriset toiminnot
+  "action.save": "Tallenna",
+  "action.cancel": "Peruuta",
+  "action.delete": "Poista",
+  "action.edit": "Muokkaa",
+  "action.other": "Muu",
+  "action.createMemory": "Luo muisto",
+  "action.editMemory": "Muokkaa muistoa",
+  "action.deleteMemory": "Poista muisto",
 
   // ── Bottom navigation
   "nav.home": "Koti",
@@ -286,6 +312,7 @@ export const fi = {
 
   // ── Letters screen
   "letters.title": "Kirjeet",
+  "letters.subtitle": "Kirjeet muistettavalle",
   "letters.addLetter": "Kirjoita kirje",
   "letters.empty": "Kirjeet ovat yksityinen paikka sanoille, joita ei tarvitse lähettää mihinkään.",
   "letters.form.close": "Sulje kirjekortti",
@@ -331,6 +358,8 @@ export const fi = {
 
   // ── Settings screen
   "settings.title": "Asetukset",
+  "settings.appearance": "Ulkoasu",
+  "settings.privacyHeading": "Yksityisyys",
   "settings.memorialPlaces": "Muistopaikat",
   "settings.createNote": "Luo uusi muistopaikka täyttämällä perustiedot. Tallennuksen jälkeen siirryt sen kotisivulle.",
   "settings.horseName": "Muistettavan nimi",
@@ -359,7 +388,7 @@ export const fi = {
   "settings.calendarPhotos.note": "Kuvat näkyvät kalenterin yläosassa vuodesta riippumatta. Voit vaihtaa ne myöhemmin valitsemalla uudet kuvat.",
   "settings.calendarPhotos.bulk": "Valitse 12 kuvaa",
   "settings.calendarPhotos.bulkHint": "Valitse järjestyksessä Tam → Jou",
-  "settings.themes": "Teemat",
+  "settings.themes": "Teema",
   "settings.themes.pick": "Valitse teema",
   "settings.themes.classic": "Klassinen",
   "settings.themes.timeless": "Ajaton",
@@ -375,6 +404,7 @@ export const fi = {
   "settings.delete": "Poista tämä muistopaikka",
   "settings.deleteNote": "Tämä poistaa muistot, kirjeet ja kuvat pysyvästi.",
   "settings.privacy": "Prototyypissä kaikki lisätyt tiedot tallentuvat vain tämän selaimen paikalliseen muistiin.",
+  "settings.memorialNameDefault": "{name} päivä",
 
   // ── Delete dialog
   "delete.title": "Poistetaanko muistopaikka?",

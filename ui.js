@@ -1,4 +1,4 @@
-import { getLanguage, t } from "./i18n.js?v=20260523-i18nv3";
+import { getLanguage, t } from "./i18n.js?v=20260523-i18nv4";
 
 const THEME_IDS = ["classic", "timeless", "soft", "modern", "romantic"];
 const PET_TYPES = ["horse", "dog", "cat", "rabbit", "bird", "guineaPig", "hamster", "ferret", "turtle", "human", "other"];

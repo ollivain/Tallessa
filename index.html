@@ -27,7 +27,7 @@
       href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260523-i18nv3" />
+    <link rel="stylesheet" href="styles.css?v=20260523-i18nv4" />
   </head>
   <body>
     <main class="phone-shell" aria-live="polite">
@@ -40,7 +40,7 @@
         <section class="memorial-place-list" data-memorial-place-list></section>
 
         <button class="primary-action selector-add" type="button" data-create-memorial data-i18n="selector.addPlace">
-          Add a memorial place
+          Add a memorial space
         </button>
       </section>
 
@@ -329,17 +329,17 @@
           </span>
         </header>
 
-        <button class="memory-switch-button memory-place-switch" type="button" data-nav="selector" data-i18n="settings.memorialPlaces">Memorial places</button>
+        <button class="memory-switch-button memory-place-switch" type="button" data-nav="selector" data-i18n="settings.memorialPlaces">Memorial spaces</button>
 
 
         <form class="card form-card" data-settings-form>
-          <p class="settings-create-note" data-settings-create-note hidden data-i18n="settings.createNote">Create a new memorial place by filling in the basics. After saving, you'll be taken to its home page.</p>
+          <p class="settings-create-note" data-settings-create-note hidden data-i18n="settings.createNote">Create a new memorial space by filling in the basics. After saving, you'll be taken to its home page.</p>
           <label>
-            <span data-i18n="settings.horseName">Name of the one you remember</span>
+            <span data-i18n="settings.horseName">Name of the loved one</span>
             <input name="horseName" type="text" maxlength="40" data-i18n-placeholder="settings.horseNamePlaceholder" placeholder="E.g. Pepper" />
           </label>
           <label>
-            <span data-i18n="settings.petType">They were a</span>
+            <span data-i18n="settings.petType">Remembering</span>
             <select name="petType" data-pet-type>
               <option value="" disabled data-i18n="settings.petType.placeholder">E.g. Horse</option>
               <option value="human" data-i18n="settings.petType.human">Person</option>
@@ -356,7 +356,7 @@
             </select>
           </label>
           <label>
-            <span data-i18n="settings.petTypeCustom">Specify if you like</span>
+            <span data-i18n="settings.petTypeCustom">Add details if you wish</span>
             <input name="petTypeCustom" type="text" maxlength="40" data-i18n-placeholder="settings.petTypeCustomPlaceholder" placeholder="E.g. pony, parrot, or aquarium fish" />
           </label>
           <label>
@@ -385,7 +385,7 @@
           </details>
 
           <details class="theme-disclosure">
-            <summary data-i18n="settings.themes">Themes</summary>
+            <summary data-i18n="settings.themes">Theme</summary>
             <fieldset class="theme-picker">
               <legend data-i18n="settings.themes.pick">Pick a theme</legend>
             <label class="theme-card theme-card--classic">
@@ -430,7 +430,7 @@
           <button class="primary-action" type="submit" data-i18n="settings.save">Save changes</button>
           <section class="danger-zone" data-memorial-danger>
             <p class="danger-zone-label" data-i18n="settings.dangerZone">Dangerous action</p>
-            <button class="danger-action" type="button" data-delete-memorial data-i18n="settings.delete">Delete this memorial place</button>
+            <button class="danger-action" type="button" data-delete-memorial data-i18n="settings.delete">Delete this memorial space</button>
             <p data-i18n="settings.deleteNote">This permanently removes the memories, letters, and images.</p>
           </section>
         </form>
@@ -488,16 +488,16 @@
 
     <dialog class="confirm-dialog" data-delete-memorial-dialog>
       <form method="dialog" class="confirm-dialog-card">
-        <h2 data-i18n="delete.title">Delete this memorial place?</h2>
+        <h2 data-i18n="delete.title">Delete this memorial space?</h2>
         <p data-delete-memorial-message></p>
         <div class="confirm-dialog-actions">
           <button class="secondary-action" type="button" data-cancel-delete-memorial data-i18n="delete.cancel">Cancel</button>
-          <button class="danger-action danger-action--solid" type="button" data-confirm-delete-memorial data-i18n="delete.confirm">Delete memorial place</button>
+          <button class="danger-action danger-action--solid" type="button" data-confirm-delete-memorial data-i18n="delete.confirm">Delete memorial space</button>
         </div>
       </form>
     </dialog>
 
     <script src="supabase-config.js?v=20260521-supabase-video"></script>
-    <script src="app.js?v=20260523-i18nv3" type="module"></script>
+    <script src="app.js?v=20260523-i18nv4" type="module"></script>
   </body>
 </html>
