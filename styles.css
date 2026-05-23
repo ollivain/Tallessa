@@ -1340,7 +1340,9 @@ h3 {
 .confirm-dialog-actions {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Stack the two buttons vertically so longer translations
+     ("Delete memorial space" / "Poista muistopaikka") never wrap. */
+  grid-template-columns: 1fr;
   margin-top: 4px;
 }
 

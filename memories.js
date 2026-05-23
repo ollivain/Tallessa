@@ -1,5 +1,5 @@
-import { escapeHtml } from "./ui.js?v=20260523-i18nv5";
-import { t } from "./i18n.js?v=20260523-i18nv5";
+import { escapeHtml } from "./ui.js?v=20260523-i18nv6";
+import { t } from "./i18n.js?v=20260523-i18nv6";
 
 export function createMemory({
   type,

@@ -1,5 +1,5 @@
-import { capitalize, escapeHtml, toPossessive } from "./ui.js?v=20260523-i18nv5";
-import { getLanguage, t } from "./i18n.js?v=20260523-i18nv5";
+import { capitalize, escapeHtml, toPossessive } from "./ui.js?v=20260523-i18nv6";
+import { getLanguage, t } from "./i18n.js?v=20260523-i18nv6";
 
 // Returns the localized month name for a 0-indexed month (0 = January).
 export function monthName(monthIndex) {
