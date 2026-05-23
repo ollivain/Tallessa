@@ -1,12 +1,12 @@
-const CACHE_NAME = "tallessa-cache-v9";
+const CACHE_NAME = "tallessa-cache-v12";
 
 const APP_SHELL_URLS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./styles.css?v=20260522-cal-bulk",
+  "./styles.css?v=20260523-topbar-clean",
   "./app.js",
-  "./app.js?v=20260522-cal-bulk",
+  "./app.js?v=20260523-topbar-clean",
   "./auth.js",
   "./calendar.js",
   "./memories.js",
@@ -18,6 +18,11 @@ const APP_SHELL_URLS = [
   "./supabase-config.js?v=20260521-supabase-video",
   "./assets/selector-background.png",
   "./assets/memorial-day-sunny-field.jpg",
+  "./assets/bg-koti.png",
+  "./assets/bg-kirjeet.png",
+  "./assets/bg-muistot.png",
+  "./assets/bg-kalenteri.png",
+  "./assets/bg-asetukset.png",
 ];
 
 const CACHEABLE_ASSET_PATHS = new Set(

@@ -7,6 +7,7 @@ export function setActiveView({ name, screens, navButtons }) {
 
   document.querySelector(".phone-shell")?.classList.toggle("is-memorial-active", name === "memorial");
   document.body.classList.toggle("is-selector-active", name === "selector");
+  document.body.dataset.activeScreen = name;
 
   navButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.nav === name);
