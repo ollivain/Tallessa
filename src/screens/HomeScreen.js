@@ -1,75 +1,123 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
-import { colors } from '../theme/colors';
+import AppScreen from '../components/AppScreen';
+import AppCard from '../components/AppCard';
+import SectionLabel from '../components/SectionLabel';
+import MemoryHeroCard from '../components/MemoryHeroCard';
+import {
+  colors,
+  radii,
+  shadows,
+  spacing,
+  typography,
+} from '../theme/designSystem';
+
+// Default soft watercolour shipped with the app — used when the active
+// memorial has no portrait of its own. Keeps the hero card feeling finished.
+const HERO_FALLBACK = require('../../assets/bg-koti.png');
+const SCREEN_BG = require('../../assets/bg-koti.png');
 
 export default function HomeScreen() {
   const { t } = useI18n();
   const { activeMemorial } = useMemorials();
   const navigation = useNavigation();
 
-  const latestMemory = activeMemorial?.memories?.[0];
+  const name = activeMemorial?.name ?? '';
+  const heroLine = name
+    ? t('home.heroMemoryLine', { name })
+    : t('tagline');
+  const heroEyebrow = t('brand');
+
+  const portraitUri = activeMemorial?.portraitUri;
+  const heroImage = portraitUri ? { uri: portraitUri } : null;
+
+  const latestMemory = activeMemorial?.memories?.[0] ?? null;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.heroBlock}>
-          <Text style={styles.welcome}>{t('home.welcome')}</Text>
-          <Text style={styles.name}>{activeMemorial?.name}</Text>
-          <View style={styles.rule} />
-          <Text style={styles.tagline}>{t('tagline')}</Text>
-        </View>
+    <AppScreen background={SCREEN_BG}>
+      <MemoryHeroCard
+        imageSource={heroImage}
+        fallbackSource={HERO_FALLBACK}
+        eyebrow={heroEyebrow}
+        memoryLine={heroLine}
+      />
 
-        <Section title={t('home.memoryOfDay')}>
-          {latestMemory ? (
-            <View style={styles.memoryCard}>
-              <Text style={styles.memoryTitle}>{latestMemory.title}</Text>
-              {latestMemory.body ? (
-                <Text style={styles.memoryBody}>{latestMemory.body}</Text>
-              ) : null}
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>{t('home.memoryEmpty')}</Text>
-          )}
-        </Section>
+      <MemoryOfDayCard
+        memory={latestMemory}
+        eyebrow={t('home.memoryOfDay')}
+        emptyBody={t('home.memoryEmpty')}
+        openLabel={t('home.openMemory')}
+        onPress={() => navigation.navigate('Wall')}
+      />
 
-        <Section title={t('home.dailyQuote')}>
-          <Text style={styles.quote}>“{t('quote')}”</Text>
-        </Section>
+      <DailyQuoteCard
+        eyebrow={t('home.dailyQuote')}
+        quote={t('quote')}
+      />
 
-        <Section title={t('home.quickActions')}>
-          <View style={styles.actions}>
-            <ActionTile
-              icon="image"
-              label={t('tab.wall')}
-              onPress={() => navigation.navigate('Wall')}
-            />
-            <ActionTile
-              icon="mail"
-              label={t('tab.letters')}
-              onPress={() => navigation.navigate('Letters')}
-            />
-            <ActionTile
-              icon="calendar"
-              label={t('tab.calendar')}
-              onPress={() => navigation.navigate('Calendar')}
-            />
-          </View>
-        </Section>
-      </ScrollView>
-    </SafeAreaView>
+      <SectionLabel style={styles.quickActionsLabel}>
+        {t('home.quickActions')}
+      </SectionLabel>
+
+      <View style={styles.actions}>
+        <ActionTile
+          icon="image"
+          label={t('tab.wall')}
+          onPress={() => navigation.navigate('Wall')}
+        />
+        <ActionTile
+          icon="mail"
+          label={t('tab.letters')}
+          onPress={() => navigation.navigate('Letters')}
+        />
+        <ActionTile
+          icon="calendar"
+          label={t('tab.calendar')}
+          onPress={() => navigation.navigate('Calendar')}
+        />
+      </View>
+    </AppScreen>
   );
 }
 
-function Section({ title, children }) {
+function MemoryOfDayCard({ memory, eyebrow, emptyBody, openLabel, onPress }) {
+  const hasMemory = !!memory;
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>{title}</Text>
-      {children}
-    </View>
+    <AppCard
+      variant="soft"
+      onPress={hasMemory ? onPress : undefined}
+      style={styles.memoryCard}
+    >
+      <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>
+      {hasMemory ? (
+        <>
+          {memory.title ? (
+            <Text style={styles.memoryTitle} numberOfLines={2}>{memory.title}</Text>
+          ) : null}
+          {memory.body ? (
+            <Text style={styles.memoryBody} numberOfLines={3}>{memory.body}</Text>
+          ) : null}
+          <View style={styles.openRow}>
+            <Text style={styles.openLink}>{openLabel}</Text>
+            <Feather name="arrow-right" size={14} color={colors.moss} />
+          </View>
+        </>
+      ) : (
+        <Text style={styles.memoryBody}>{emptyBody}</Text>
+      )}
+    </AppCard>
+  );
+}
+
+function DailyQuoteCard({ eyebrow, quote }) {
+  return (
+    <AppCard variant="warm" style={styles.quoteCard}>
+      <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>
+      <Text style={styles.quote}>{`“${quote}”`}</Text>
+    </AppCard>
   );
 }
 
@@ -78,97 +126,96 @@ function ActionTile({ icon, label, onPress }) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+      accessibilityRole="button"
     >
-      <Feather name={icon} size={22} color={colors.accentDark} />
-      <Text style={styles.tileLabel}>{label}</Text>
+      <View style={styles.tileIcon}>
+        <Feather name={icon} size={20} color={colors.textOnPrimary} />
+      </View>
+      <Text style={styles.tileLabel} numberOfLines={1}>{label}</Text>
+      <Feather name="chevron-right" size={18} color="rgba(48,56,45,0.6)" />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 },
-  heroBlock: { alignItems: 'center', marginBottom: 32 },
-  welcome: {
-    fontSize: 13,
-    color: colors.textMuted,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-  },
-  name: {
-    marginTop: 10,
-    fontSize: 36,
-    fontWeight: '300',
-    color: colors.textPrimary,
-    letterSpacing: 1,
-  },
-  rule: {
-    height: 1,
-    width: 48,
-    backgroundColor: colors.accent,
-    marginVertical: 14,
-    opacity: 0.6,
-  },
-  tagline: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  section: { marginBottom: 28 },
-  sectionEyebrow: {
-    fontSize: 12,
-    color: colors.textMuted,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
   memoryCard: {
-    backgroundColor: colors.card,
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    paddingTop: 14,
+    paddingBottom: 16,
+    marginBottom: spacing.md,
   },
+  eyebrow: { marginBottom: 10 },
   memoryTitle: {
-    fontSize: 17,
+    fontFamily: typography.serif,
+    fontSize: 22,
+    lineHeight: 26,
     color: colors.textPrimary,
-    fontWeight: '500',
     marginBottom: 6,
   },
   memoryBody: {
     fontSize: 14,
-    color: colors.textMuted,
     lineHeight: 22,
+    color: colors.textMuted,
   },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    lineHeight: 22,
-    fontStyle: 'italic',
+  openRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  openLink: {
+    color: colors.moss,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  quoteCard: {
+    paddingTop: 14,
+    paddingBottom: 18,
+    marginBottom: spacing.lg,
   },
   quote: {
-    fontSize: 16,
-    color: colors.textPrimary,
+    fontFamily: typography.serif,
     fontStyle: 'italic',
-    lineHeight: 26,
-    paddingHorizontal: 4,
+    fontSize: 22,
+    lineHeight: 30,
+    color: colors.brown,
   },
-  actions: { flexDirection: 'row', gap: 12 },
-  tile: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    paddingVertical: 20,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  tilePressed: { opacity: 0.8 },
-  tileLabel: {
-    fontSize: 13,
+  quickActionsLabel: {
+    marginLeft: 4,
+    marginBottom: 10,
     color: colors.textPrimary,
-    letterSpacing: 0.5,
+  },
+  actions: {
+    gap: 10,
+  },
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 68,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 14,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: 'rgba(255, 250, 240, 0.84)',
+    ...shadows.soft,
+  },
+  tilePressed: { transform: [{ scale: 0.985 }], opacity: 0.94 },
+  tileIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.moss,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileLabel: {
+    flex: 1,
+    fontFamily: typography.serif,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
 });

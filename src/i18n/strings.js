@@ -43,8 +43,10 @@ export const strings = {
       welcome: 'Tervetuloa kotiin',
       memoryOfDay: 'Päivän muisto',
       memoryEmpty: 'Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.',
+      openMemory: 'Avaa muisto',
       dailyQuote: 'Päivän sanat',
       quickActions: 'Pikavalinnat',
+      heroMemoryLine: '{name}n muistot, jotka pysyvät mukana.',
     },
 
     wall: {
@@ -172,8 +174,10 @@ export const strings = {
       welcome: 'Welcome home',
       memoryOfDay: 'Memory of the day',
       memoryEmpty: 'Add your first memory when the moment feels right.',
+      openMemory: 'Open memory',
       dailyQuote: 'Today’s words',
       quickActions: 'Quick links',
+      heroMemoryLine: '{name}’s memories that stay with you.',
     },
 
     wall: {

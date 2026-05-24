@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import { colors } from '../theme/colors';
@@ -180,13 +180,7 @@ export default function MemoryWallScreen() {
                 {media?.type === 'image' ? (
                   <Image source={{ uri: media.uri }} style={styles.mediaPreview} resizeMode="cover" />
                 ) : media?.type === 'video' ? (
-                  <Video
-                    source={{ uri: media.uri }}
-                    style={styles.mediaPreview}
-                    useNativeControls
-                    resizeMode={ResizeMode.COVER}
-                    isLooping={false}
-                  />
+                  <VideoClip uri={media.uri} style={styles.mediaPreview} />
                 ) : (
                   <View style={styles.mediaPlaceholder}>
                     <Feather name="image" size={28} color={colors.accent} />
@@ -263,13 +257,7 @@ function MemoryCard({ memory, t }) {
       {memory.mediaUri && memory.mediaType === 'image' ? (
         <Image source={{ uri: memory.mediaUri }} style={styles.thumb} resizeMode="cover" />
       ) : memory.mediaUri && memory.mediaType === 'video' ? (
-        <Video
-          source={{ uri: memory.mediaUri }}
-          style={styles.thumb}
-          useNativeControls
-          resizeMode={ResizeMode.COVER}
-          isLooping={false}
-        />
+        <VideoClip uri={memory.mediaUri} style={styles.thumb} />
       ) : (
         <View style={styles.thumbPlaceholder}>
           <Feather name="image" size={20} color={colors.accent} />
@@ -280,6 +268,13 @@ function MemoryCard({ memory, t }) {
       {memory.date ? <Text style={styles.memoryDate}>{memory.date}</Text> : null}
     </View>
   );
+}
+
+function VideoClip({ uri, style }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+  });
+  return <VideoView player={player} nativeControls contentFit="cover" style={style} />;
 }
 
 const styles = StyleSheet.create({
