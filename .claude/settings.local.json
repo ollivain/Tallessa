@@ -2,7 +2,24 @@
   "permissions": {
     "allow": [
       "Bash(mkdir -p \"C:\\\\Users\\\\Olli Kuivikko\\\\Documents\\\\Codex\\\\PartyDeck\\\\.claude\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git -C \"C:\\\\Users\\\\Olli Kuivikko\\\\Documents\\\\Codex\\\\PartyDeck\" remote -v)",
+      "Bash(git -C \"C:\\\\Users\\\\Olli Kuivikko\\\\Documents\\\\Codex\\\\PartyDeck\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\Olli Kuivikko\\\\Documents\\\\Codex\\\\PartyDeck\" diff --stat)",
+      "Bash(git -C \"C:/Users/Olli Kuivikko/Documents/Codex/PartyDeck\" add styles.css service-worker.js)",
+      "Bash(git -C 'C:/Users/Olli Kuivikko/Documents/Codex/PartyDeck' commit -m ' *)",
+      "Bash(git -C \"C:/Users/Olli Kuivikko/Documents/Codex/PartyDeck\" add index.html styles.css app.js calendar.js service-worker.js)",
+      "Bash(git -C \"C:/Users/Olli Kuivikko/Documents/Codex/PartyDeck\" diff --cached --stat)",
+      "Bash(git -C \"C:/Users/Olli Kuivikko/Documents/Codex/PartyDeck\" add index.html styles.css app.js service-worker.js)",
+      "Bash(git -C \"C:/Users/Olli Kuivikko/Documents/Codex/PartyDeck\" push origin main)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(md5sum app.js)",
+      "Bash(certutil -hashfile app.js MD5)",
+      "Bash(npm --version)",
+      "Bash(npm install *)"
     ]
   }
 }

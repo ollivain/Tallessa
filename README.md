@@ -1,17 +1,83 @@
 # Tallessa / Withen
 
-A private, offline-first memorial PWA. The app works fully without any
-server — memories live in `localStorage`. If a Supabase project is
-configured, signed-in users also get cross-device cloud sync.
+A private, offline-first memorial app. The app works fully without any
+server — memories live locally. If a Supabase project is configured,
+signed-in users also get cross-device cloud sync.
 
 * **Finnish UI brand**: Tallessa
 * **English (default) UI brand**: Withen
-* **Stack**: vanilla HTML/CSS/ES modules, no build step. Serve as static files.
+* **Web/PWA stack**: vanilla HTML/CSS/ES modules, no build step. Serve as static files.
+* **Mobile stack (in progress)**: React Native + Expo. Currently only a
+  bootstrap screen exists — feature parity with the web version is still
+  to come.
 * **Backend (optional)**: Supabase Storage for state JSON + memory videos.
 
 ---
 
-## Local development
+## Mobile app (Expo, in progress)
+
+A React Native / Expo project lives alongside the web app in this same
+repository. It is not a WebView wrapper — it is a native app that will be
+ported feature-by-feature from the web/PWA version.
+
+### Prerequisites
+
+* Node.js 20+ and npm
+* The **Expo Go** app installed on your phone (iOS App Store / Google Play)
+* Phone and dev machine on the same Wi‑Fi network
+
+### Run it
+
+```bash
+npm install
+npx expo start
+```
+
+Expo will open a dev server and show a QR code in the terminal (and a
+browser tab).
+
+#### iOS (Expo Go)
+
+1. Open the **Camera** app on your iPhone.
+2. Point it at the QR code in the terminal.
+3. Tap the notification to open the project in Expo Go.
+
+#### Android (Expo Go)
+
+1. Open the **Expo Go** app on your Android device.
+2. Tap **Scan QR code** and scan the QR code from the terminal.
+
+If the QR code doesn't work (e.g. corporate Wi‑Fi blocking LAN traffic),
+run `npx expo start --tunnel` instead.
+
+### Mobile project layout
+
+| Path | Purpose |
+|---|---|
+| `App.js`, `app.config.js` style files at repo root | Expo config (`package.json`, `app.json`, `babel.config.js`) |
+| `src/expo-entry.js` | Registers the root component. Used because Windows is case-insensitive and `App.js` would collide with the web `app.js`. |
+| `src/App.js` | Root React Native component, sets up safe-area + status bar. |
+| `src/screens/HomeScreen.js` | First boot screen. |
+| `src/theme/colors.js` | Shared color palette (matches the PWA's `manifest.webmanifest` brand colors). |
+
+### What's NOT yet ported to mobile
+
+The Expo app is intentionally a minimal bootstrap right now. Still to do:
+
+* Memorials, memories, letters, calendar (all in `app.js` on the web side)
+* Storage layer (`storage.js` — uses `localStorage` + Supabase on the web)
+* Auth (`auth.js`)
+* i18n (`i18n.js`, `translations.js`)
+* Theming & background images per view (`styles.css`, `assets/bg-*.png`)
+* PWA-specific code (service worker, manifest) stays web-only by design
+
+The old web app under `index.html`, `app.js`, `styles.css`, `storage.js`,
+`service-worker.js`, `manifest.webmanifest` is still the production version
+and is unaffected by the mobile bootstrap.
+
+---
+
+## Local development (web/PWA)
 
 ```bash
 python -m http.server 8080

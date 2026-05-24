@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Tallessa",
+    "slug": "tallessa",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#f5eddf",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tallessa.app"
+    },
+    "android": {
+      "package": "com.tallessa.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#f5eddf"
+      }
+    },
+    "assetBundlePatterns": [
+      "src/**/*"
+    ],
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
