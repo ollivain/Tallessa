@@ -19,7 +19,9 @@
       "Bash(md5sum app.js)",
       "Bash(certutil -hashfile app.js MD5)",
       "Bash(npm --version)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(rm -rf .expo-export-test)",
+      "Bash(npx expo-doctor *)"
     ]
   }
 }

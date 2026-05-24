@@ -1,17 +1,18 @@
 import { getLocales } from 'expo-localization';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { saveSettings } from '../storage/storage';
 import { strings } from './strings';
 
 const SUPPORTED = ['fi', 'en'];
 const DEFAULT_LANGUAGE = 'en';
 
-function detectInitialLanguage() {
+export function detectDeviceLanguage() {
   try {
     const locales = getLocales?.() ?? [];
     const tag = (locales[0]?.languageCode || '').toLowerCase();
     if (tag.startsWith('fi')) return 'fi';
   } catch {
-    // expo-localization may be unavailable in some test environments
+    // expo-localization unavailable in some test environments
   }
   return DEFAULT_LANGUAGE;
 }
@@ -35,11 +36,21 @@ function format(template, params) {
 
 const I18nContext = createContext(null);
 
-export function I18nProvider({ children }) {
-  const [language, setLanguageState] = useState(detectInitialLanguage);
+/**
+ * initialLanguage is loaded from AsyncStorage by App.js before this provider
+ * mounts, so there's no flash-of-wrong-language on startup.
+ * Falls back to device locale if nothing is stored yet.
+ */
+export function I18nProvider({ initialLanguage, children }) {
+  const [language, setLanguageState] = useState(
+    () => (SUPPORTED.includes(initialLanguage) ? initialLanguage : detectDeviceLanguage()),
+  );
 
   const setLanguage = useCallback((next) => {
-    setLanguageState(SUPPORTED.includes(next) ? next : DEFAULT_LANGUAGE);
+    const resolved = SUPPORTED.includes(next) ? next : DEFAULT_LANGUAGE;
+    setLanguageState(resolved);
+    // Persist immediately so the preference survives a restart.
+    saveSettings({ language: resolved });
   }, []);
 
   const t = useCallback(

@@ -1,14 +1,33 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import { colors } from '../theme/colors';
 import ScreenHeader from '../components/ScreenHeader';
+import { clearAllData } from '../storage/storage';
 
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useI18n();
   const { activeMemorial, clearActive } = useMemorials();
+
+  const onClearAll = () => {
+    Alert.alert(
+      'Tyhjennä kaikki data',
+      'Poistaa kaikki muistopaikat, muistot, kirjeet ja tapahtumat pysyvästi. Tätä ei voi peruuttaa.',
+      [
+        { text: 'Peruuta', style: 'cancel' },
+        {
+          text: 'Tyhjennä',
+          style: 'destructive',
+          onPress: async () => {
+            await clearAllData();
+            clearActive();
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -51,6 +70,16 @@ export default function SettingsScreen() {
         <Group label={t('settings.about')}>
           <Text style={styles.aboutBody}>{t('settings.aboutBody')}</Text>
           <Text style={styles.version}>{t('settings.version')} 0.1.0</Text>
+        </Group>
+
+        <Group label="Kehittäjä / Developer">
+          <Pressable
+            onPress={onClearAll}
+            style={({ pressed }) => [styles.dangerRow, pressed && styles.pressed]}
+          >
+            <Feather name="trash-2" size={18} color={colors.danger} />
+            <Text style={styles.dangerText}>Tyhjennä kaikki data</Text>
+          </Pressable>
         </Group>
       </ScrollView>
     </SafeAreaView>
@@ -130,4 +159,11 @@ const styles = StyleSheet.create({
   linkText: { fontSize: 15, color: colors.accentDark, letterSpacing: 0.5 },
   aboutBody: { fontSize: 14, color: colors.textMuted, lineHeight: 22, fontStyle: 'italic' },
   version: { marginTop: 12, fontSize: 12, color: colors.textSoft, letterSpacing: 1 },
+  dangerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+  },
+  dangerText: { fontSize: 15, color: colors.danger },
 });

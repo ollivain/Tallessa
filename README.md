@@ -7,9 +7,8 @@ signed-in users also get cross-device cloud sync.
 * **Finnish UI brand**: Tallessa
 * **English (default) UI brand**: Withen
 * **Web/PWA stack**: vanilla HTML/CSS/ES modules, no build step. Serve as static files.
-* **Mobile stack (in progress)**: React Native + Expo. Currently only a
-  bootstrap screen exists — feature parity with the web version is still
-  to come.
+* **Mobile stack (in progress)**: React Native + Expo. Navigation shell and
+  all main screens implemented. Data persists locally via `AsyncStorage`.
 * **Backend (optional)**: Supabase Storage for state JSON + memory videos.
 
 ---
@@ -49,6 +48,27 @@ browser tab).
 
 If the QR code doesn't work (e.g. corporate Wi‑Fi blocking LAN traffic),
 run `npx expo start --tunnel` instead.
+
+### Local storage (AsyncStorage)
+
+All mobile data is stored on-device using
+`@react-native-async-storage/async-storage`. No server is required.
+
+| Key | Contents |
+|---|---|
+| `tallessa.mobile.v1.memorials` | JSON array of all memorial spaces (with nested memories, letters, events) |
+| `tallessa.mobile.v1.activeId` | ID of the currently open memorial space |
+| `tallessa.mobile.v1.settings` | User settings (`{ language: "fi" \| "en" }`) |
+
+**Testing persistence in Expo Go:**
+
+1. `npx expo start` → open in Expo Go on your phone.
+2. Create a memorial space, add a memory, add a letter.
+3. Press the home button to background the app, or shake and reload.
+4. Re-open — the memorial and its content should still be there.
+5. Change language in Settings (FI ↔ EN), close fully, re-open — language
+   should match your choice.
+6. To reset to a clean slate: Settings → *Tyhjennä kaikki data*.
 
 ### Mobile project layout
 

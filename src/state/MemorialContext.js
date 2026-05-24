@@ -1,47 +1,33 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { saveMemorialSpaces, saveActiveMemorialSpaceId } from '../storage/storage';
 
 let idCounter = 1;
 const nextId = () => `id-${Date.now().toString(36)}-${idCounter++}`;
 
-function seedMemorial(t) {
-  return {
-    id: nextId(),
-    name: t('mock.memorialName'),
-    birth: '1942-05-12',
-    death: '2024-09-30',
-    description:
-      t('mock.memoryBody'),
-    memories: [
-      {
-        id: nextId(),
-        title: t('mock.memoryTitle'),
-        body: t('mock.memoryBody'),
-        date: '2024-08-14',
-      },
-    ],
-    letters: [
-      {
-        id: nextId(),
-        title: t('mock.letterTitle'),
-        body: t('mock.letterBody'),
-        date: '2025-02-03',
-      },
-    ],
-    events: [
-      {
-        id: nextId(),
-        name: t('mock.eventName'),
-        date: '2026-05-12',
-      },
-    ],
-  };
-}
-
 const MemorialContext = createContext(null);
 
-export function MemorialProvider({ t, children }) {
-  const [memorials, setMemorials] = useState(() => [seedMemorial(t)]);
-  const [activeId, setActiveId] = useState(() => null);
+/**
+ * initialMemorials and initialActiveId come from the top-level loadAppState()
+ * call in App.js, so this provider never touches storage directly on mount —
+ * it only writes back when data changes.
+ */
+export function MemorialProvider({ initialMemorials, initialActiveId, children }) {
+  const [memorials, setMemorials] = useState(() => initialMemorials ?? []);
+  const [activeId, setActiveId] = useState(() => initialActiveId ?? null);
+
+  // Skip the first render so we don't immediately write the loaded data
+  // back to storage on mount (nothing has changed yet).
+  const skipSaveRef = useRef(true);
+  useEffect(() => {
+    if (skipSaveRef.current) { skipSaveRef.current = false; return; }
+    saveMemorialSpaces(memorials);
+  }, [memorials]);
+
+  const skipActiveRef = useRef(true);
+  useEffect(() => {
+    if (skipActiveRef.current) { skipActiveRef.current = false; return; }
+    saveActiveMemorialSpaceId(activeId);
+  }, [activeId]);
 
   const activeMemorial = useMemo(
     () => memorials.find((m) => m.id === activeId) ?? null,
@@ -49,16 +35,10 @@ export function MemorialProvider({ t, children }) {
   );
 
   const selectMemorial = useCallback((id) => setActiveId(id), []);
-  const clearActive = useCallback(() => setActiveId(null), []);
+  const clearActive    = useCallback(() => setActiveId(null), []);
 
   const createMemorial = useCallback((draft) => {
-    const memorial = {
-      id: nextId(),
-      memories: [],
-      letters: [],
-      events: [],
-      ...draft,
-    };
+    const memorial = { id: nextId(), memories: [], letters: [], events: [], ...draft };
     setMemorials((prev) => [...prev, memorial]);
     setActiveId(memorial.id);
     return memorial;
@@ -105,16 +85,7 @@ export function MemorialProvider({ t, children }) {
       addLetter,
       addEvent,
     }),
-    [
-      memorials,
-      activeMemorial,
-      selectMemorial,
-      clearActive,
-      createMemorial,
-      addMemory,
-      addLetter,
-      addEvent,
-    ],
+    [memorials, activeMemorial, selectMemorial, clearActive, createMemorial, addMemory, addLetter, addEvent],
   );
 
   return <MemorialContext.Provider value={value}>{children}</MemorialContext.Provider>;
