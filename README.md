@@ -1,380 +1,275 @@
-# Tallessa / Withen
+# Tallessa — Mobile
 
-A private, offline-first memorial app. The app works fully without any
-server — memories live locally. If a Supabase project is configured,
-signed-in users also get cross-device cloud sync.
+A quiet place for cherished memories. Expo / React Native app for iOS and Android.
 
-* **Finnish UI brand**: Tallessa
-* **English (default) UI brand**: Withen
-* **Web/PWA stack**: vanilla HTML/CSS/ES modules, no build step. Serve as static files.
-* **Mobile stack (in progress)**: React Native + Expo. Navigation shell and
-  all main screens implemented. Data persists locally via `AsyncStorage`.
-* **Backend (optional)**: Supabase Storage for state JSON + memory videos.
+The project root also contains a legacy web prototype (HTML/CSS/JS) — see [Legacy web](#legacy-web) below.
 
 ---
 
-## Mobile app (Expo, in progress)
+## What is this?
 
-A React Native / Expo project lives alongside the web app in this same
-repository. It is not a WebView wrapper — it is a native app that will be
-ported feature-by-feature from the web/PWA version.
+Tallessa (Finnish: "within", "kept safe") is a private memorial app where you can create memorial spaces for loved ones, add memories with photos and videos, write letters, and track meaningful dates.
+
+The **mobile app** lives in `src/` and is built with Expo SDK 52 / React Native 0.76. It targets iOS 15+ and Android 10+ (API 29+).
+
+---
+
+## Getting started
 
 ### Prerequisites
 
-* Node.js 20+ and npm
-* The **Expo Go** app installed on your phone (iOS App Store / Google Play)
-* Phone and dev machine on the same Wi‑Fi network
+- Node.js 18+
+- Expo CLI: `npm install -g expo-cli` (or use `npx expo`)
+- For iOS: Xcode 15+ on macOS, or an iPhone with the Expo Go app
+- For Android: Android Studio with an emulator, or a physical device with Expo Go
 
-### Run it
+### Install
 
 ```bash
 npm install
+```
+
+### Environment variables
+
+Copy the example and fill in your Supabase values:
+
+```bash
+cp .env.example .env
+```
+
+`.env` contents:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT-ref.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+EXPO_PUBLIC_SUPABASE_BUCKET=memories
+```
+
+The app works fully offline without Supabase — media will be stored only on the device. Cloud upload is silently skipped when env vars are missing.
+
+### Start the dev server
+
+```bash
+npm start
+# or
 npx expo start
 ```
 
-Expo will open a dev server and show a QR code in the terminal (and a
-browser tab).
-
-#### iOS (Expo Go)
-
-1. Open the **Camera** app on your iPhone.
-2. Point it at the QR code in the terminal.
-3. Tap the notification to open the project in Expo Go.
-
-#### Android (Expo Go)
-
-1. Open the **Expo Go** app on your Android device.
-2. Tap **Scan QR code** and scan the QR code from the terminal.
-
-If the QR code doesn't work (e.g. corporate Wi‑Fi blocking LAN traffic),
-run `npx expo start --tunnel` instead.
-
-### Local storage (AsyncStorage)
-
-All mobile data is stored on-device using
-`@react-native-async-storage/async-storage`. No server is required.
-
-| Key | Contents |
-|---|---|
-| `tallessa.mobile.v1.memorials` | JSON array of all memorial spaces (with nested memories, letters, events) |
-| `tallessa.mobile.v1.activeId` | ID of the currently open memorial space |
-| `tallessa.mobile.v1.settings` | User settings (`{ language: "fi" \| "en" }`) |
-
-**Testing persistence in Expo Go:**
-
-1. `npx expo start` → open in Expo Go on your phone.
-2. Create a memorial space, add a memory, add a letter.
-3. Press the home button to background the app, or shake and reload.
-4. Re-open — the memorial and its content should still be there.
-5. Change language in Settings (FI ↔ EN), close fully, re-open — language
-   should match your choice.
-6. To reset to a clean slate: Settings → *Tyhjennä kaikki data*.
-
-### Mobile project layout
-
-| Path | Purpose |
-|---|---|
-| `App.js`, `app.config.js` style files at repo root | Expo config (`package.json`, `app.json`, `babel.config.js`) |
-| `src/expo-entry.js` | Registers the root component. Used because Windows is case-insensitive and `App.js` would collide with the web `app.js`. |
-| `src/App.js` | Root React Native component, sets up safe-area + status bar. |
-| `src/screens/HomeScreen.js` | First boot screen. |
-| `src/theme/colors.js` | Shared color palette (matches the PWA's `manifest.webmanifest` brand colors). |
-
-### Media (photos & videos)
-
-The mobile app uses native pickers instead of the web's `<input type="file">`
-+ `FileReader` + `URL.createObjectURL` pipeline. Picked files are copied into
-the app's sandboxed document directory (`FileSystem.documentDirectory +
-tallessa-media/`) so they survive even if the user later removes the
-original from the device gallery.
-
-| Capability | Library | Where |
-|---|---|---|
-| Image / video gallery picker | `expo-image-picker` | `src/lib/media.js` |
-| In-app file copy | `expo-file-system` | `src/lib/media.js` |
-| Video playback in previews & cards | `expo-av` (`Video`) | `src/screens/MemoryWallScreen.js` |
-
-Permission UX: the picker requests photo library access on first use. If
-the user declines, an alert offers an "Open settings" deep link instead of
-crashing. The iOS `NSPhotoLibraryUsageDescription` strings are configured
-via the `expo-image-picker` plugin block in `app.json`.
-
-> **TODO — automatic video trim.** The web app trims uploads to a short
-> clip (≤ 10 s) using a canvas/MediaRecorder pipeline that is not
-> portable to React Native. The mobile app currently passes
-> `videoMaxDuration` as a *hint* to the OS picker (iOS honors it,
-> Android often does not) but does **not** re-encode the file afterwards.
-> Frame-accurate trim should be added later via a native module like
-> `react-native-video-processing` or `ffmpeg-kit-react-native`.
-
-### Mobile Supabase setup (optional — media upload)
-
-The mobile app talks to Supabase Storage from React Native using a separate
-client (`src/lib/supabase.js`). It does **not** read the web app's
-`supabase-config.js` — env vars are the only configuration surface.
-
-**Set up:**
-
-1. Copy `.env.example` → `.env` in the repo root.
-2. Fill in:
-
-   ```
-   EXPO_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=<public anon key from Supabase dashboard>
-   EXPO_PUBLIC_SUPABASE_BUCKET=memories
-   ```
-
-3. Restart Expo (`npx expo start --clear`) so the new env vars are inlined
-   into the bundle.
-
-Without these values, `isSupabaseConfigured()` returns false and the app
-keeps working in pure offline mode — picked media is stored locally only.
-
-> ⚠️ **NEVER** put the Supabase **service_role** key in `.env`, in any
-> file under this repo, or in any string the app reads at runtime. The
-> service_role key bypasses RLS and would let any user read or overwrite
-> any other user's data. Only the `EXPO_PUBLIC_SUPABASE_ANON_KEY` is safe
-> to ship.
-
-**Bucket and policies you must create in Supabase yourself.** See the
-"Supabase deployment checklist" section below for the SQL — the same
-policies cover both the web app and the mobile app, because both write
-to the same `memories/<owner-id>/<year>/<uuid>.<ext>` path layout.
-
-Minimum you need:
-
-* A storage bucket named `memories` (or whatever you set
-  `EXPO_PUBLIC_SUPABASE_BUCKET` to).
-* INSERT policy that allows the current user to write under
-  `memories/<auth.uid()>/...`.
-* SELECT policy that grants public read on `memories/%` (or signed URLs
-  if you want stronger privacy).
-
-If the bucket doesn't exist or the INSERT policy is missing, uploads
-fail with a localised "Upload failed" alert (`media.uploadErrorGeneric`)
-and the memory is saved locally only. The client never tries to create
-the bucket or change policies for you — those are Supabase-side
-operations and the app intentionally has no permission to perform them.
-
-### Mobile media upload pipeline
-
-Picked media goes through this flow on iOS/Android:
-
-1. `expo-image-picker` returns a local `file://` URI.
-2. `persistAssetToAppStorage()` copies it into the sandboxed
-   `tallessa-media/` folder (`src/lib/media.js`).
-3. When the user saves the memory, `uploadMedia()` in
-   `src/lib/uploadMedia.js` streams the file straight to Supabase
-   Storage's REST endpoint via `FileSystem.uploadAsync` — no
-   `Blob`/`FileReader`/`URL.createObjectURL`, which are flaky on RN for
-   video-sized payloads.
-4. On success the memory record gets `mediaRemoteUrl` + `mediaRemotePath`
-   in addition to the local `mediaUri`. On failure the alert appears and
-   the memory is saved with the local URI only.
-
-Anonymous uploads use a device UUID stored in AsyncStorage
-(`tallessa.mobile.v1.deviceId`) as the owner namespace. Once auth is
-added, the same code path switches to `auth.uid()` automatically.
-
-### What's NOT yet ported to mobile
-
-The Expo app is still missing pieces from the web/PWA build. Still to do:
-
-* Letters, calendar entries beyond their basic shell screens
-* Supabase cloud sync of *state JSON* (media upload works; appstate sync
-  is still device-local)
-* Auth (`auth.js`) — UI for sign in / sign out
-* Per-view background images / full theming pass (`styles.css`,
-  `assets/bg-*.png`)
-* Automatic video trim (see TODO above)
-* PWA-specific code (service worker, manifest) stays web-only by design
-
-The old web app under `index.html`, `app.js`, `styles.css`, `storage.js`,
-`service-worker.js`, `manifest.webmanifest` is still the production version
-and is unaffected by the mobile bootstrap.
-
 ---
 
-## Local development (web/PWA)
+## Testing on iOS
+
+### With Expo Go (fastest)
+
+1. Run `npm start`
+2. Open the Expo Go app on your iPhone
+3. Scan the QR code shown in the terminal
+
+### With iOS Simulator (macOS only)
 
 ```bash
-python -m http.server 8080
-# then open http://localhost:8080
+npm run ios
+# or press 'i' in the expo start terminal
 ```
 
-The PWA service worker (`service-worker.js`) caches the app shell. After
-editing any cached file, bump `CACHE_NAME` so iOS/Android clients pick up the
-new build.
+### With EAS Build (production-like)
+
+```bash
+npx eas build --platform ios --profile development
+```
+
+Note: EAS Build requires an Expo account and `eas.json`. You'll also need to add `assets/icon.png` (1024×1024) and `assets/splash.png` (1284×2778) before building — see [Before publishing](#before-publishing).
 
 ---
 
-## Supabase deployment checklist (READ BEFORE PUBLISHING)
+## Testing on Android
 
-> ⚠️ **The client cannot verify your Supabase project's Row Level Security
-> (RLS) and Storage policies.** Misconfigured policies are the single biggest
-> security risk for this app — they can expose every user's memorial data to
-> every other user. Treat this checklist as a hard prerequisite for going
-> live, not a "nice to have".
+### With Expo Go
 
-### 1. Frontend keys
+1. Run `npm start`
+2. Open the Expo Go app on your Android device
+3. Scan the QR code, or press 'a' in the terminal to open an emulator
 
-* `supabase-config.js` MUST contain only the project URL, the **anon** public
-  key, and the storage bucket name.
-* The Supabase **service role** key is a god-mode credential. **Never** put
-  it in any file that ships to the browser, into the service worker, into
-  `index.html`, or into the cache list. The codebase intentionally has no
-  reference to it.
-* The anon key is safe to ship (it is, by design, a public token) — but only
-  when RLS is enabled on every table and storage object you care about. With
-  RLS off, the anon key is the same as service role for anonymous reads.
+### With Android Emulator
 
-### 2. Storage bucket layout
-
-The app writes to exactly one bucket (default name: `memories`). Inside the
-bucket it uses two top-level prefixes:
-
-| Prefix | Contents | Written by |
-|---|---|---|
-| `state/<owner-id>/appstate.json` | The user's full app state (memorials, memories, letters, calendar). One file per owner. | `storage.js` → `pushToSupabase()` |
-| `memories/<owner-id>/<year>/<uuid>.<ext>` | Memory videos (≤ 10 s clips, ≤ ~50 MB each). | `app.js` → `uploadMemoryVideo()` |
-
-`<owner-id>` is the authenticated user's `auth.uid()` when signed in, or a
-per-browser device UUID stored in `localStorage` when anonymous.
-
-### 3. Required Storage policies (this is the critical part)
-
-In the Supabase dashboard → Storage → Policies for the `memories` bucket, set
-**at minimum** the following. Adjust to taste, but never weaken them.
-
-#### a) State JSON — only the owner can read or write their own state
-
-```sql
--- SELECT
-(bucket_id = 'memories'
-  AND name LIKE 'state/' || auth.uid()::text || '/%')
-
--- INSERT / UPDATE / DELETE
-(bucket_id = 'memories'
-  AND name LIKE 'state/' || auth.uid()::text || '/%')
+```bash
+npm run android
+# or press 'a' in the expo start terminal
 ```
 
-This guarantees that even if someone steals an owner-id string, they cannot
-read or overwrite another user's state without that user's auth token.
+### With EAS Build
 
-#### b) Memory videos — only the owner can write or delete their own videos
-
-```sql
--- INSERT / UPDATE / DELETE
-(bucket_id = 'memories'
-  AND name LIKE 'memories/' || auth.uid()::text || '/%')
+```bash
+npx eas build --platform android --profile development
 ```
-
-#### c) Memory videos — read access (pick ONE of the two)
-
-**Public read (current default).** Convenient: `getPublicUrl()` works without
-extra round-trips. Acceptable because the path contains a random v4 UUID
-which is unguessable. Anyone who somehow obtains the URL can view the
-video, however.
-
-```sql
--- SELECT
-bucket_id = 'memories' AND name LIKE 'memories/%'
-```
-
-**Private read (recommended for personal memorial content).** Switch the
-client to `createSignedUrl()` and refresh URLs on demand. With this policy,
-even the URL alone is not enough.
-
-```sql
--- SELECT
-(bucket_id = 'memories'
-  AND name LIKE 'memories/' || auth.uid()::text || '/%')
-```
-
-#### d) Anonymous uploads (until login UI exists)
-
-Today the app lets anonymous users upload videos (their state.json is
-local-only, but the videos go to Supabase). If you want to **prevent abuse
-of your bucket** as an anonymous file host, add a final policy that requires
-`auth.role() = 'authenticated'` on `INSERT`. The client will surface the
-rejection as `msg.video.uploadFailed`.
-
-### 4. Database tables
-
-The app currently uses Supabase Storage only — no Postgres tables, no RPC.
-If you later add tables, enable RLS on each one (`alter table ... enable
-row level security;`) and write `auth.uid() = user_id` policies before
-inserting any production data.
-
-### 5. CORS and bucket size limits
-
-* Allow your production origin in the Supabase project's CORS settings.
-* Set the bucket's file size limit ≥ 60 MB (the client tries to keep clips
-  under `MAX_STANDARD_VIDEO_SIZE` in `app.js`, currently ~50 MB after trim).
-
-### 6. After deployment — verify
-
-From an unauthenticated browser, run this in the console:
-
-```js
-const c = await import('https://esm.sh/@supabase/supabase-js@2')
-  .then(m => m.createClient(window.TallessaSupabase.url, window.TallessaSupabase.anonKey));
-// Should return an error (or empty), NOT another user's state:
-await c.storage.from('memories').download('state/some-other-uuid/appstate.json');
-// Should return [], NOT a directory listing of every user's folder:
-await c.storage.from('memories').list('state');
-```
-
-If either call returns real data, your RLS is too permissive.
 
 ---
 
-## Security model in code (defence in depth)
+## Supabase setup
 
-Even with RLS done right, the client also enforces:
+### Storage bucket
 
-* **Per-owner namespacing**: `createMediaStoragePath()` in `storage.js`
-  always builds `memories/<owner-id>/<year>/<uuid>.<ext>`. There is no
-  code path that writes to a different layout.
-* **Delete guard**: `deleteSupabaseFile()` in `app.js` refuses to call
-  `.remove()` on a path that doesn't belong to the current owner — checked
-  via `isOwnedMediaPath()`. Legacy unprefixed paths from older clients are
-  still cleanable.
-* **Auth-gated state sync**: `schedulePush()` and `syncFromCloud()` in
-  `storage.js` early-return when `currentUserId` is null. Anonymous users
-  never push or pull state.json from the network.
-* **Graceful Supabase failure**: every Supabase call is in a `try/catch`.
-  Failures surface a localised toast (`msg.cloud.saveFailed`,
-  `msg.video.uploadFailed`, etc.) and the app keeps working from
-  `localStorage`.
-* **No service role**: no admin key, JWT secret, or webhook secret is
-  referenced anywhere in the codebase.
+1. Create a Supabase project at supabase.com
+2. Go to **Storage → New bucket** and create a bucket named `memories` (or your chosen name)
+3. Set the bucket to **Public** if you want media to be accessible without signed URLs, or keep it private and adjust the app to use signed URLs
 
-If you change any of the above, re-read this section and the bullet under
-"Required Storage policies" — they're designed to fail closed together.
+### RLS policies
 
----
+The app uses path-based ownership: `memories/<owner-id>/<year>/<uuid>.<ext>`
 
-## What works without Supabase
+Suggested policies for the `memories` bucket:
 
-Everything except cross-device sync and video uploads:
+```sql
+-- Allow anonymous/authenticated insert into own namespace
+CREATE POLICY "users can upload their own media"
+ON storage.objects FOR INSERT
+TO anon, authenticated
+WITH CHECK (
+  bucket_id = 'memories' AND
+  (storage.foldername(name))[1] = 'memories'
+);
 
-* Creating memorial spaces, memories, letters, calendar entries
-* Switching themes, language, names
-* Adding images (stored as data URLs inside the local state)
-* PWA install + offline use
+-- Allow reading all objects (public bucket)
+CREATE POLICY "public read"
+ON storage.objects FOR SELECT
+TO anon, authenticated
+USING (bucket_id = 'memories');
+```
 
-If `supabase-config.js` is missing or has empty fields, `isSupabaseConfigured()`
-returns false and every cloud call short-circuits silently. The UI shows
-`msg.supabase.notConfigured` only when the user explicitly tries something
-that requires it (currently: uploading a video memory).
+> The app uses the public anon key only. Never put the `service_role` key in the app.
 
 ---
 
-## Authentication (status: dormant scaffolding)
+## Architecture
 
-The Supabase Auth wrapper exists in `auth.js` (`signInWithEmail`, `signOut`,
-`onAuthChange`) but no UI calls it yet. The app runs anonymously by design.
-See the header comment in `auth.js` for the 6-step checklist to enable a
-real login flow later. None of the dormant code is reachable from the UI,
-so users cannot click a button that does nothing.
+```
+src/
+  App.js                    — root component, loads state from AsyncStorage
+  expo-entry.js             — Expo entry point
+  navigation/
+    RootNavigator.js        — switches between memorial selection and main app
+    MainTabs.js             — bottom tab navigator (5 tabs)
+  screens/
+    MemorialSelectionScreen — list / choose a memorial space
+    MemorialCreationScreen  — create a new memorial (modal)
+    HomeScreen              — dashboard with latest memory and quick links
+    MemoryWallScreen        — photo/video/text memories + add modal
+    LettersScreen           — personal letters + compose modal
+    CalendarScreen          — date-based events + add modal
+    SettingsScreen          — language, memorial switch, developer tools
+  components/
+    ScreenHeader            — shared header with title/subtitle/divider
+    PrimaryButton           — two-variant button (primary / secondary)
+    LoadingScreen           — splash-like loading state
+  state/
+    MemorialContext.js      — global state (memorials, activeId, CRUD actions)
+  storage/
+    storage.js              — AsyncStorage persistence (multiGet/multiSet)
+  lib/
+    supabase.js             — Supabase client (env-based, null-safe)
+    uploadMedia.js          — FileSystem.uploadAsync → Supabase Storage
+    media.js                — expo-image-picker wrapper with permission handling
+  i18n/
+    index.js                — I18nProvider + useI18n hook
+    strings.js              — Finnish and English translations
+  theme/
+    colors.js               — design token palette
+```
+
+**Data flow:** `AsyncStorage` → `App.js` → `MemorialContext` → screens. All writes go through context actions which trigger AsyncStorage saves via `useEffect`.
+
+---
+
+## Known limitations
+
+- **Date input is free text** — Calendar and creation screens accept any string. No date picker or format validation. Entering invalid dates will silently display incorrectly.
+- **Video trimming is iOS-only** — `videoMaxDuration` is honored by iOS's native picker; Android ignores it and may let users pick arbitrarily long videos.
+- **No authentication UI** — Supabase auth client is initialized but there is no sign-in screen. All uploads use a stable per-device UUID as the owner identifier.
+- **Media is device-local by default** — Without Supabase configured, no cloud backup exists. Uninstalling the app will permanently delete all media.
+- **No image viewer / detail screen** — Memory cards show thumbnails inline; there is no full-screen viewer yet.
+- **No delete / edit for memories, letters, events** — Only creation is implemented.
+- **New Architecture enabled** — `newArchEnabled: true` in app.json. Verify that all native modules are compatible before building for release.
+
+---
+
+## Before publishing
+
+The following are required before building a release binary:
+
+1. **App icon** — Add `assets/icon.png` (1024×1024 px, no transparency). Add to `app.json`:
+   ```json
+   "icon": "./assets/icon.png"
+   ```
+
+2. **Splash screen** — Add `assets/splash.png` and configure in `app.json`:
+   ```json
+   "splash": {
+     "image": "./assets/splash.png",
+     "resizeMode": "contain",
+     "backgroundColor": "#f5eddf"
+   }
+   ```
+
+3. **Android adaptive icon** — Add `assets/adaptive-icon.png` (1024×1024) and update `app.json`:
+   ```json
+   "android": {
+     "adaptiveIcon": {
+       "foregroundImage": "./assets/adaptive-icon.png",
+       "backgroundColor": "#f5eddf"
+     }
+   }
+   ```
+
+4. **EAS configuration** — Create `eas.json` with build profiles.
+
+5. **Privacy policy** — Required for App Store and Google Play. Media permissions must be justified.
+
+---
+
+## Potential bugs and risks
+
+| Area | Risk | Severity |
+|------|------|----------|
+| Media upload | If Supabase is not configured, cloud upload is skipped silently — users may not realize there is no cloud backup | Medium |
+| Video | Android doesn't honor `videoMaxDuration` — users can pick very long videos that may fail to upload or exhaust device storage | Medium |
+| Supabase RLS | Bucket policies must be tightened before launch — a permissive policy allows any device to read all uploaded files | High |
+| AsyncStorage | No data migration path if storage schema changes in future versions (v1 suffix is in place as a safety valve) | Low |
+| New Architecture | `newArchEnabled: true` — some third-party native modules may not support the new architecture yet | Medium |
+| iOS memory | Large video files are copied to the app sandbox before upload — may exhaust storage on low-memory devices | Low |
+| Android back button | Hardware back closes modals via `onRequestClose` but there is no guard against losing unsaved content | Low |
+| No error boundary | An unhandled JS exception crashes the whole app — no React error boundary is in place | Medium |
+| Portrait image | Memorial portrait photo is stored device-local only — not uploaded to Supabase | Low |
+
+---
+
+## What's next (suggested roadmap)
+
+- [ ] Add app icon, splash screen, and adaptive icon assets
+- [ ] Date picker for calendar events and memorial birth/death dates
+- [ ] Full-screen image/video viewer
+- [ ] Delete and edit actions for memories, letters, events
+- [ ] Authentication UI (sign-in with email / magic link)
+- [ ] EAS Build setup for TestFlight / Play Store internal testing
+- [ ] React error boundary at app root
+- [ ] Video trimming on Android (ffmpeg-kit or similar)
+- [ ] Push notifications for memorial dates (expo-notifications)
+- [ ] Portrait image upload to Supabase
+
+---
+
+## Legacy web
+
+The project root contains the original web prototype:
+
+| File | Purpose |
+|------|---------|
+| `index.html` | Main HTML entry point |
+| `app.js` | Application logic |
+| `auth.js` | Web auth |
+| `storage.js` | localStorage-based storage |
+| `calendar.js`, `memories.js`, `letters.js` | Feature modules |
+| `ui.js`, `styles.css` | UI layer |
+| `translations.js`, `i18n.js` | Localisation |
+| `service-worker.js`, `manifest.webmanifest` | PWA support |
+
+The web version is **not maintained** and is kept for reference only. The Expo app in `src/` is the active version. None of the web files are imported by the mobile app.

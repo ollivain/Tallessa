@@ -86,6 +86,13 @@ export const strings = {
       aboutBody:
         'Tallessa on rauhallinen paikka rakkaiden muistoille. Tämä on mobiiliversion varhainen luonnos.',
       version: 'Versio',
+      devSection: 'Kehittäjä',
+      clearAll: 'Tyhjennä kaikki data',
+      clearAllConfirmTitle: 'Tyhjennä kaikki data',
+      clearAllConfirmBody:
+        'Poistaa kaikki muistopaikat, muistot, kirjeet ja tapahtumat pysyvästi. Tätä ei voi peruuttaa.',
+      clearAllConfirm: 'Tyhjennä',
+      clearAllCancel: 'Peruuta',
     },
 
     media: {
@@ -208,6 +215,13 @@ export const strings = {
       aboutBody:
         'Withen is a quiet place for cherished memories. This is an early draft of the mobile version.',
       version: 'Version',
+      devSection: 'Developer',
+      clearAll: 'Clear all data',
+      clearAllConfirmTitle: 'Clear all data',
+      clearAllConfirmBody:
+        'This permanently removes all memorial spaces, memories, letters, and events. This cannot be undone.',
+      clearAllConfirm: 'Clear',
+      clearAllCancel: 'Cancel',
     },
 
     media: {

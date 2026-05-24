@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,11 +41,13 @@ export default function MemoryWallScreen() {
 
   const memories = activeMemorial?.memories ?? [];
 
-  // If the user closes the modal without saving, the persisted file would
-  // leak. Track the draft uri so we can clean it up on cancel/swap.
+  // Track media in a ref so the unmount cleanup always sees the latest value
+  // (the state closure captured at mount would always be null).
+  const mediaRef = useRef(null);
+  useEffect(() => { mediaRef.current = media; }, [media]);
   useEffect(() => () => {
-    if (media?.uri) removePersistedMedia(media.uri);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (mediaRef.current?.uri) removePersistedMedia(mediaRef.current.uri);
+  }, []);
 
   const close = () => {
     if (media?.uri) removePersistedMedia(media.uri);

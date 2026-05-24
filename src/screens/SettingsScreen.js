@@ -13,12 +13,12 @@ export default function SettingsScreen() {
 
   const onClearAll = () => {
     Alert.alert(
-      'Tyhjennä kaikki data',
-      'Poistaa kaikki muistopaikat, muistot, kirjeet ja tapahtumat pysyvästi. Tätä ei voi peruuttaa.',
+      t('settings.clearAllConfirmTitle'),
+      t('settings.clearAllConfirmBody'),
       [
-        { text: 'Peruuta', style: 'cancel' },
+        { text: t('settings.clearAllCancel'), style: 'cancel' },
         {
-          text: 'Tyhjennä',
+          text: t('settings.clearAllConfirm'),
           style: 'destructive',
           onPress: async () => {
             await clearAllData();
@@ -72,13 +72,13 @@ export default function SettingsScreen() {
           <Text style={styles.version}>{t('settings.version')} 0.1.0</Text>
         </Group>
 
-        <Group label="Kehittäjä / Developer">
+        <Group label={t('settings.devSection')}>
           <Pressable
             onPress={onClearAll}
             style={({ pressed }) => [styles.dangerRow, pressed && styles.pressed]}
           >
             <Feather name="trash-2" size={18} color={colors.danger} />
-            <Text style={styles.dangerText}>Tyhjennä kaikki data</Text>
+            <Text style={styles.dangerText}>{t('settings.clearAll')}</Text>
           </Pressable>
         </Group>
       </ScrollView>

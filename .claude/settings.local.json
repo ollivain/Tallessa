@@ -21,7 +21,8 @@
       "Bash(npm --version)",
       "Bash(npm install *)",
       "Bash(rm -rf .expo-export-test)",
-      "Bash(npx expo-doctor *)"
+      "Bash(npx expo-doctor *)",
+      "Bash(Test-Path \"C:\\\\Users\\\\Olli Kuivikko\\\\Documents\\\\Codex\\\\PartyDeck\\\\README.md\")"
     ]
   }
 }
