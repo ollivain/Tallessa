@@ -107,13 +107,83 @@ via the `expo-image-picker` plugin block in `app.json`.
 > Frame-accurate trim should be added later via a native module like
 > `react-native-video-processing` or `ffmpeg-kit-react-native`.
 
+### Mobile Supabase setup (optional — media upload)
+
+The mobile app talks to Supabase Storage from React Native using a separate
+client (`src/lib/supabase.js`). It does **not** read the web app's
+`supabase-config.js` — env vars are the only configuration surface.
+
+**Set up:**
+
+1. Copy `.env.example` → `.env` in the repo root.
+2. Fill in:
+
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=<public anon key from Supabase dashboard>
+   EXPO_PUBLIC_SUPABASE_BUCKET=memories
+   ```
+
+3. Restart Expo (`npx expo start --clear`) so the new env vars are inlined
+   into the bundle.
+
+Without these values, `isSupabaseConfigured()` returns false and the app
+keeps working in pure offline mode — picked media is stored locally only.
+
+> ⚠️ **NEVER** put the Supabase **service_role** key in `.env`, in any
+> file under this repo, or in any string the app reads at runtime. The
+> service_role key bypasses RLS and would let any user read or overwrite
+> any other user's data. Only the `EXPO_PUBLIC_SUPABASE_ANON_KEY` is safe
+> to ship.
+
+**Bucket and policies you must create in Supabase yourself.** See the
+"Supabase deployment checklist" section below for the SQL — the same
+policies cover both the web app and the mobile app, because both write
+to the same `memories/<owner-id>/<year>/<uuid>.<ext>` path layout.
+
+Minimum you need:
+
+* A storage bucket named `memories` (or whatever you set
+  `EXPO_PUBLIC_SUPABASE_BUCKET` to).
+* INSERT policy that allows the current user to write under
+  `memories/<auth.uid()>/...`.
+* SELECT policy that grants public read on `memories/%` (or signed URLs
+  if you want stronger privacy).
+
+If the bucket doesn't exist or the INSERT policy is missing, uploads
+fail with a localised "Upload failed" alert (`media.uploadErrorGeneric`)
+and the memory is saved locally only. The client never tries to create
+the bucket or change policies for you — those are Supabase-side
+operations and the app intentionally has no permission to perform them.
+
+### Mobile media upload pipeline
+
+Picked media goes through this flow on iOS/Android:
+
+1. `expo-image-picker` returns a local `file://` URI.
+2. `persistAssetToAppStorage()` copies it into the sandboxed
+   `tallessa-media/` folder (`src/lib/media.js`).
+3. When the user saves the memory, `uploadMedia()` in
+   `src/lib/uploadMedia.js` streams the file straight to Supabase
+   Storage's REST endpoint via `FileSystem.uploadAsync` — no
+   `Blob`/`FileReader`/`URL.createObjectURL`, which are flaky on RN for
+   video-sized payloads.
+4. On success the memory record gets `mediaRemoteUrl` + `mediaRemotePath`
+   in addition to the local `mediaUri`. On failure the alert appears and
+   the memory is saved with the local URI only.
+
+Anonymous uploads use a device UUID stored in AsyncStorage
+(`tallessa.mobile.v1.deviceId`) as the owner namespace. Once auth is
+added, the same code path switches to `auth.uid()` automatically.
+
 ### What's NOT yet ported to mobile
 
 The Expo app is still missing pieces from the web/PWA build. Still to do:
 
 * Letters, calendar entries beyond their basic shell screens
-* Supabase cloud sync of state + media (currently device-local only)
-* Auth (`auth.js`)
+* Supabase cloud sync of *state JSON* (media upload works; appstate sync
+  is still device-local)
+* Auth (`auth.js`) — UI for sign in / sign out
 * Per-view background images / full theming pass (`styles.css`,
   `assets/bg-*.png`)
 * Automatic video trim (see TODO above)

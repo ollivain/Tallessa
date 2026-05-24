@@ -11,3 +11,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 .DS_Store
+
+# Env files — must never be committed. Only .env.example is tracked.
+.env
+.env.local
+.env.*.local

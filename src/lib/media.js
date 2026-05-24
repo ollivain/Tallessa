@@ -87,7 +87,7 @@ export async function pickImageFromLibrary(t) {
     if (result.canceled || !result.assets?.length) return null;
     const asset = result.assets[0];
     const uri = await persistAssetToAppStorage(asset, 'image');
-    return { uri, width: asset.width, height: asset.height };
+    return { uri, width: asset.width, height: asset.height, mimeType: asset.mimeType };
   } catch (e) {
     console.warn('[media] pickImageFromLibrary failed:', e);
     Alert.alert(t('media.errorTitle'), t('media.errorBody'));
@@ -119,7 +119,7 @@ export async function pickVideoFromLibrary(t, { maxDurationSeconds = DEFAULT_VID
     if (result.canceled || !result.assets?.length) return null;
     const asset = result.assets[0];
     const uri = await persistAssetToAppStorage(asset, 'video');
-    return { uri, durationMillis: asset.duration ?? null };
+    return { uri, durationMillis: asset.duration ?? null, mimeType: asset.mimeType };
   } catch (e) {
     console.warn('[media] pickVideoFromLibrary failed:', e);
     Alert.alert(t('media.errorTitle'), t('media.errorBody'));

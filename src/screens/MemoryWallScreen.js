@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -24,6 +26,8 @@ import {
   pickVideoFromLibrary,
   removePersistedMedia,
 } from '../lib/media';
+import { uploadMedia, UploadError } from '../lib/uploadMedia';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function MemoryWallScreen() {
   const { t } = useI18n();
@@ -31,8 +35,9 @@ export default function MemoryWallScreen() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  // Draft media for the modal — { type: 'image' | 'video', uri }
+  // Draft media for the modal — { type: 'image' | 'video', uri, mimeType? }
   const [media, setMedia] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const memories = activeMemorial?.memories ?? [];
 
@@ -59,25 +64,54 @@ export default function MemoryWallScreen() {
 
   const onPickImage = async () => {
     const result = await pickImageFromLibrary(t);
-    if (result) swapMedia({ type: 'image', uri: result.uri });
+    if (result) {
+      swapMedia({ type: 'image', uri: result.uri, mimeType: result.mimeType });
+    }
   };
 
   const onPickVideo = async () => {
     const result = await pickVideoFromLibrary(t);
-    if (result) swapMedia({ type: 'video', uri: result.uri });
+    if (result) {
+      swapMedia({ type: 'video', uri: result.uri, mimeType: result.mimeType });
+    }
   };
 
-  const save = () => {
+  const save = async () => {
     if (!title.trim() && !body.trim() && !media) {
       close();
       return;
     }
+
+    // Try to push the media to Supabase if it's configured. The local
+    // file remains the source of truth either way — if the upload fails
+    // we still keep the memory, just without a cloud copy. This matches
+    // the offline-first design: never block the user on the network.
+    let uploaded = null;
+    if (media && isSupabaseConfigured()) {
+      try {
+        setUploading(true);
+        uploaded = await uploadMedia(media);
+      } catch (e) {
+        const code = e?.message;
+        const body =
+          code === UploadError.NOT_CONFIGURED ? t('media.uploadErrorNotConfigured')
+          : code === UploadError.NETWORK     ? t('media.uploadErrorNetwork')
+                                             : t('media.uploadErrorGeneric');
+        Alert.alert(t('media.uploadErrorTitle'), body);
+      } finally {
+        setUploading(false);
+      }
+    }
+
     addMemory(activeMemorial.id, {
       title: title.trim(),
       body: body.trim(),
       date: new Date().toISOString().slice(0, 10),
       mediaType: media?.type ?? null,
       mediaUri: media?.uri ?? null,
+      // Cloud copy — null if Supabase is off or upload failed.
+      mediaRemoteUrl: uploaded?.publicUrl ?? null,
+      mediaRemotePath: uploaded?.path ?? null,
     });
     // Don't clean up media on a successful save — the memory now owns it.
     setOpen(false);
@@ -202,7 +236,17 @@ export default function MemoryWallScreen() {
                   multiline
                 />
               </View>
-              <PrimaryButton label={t('creation.save')} onPress={save} />
+              <PrimaryButton
+                label={uploading ? t('media.uploading') : t('creation.save')}
+                onPress={save}
+                disabled={uploading}
+              />
+              {uploading ? (
+                <View style={styles.uploadingRow}>
+                  <ActivityIndicator color={colors.accentDark} />
+                  <Text style={styles.uploadingText}>{t('media.uploading')}</Text>
+                </View>
+              ) : null}
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -350,4 +394,16 @@ const styles = StyleSheet.create({
     borderColor: colors.divider,
   },
   multiline: { minHeight: 120, textAlignVertical: 'top' },
+  uploadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  uploadingText: {
+    fontSize: 13,
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+  },
 });

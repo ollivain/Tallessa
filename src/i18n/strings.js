@@ -97,6 +97,14 @@ export const strings = {
       errorTitle: 'Hetki — jokin meni vinoon',
       errorBody:
         'Median valinta ei onnistunut juuri nyt. Yritä hetken päästä uudelleen.',
+      uploading: 'Lähetetään mediaa…',
+      uploadErrorTitle: 'Lataus epäonnistui',
+      uploadErrorNotConfigured:
+        'Pilvitallennus ei ole käytössä. Aseta Supabase-asetukset .env-tiedostoon ja yritä uudelleen.',
+      uploadErrorNetwork:
+        'Verkkoyhteys katkesi median latauksen aikana. Tarkista yhteytesi ja yritä uudelleen.',
+      uploadErrorGeneric:
+        'Median lataus pilveen ei onnistunut. Muisto on tallennettu vain tälle laitteelle.',
     },
 
     quote:
@@ -211,6 +219,14 @@ export const strings = {
       errorTitle: 'Something went sideways',
       errorBody:
         'Picking media didn’t work just now. Please try again in a moment.',
+      uploading: 'Uploading media…',
+      uploadErrorTitle: 'Upload failed',
+      uploadErrorNotConfigured:
+        'Cloud storage isn’t configured. Add your Supabase credentials to .env and try again.',
+      uploadErrorNetwork:
+        'The connection dropped while uploading. Check your network and try again.',
+      uploadErrorGeneric:
+        'Uploading the media to the cloud didn’t work. The memory is saved on this device only.',
     },
 
     quote:
