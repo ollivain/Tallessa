@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,11 +13,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import { colors } from '../theme/colors';
 import ScreenHeader from '../components/ScreenHeader';
 import PrimaryButton from '../components/PrimaryButton';
+import {
+  pickImageFromLibrary,
+  pickVideoFromLibrary,
+  removePersistedMedia,
+} from '../lib/media';
 
 export default function MemoryWallScreen() {
   const { t } = useI18n();
@@ -24,17 +31,44 @@ export default function MemoryWallScreen() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  // Draft media for the modal — { type: 'image' | 'video', uri }
+  const [media, setMedia] = useState(null);
 
   const memories = activeMemorial?.memories ?? [];
 
+  // If the user closes the modal without saving, the persisted file would
+  // leak. Track the draft uri so we can clean it up on cancel/swap.
+  useEffect(() => () => {
+    if (media?.uri) removePersistedMedia(media.uri);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const close = () => {
+    if (media?.uri) removePersistedMedia(media.uri);
     setOpen(false);
     setTitle('');
     setBody('');
+    setMedia(null);
+  };
+
+  const swapMedia = (next) => {
+    if (media?.uri && media.uri !== next?.uri) {
+      removePersistedMedia(media.uri);
+    }
+    setMedia(next);
+  };
+
+  const onPickImage = async () => {
+    const result = await pickImageFromLibrary(t);
+    if (result) swapMedia({ type: 'image', uri: result.uri });
+  };
+
+  const onPickVideo = async () => {
+    const result = await pickVideoFromLibrary(t);
+    if (result) swapMedia({ type: 'video', uri: result.uri });
   };
 
   const save = () => {
-    if (!title.trim() && !body.trim()) {
+    if (!title.trim() && !body.trim() && !media) {
       close();
       return;
     }
@@ -42,9 +76,27 @@ export default function MemoryWallScreen() {
       title: title.trim(),
       body: body.trim(),
       date: new Date().toISOString().slice(0, 10),
+      mediaType: media?.type ?? null,
+      mediaUri: media?.uri ?? null,
     });
-    close();
+    // Don't clean up media on a successful save — the memory now owns it.
+    setOpen(false);
+    setTitle('');
+    setBody('');
+    setMedia(null);
   };
+
+  if (!activeMemorial) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <ScreenHeader title={t('wall.title')} subtitle={t('wall.subtitle')} />
+        <View style={styles.empty}>
+          <Feather name="image" size={28} color={colors.accent} />
+          <Text style={styles.emptyText}>{t('wall.noMemorial')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -59,14 +111,7 @@ export default function MemoryWallScreen() {
         ) : (
           <View style={styles.grid}>
             {memories.map((m) => (
-              <View key={m.id} style={styles.memoryCard}>
-                <View style={styles.thumbPlaceholder}>
-                  <Feather name="image" size={20} color={colors.accent} />
-                </View>
-                <Text style={styles.memoryTitle}>{m.title || t('mock.memoryTitle')}</Text>
-                {m.body ? <Text style={styles.memoryBody}>{m.body}</Text> : null}
-                {m.date ? <Text style={styles.memoryDate}>{m.date}</Text> : null}
-              </View>
+              <MemoryCard key={m.id} memory={m} t={t} />
             ))}
           </View>
         )}
@@ -94,6 +139,48 @@ export default function MemoryWallScreen() {
               keyboardShouldPersistTaps="handled"
             >
               <Text style={styles.modalTitle}>{t('wall.add')}</Text>
+
+              <View style={styles.mediaPreviewBox}>
+                {media?.type === 'image' ? (
+                  <Image source={{ uri: media.uri }} style={styles.mediaPreview} resizeMode="cover" />
+                ) : media?.type === 'video' ? (
+                  <Video
+                    source={{ uri: media.uri }}
+                    style={styles.mediaPreview}
+                    useNativeControls
+                    resizeMode={ResizeMode.COVER}
+                    isLooping={false}
+                  />
+                ) : (
+                  <View style={styles.mediaPlaceholder}>
+                    <Feather name="image" size={28} color={colors.accent} />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.mediaActions}>
+                <Pressable onPress={onPickImage} style={styles.mediaBtn}>
+                  <Feather name="image" size={16} color={colors.accentDark} />
+                  <Text style={styles.mediaBtnLabel}>
+                    {media?.type === 'image' ? t('wall.changeImage') : t('wall.pickImage')}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={onPickVideo} style={styles.mediaBtn}>
+                  <Feather name="video" size={16} color={colors.accentDark} />
+                  <Text style={styles.mediaBtnLabel}>
+                    {media?.type === 'video' ? t('wall.changeVideo') : t('wall.pickVideo')}
+                  </Text>
+                </Pressable>
+                {media ? (
+                  <Pressable onPress={() => swapMedia(null)} style={styles.mediaBtn}>
+                    <Feather name="trash-2" size={16} color={colors.danger} />
+                    <Text style={[styles.mediaBtnLabel, { color: colors.danger }]}>
+                      {t('wall.removeMedia')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>{t('mock.memoryTitle')}</Text>
                 <TextInput
@@ -124,6 +211,31 @@ export default function MemoryWallScreen() {
   );
 }
 
+function MemoryCard({ memory, t }) {
+  return (
+    <View style={styles.memoryCard}>
+      {memory.mediaUri && memory.mediaType === 'image' ? (
+        <Image source={{ uri: memory.mediaUri }} style={styles.thumb} resizeMode="cover" />
+      ) : memory.mediaUri && memory.mediaType === 'video' ? (
+        <Video
+          source={{ uri: memory.mediaUri }}
+          style={styles.thumb}
+          useNativeControls
+          resizeMode={ResizeMode.COVER}
+          isLooping={false}
+        />
+      ) : (
+        <View style={styles.thumbPlaceholder}>
+          <Feather name="image" size={20} color={colors.accent} />
+        </View>
+      )}
+      <Text style={styles.memoryTitle}>{memory.title || t('mock.memoryTitle')}</Text>
+      {memory.body ? <Text style={styles.memoryBody}>{memory.body}</Text> : null}
+      {memory.date ? <Text style={styles.memoryDate}>{memory.date}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
@@ -148,6 +260,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: colors.divider,
+  },
+  thumb: {
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    marginBottom: 12,
   },
   thumbPlaceholder: {
     height: 96,
@@ -174,6 +292,44 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: colors.textPrimary,
     marginBottom: 20,
+  },
+  mediaPreviewBox: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceMuted,
+    marginBottom: 12,
+  },
+  mediaPreview: {
+    width: '100%',
+    height: 220,
+  },
+  mediaPlaceholder: {
+    width: '100%',
+    height: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mediaActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  mediaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.card,
+  },
+  mediaBtnLabel: {
+    fontSize: 13,
+    color: colors.accentDark,
+    letterSpacing: 0.5,
   },
   field: { marginBottom: 16 },
   fieldLabel: {

@@ -33,6 +33,10 @@ export const strings = {
       save: 'Tallenna',
       cancel: 'Peruuta',
       nameRequired: 'Anna ainakin nimi.',
+      portrait: 'Kuva',
+      pickPortrait: 'Valitse kuva',
+      changePortrait: 'Vaihda kuva',
+      removePortrait: 'Poista kuva',
     },
 
     home: {
@@ -48,6 +52,12 @@ export const strings = {
       subtitle: 'Kuvia, videoita ja pieniä sanoja.',
       add: 'Lisää muisto',
       empty: 'Muistoseinä odottaa ensimmäistä kuvaa, videota tai lausetta.',
+      pickImage: 'Valitse kuva',
+      pickVideo: 'Valitse video',
+      changeImage: 'Vaihda kuva',
+      changeVideo: 'Vaihda video',
+      removeMedia: 'Poista media',
+      noMemorial: 'Luo ensin muistopaikka, johon voit liittää muistoja.',
     },
 
     letters: {
@@ -76,6 +86,17 @@ export const strings = {
       aboutBody:
         'Tallessa on rauhallinen paikka rakkaiden muistoille. Tämä on mobiiliversion varhainen luonnos.',
       version: 'Versio',
+    },
+
+    media: {
+      permissionTitle: 'Lupa kuvakirjastoon',
+      permissionBody:
+        'Anna Tallessalle lupa kuvakirjastoosi puhelimesi asetuksista, jotta voit liittää kuvia ja videoita.',
+      permissionOpenSettings: 'Avaa asetukset',
+      permissionCancel: 'Ei nyt',
+      errorTitle: 'Hetki — jokin meni vinoon',
+      errorBody:
+        'Median valinta ei onnistunut juuri nyt. Yritä hetken päästä uudelleen.',
     },
 
     quote:
@@ -126,6 +147,10 @@ export const strings = {
       save: 'Save',
       cancel: 'Cancel',
       nameRequired: 'Please add at least a name.',
+      portrait: 'Photo',
+      pickPortrait: 'Choose photo',
+      changePortrait: 'Change photo',
+      removePortrait: 'Remove photo',
     },
 
     home: {
@@ -141,6 +166,12 @@ export const strings = {
       subtitle: 'Pictures, videos and small sentences.',
       add: 'Add memory',
       empty: 'The memory wall is waiting for its first picture, video or sentence.',
+      pickImage: 'Choose photo',
+      pickVideo: 'Choose video',
+      changeImage: 'Change photo',
+      changeVideo: 'Change video',
+      removeMedia: 'Remove media',
+      noMemorial: 'Create a memorial space first so you can add memories to it.',
     },
 
     letters: {
@@ -169,6 +200,17 @@ export const strings = {
       aboutBody:
         'Withen is a quiet place for cherished memories. This is an early draft of the mobile version.',
       version: 'Version',
+    },
+
+    media: {
+      permissionTitle: 'Photo library access',
+      permissionBody:
+        'Withen needs permission to your photo library to attach pictures and videos. You can enable it in your phone’s settings.',
+      permissionOpenSettings: 'Open settings',
+      permissionCancel: 'Not now',
+      errorTitle: 'Something went sideways',
+      errorBody:
+        'Picking media didn’t work just now. Please try again in a moment.',
     },
 
     quote:

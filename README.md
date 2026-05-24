@@ -80,15 +80,43 @@ All mobile data is stored on-device using
 | `src/screens/HomeScreen.js` | First boot screen. |
 | `src/theme/colors.js` | Shared color palette (matches the PWA's `manifest.webmanifest` brand colors). |
 
+### Media (photos & videos)
+
+The mobile app uses native pickers instead of the web's `<input type="file">`
++ `FileReader` + `URL.createObjectURL` pipeline. Picked files are copied into
+the app's sandboxed document directory (`FileSystem.documentDirectory +
+tallessa-media/`) so they survive even if the user later removes the
+original from the device gallery.
+
+| Capability | Library | Where |
+|---|---|---|
+| Image / video gallery picker | `expo-image-picker` | `src/lib/media.js` |
+| In-app file copy | `expo-file-system` | `src/lib/media.js` |
+| Video playback in previews & cards | `expo-av` (`Video`) | `src/screens/MemoryWallScreen.js` |
+
+Permission UX: the picker requests photo library access on first use. If
+the user declines, an alert offers an "Open settings" deep link instead of
+crashing. The iOS `NSPhotoLibraryUsageDescription` strings are configured
+via the `expo-image-picker` plugin block in `app.json`.
+
+> **TODO — automatic video trim.** The web app trims uploads to a short
+> clip (≤ 10 s) using a canvas/MediaRecorder pipeline that is not
+> portable to React Native. The mobile app currently passes
+> `videoMaxDuration` as a *hint* to the OS picker (iOS honors it,
+> Android often does not) but does **not** re-encode the file afterwards.
+> Frame-accurate trim should be added later via a native module like
+> `react-native-video-processing` or `ffmpeg-kit-react-native`.
+
 ### What's NOT yet ported to mobile
 
-The Expo app is intentionally a minimal bootstrap right now. Still to do:
+The Expo app is still missing pieces from the web/PWA build. Still to do:
 
-* Memorials, memories, letters, calendar (all in `app.js` on the web side)
-* Storage layer (`storage.js` — uses `localStorage` + Supabase on the web)
+* Letters, calendar entries beyond their basic shell screens
+* Supabase cloud sync of state + media (currently device-local only)
 * Auth (`auth.js`)
-* i18n (`i18n.js`, `translations.js`)
-* Theming & background images per view (`styles.css`, `assets/bg-*.png`)
+* Per-view background images / full theming pass (`styles.css`,
+  `assets/bg-*.png`)
+* Automatic video trim (see TODO above)
 * PWA-specific code (service worker, manifest) stays web-only by design
 
 The old web app under `index.html`, `app.js`, `styles.css`, `storage.js`,

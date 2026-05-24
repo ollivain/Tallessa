@@ -23,7 +23,14 @@
     "plugins": [
       "expo-asset",
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Tallessa pyytää lupaa kuvakirjastoosi, jotta voit liittää muistoja kuvina ja videoina.",
+          "cameraPermission": "Tallessa pyytää kameraoikeutta vain, jos haluat kuvata muiston suoraan."
+        }
+      ]
     ]
   }
 }

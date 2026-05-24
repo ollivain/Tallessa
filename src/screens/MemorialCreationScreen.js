@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +17,7 @@ import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import { colors } from '../theme/colors';
 import PrimaryButton from '../components/PrimaryButton';
+import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 
 export default function MemorialCreationScreen() {
   const { t } = useI18n();
@@ -26,7 +28,29 @@ export default function MemorialCreationScreen() {
   const [birth, setBirth] = useState('');
   const [death, setDeath] = useState('');
   const [description, setDescription] = useState('');
+  const [portraitUri, setPortraitUri] = useState(null);
   const [error, setError] = useState('');
+  const [savedPortrait, setSavedPortrait] = useState(false);
+
+  // If the user picked a portrait but then navigates away without saving,
+  // drop the persisted copy so the app sandbox doesn't accumulate orphans.
+  useEffect(() => () => {
+    if (portraitUri && !savedPortrait) removePersistedMedia(portraitUri);
+  }, [portraitUri, savedPortrait]);
+
+  const onPickPortrait = async () => {
+    const result = await pickImageFromLibrary(t);
+    if (!result) return;
+    if (portraitUri && portraitUri !== result.uri) {
+      removePersistedMedia(portraitUri);
+    }
+    setPortraitUri(result.uri);
+  };
+
+  const onRemovePortrait = () => {
+    if (portraitUri) removePersistedMedia(portraitUri);
+    setPortraitUri(null);
+  };
 
   const onSave = () => {
     const trimmed = name.trim();
@@ -34,11 +58,13 @@ export default function MemorialCreationScreen() {
       setError(t('creation.nameRequired'));
       return;
     }
+    setSavedPortrait(true);
     createMemorial({
       name: trimmed,
       birth: birth.trim(),
       death: death.trim(),
       description: description.trim(),
+      portraitUri: portraitUri ?? null,
     });
   };
 
@@ -65,6 +91,39 @@ export default function MemorialCreationScreen() {
         >
           <Text style={styles.title}>{t('creation.title')}</Text>
           <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
+
+          <View style={styles.portraitBlock}>
+            <Text style={styles.fieldLabel}>{t('creation.portrait')}</Text>
+            <Pressable
+              onPress={onPickPortrait}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.portraitFrame, pressed && styles.pressed]}
+            >
+              {portraitUri ? (
+                <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.portraitPlaceholder}>
+                  <Feather name="image" size={26} color={colors.accent} />
+                </View>
+              )}
+            </Pressable>
+            <View style={styles.portraitActions}>
+              <Pressable onPress={onPickPortrait} style={styles.portraitBtn}>
+                <Feather name="image" size={14} color={colors.accentDark} />
+                <Text style={styles.portraitBtnLabel}>
+                  {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                </Text>
+              </Pressable>
+              {portraitUri ? (
+                <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
+                  <Feather name="trash-2" size={14} color={colors.danger} />
+                  <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
+                    {t('creation.removePortrait')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
 
           <Field
             label={t('creation.name')}
@@ -190,4 +249,37 @@ const styles = StyleSheet.create({
   },
   save: { marginTop: 8 },
   cancel: { marginTop: 12 },
+  portraitBlock: { marginBottom: 18 },
+  portraitFrame: {
+    height: 180,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  portraitImage: { width: '100%', height: '100%' },
+  portraitPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  portraitActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  portraitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.card,
+  },
+  portraitBtnLabel: { fontSize: 12, color: colors.accentDark, letterSpacing: 0.5 },
 });
