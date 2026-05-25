@@ -14,7 +14,7 @@ import {
   typography,
 } from '../theme/designSystem';
 import { useTheme } from '../state/ThemeContext';
-import { getHeroImage, getMemorialName } from '../models/memorial';
+import { getHeroImage, getHomeMemoryOfDay, getMemorialName } from '../models/memorial';
 
 // Default soft watercolour shipped with the app — used when the active
 // memorial has no portrait of its own. Keeps the hero card feeling finished.
@@ -22,7 +22,7 @@ const HERO_FALLBACK = require('../../assets/bg-koti.png');
 const SCREEN_BG = require('../../assets/bg-koti.png');
 
 export default function HomeScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { activeMemorial } = useMemorials();
   const navigation = useNavigation();
 
@@ -34,7 +34,9 @@ export default function HomeScreen() {
   const portraitUri = getHeroImage(activeMemorial);
   const heroImage = portraitUri ? { uri: portraitUri } : null;
 
-  const latestMemory = activeMemorial?.memories?.[0] ?? null;
+  const memories = activeMemorial?.memories ?? [];
+  const memoryOfDay = getHomeMemoryOfDay(memories);
+  const possessiveName = toPossessive(name, language);
 
   return (
     <AppScreen background={SCREEN_BG}>
@@ -45,11 +47,12 @@ export default function HomeScreen() {
       />
 
       <MemoryOfDayCard
-        memory={latestMemory}
+        memory={memoryOfDay}
         eyebrow={t('home.memoryOfDay')}
+        title={t('home.memoryOfDayTitle', { name: possessiveName })}
         emptyBody={t('home.memoryEmpty')}
         openLabel={t('home.openMemory')}
-        onPress={() => navigation.navigate('Wall')}
+        onPress={() => navigation.navigate('Wall', memoryOfDay ? { highlightMemoryId: memoryOfDay.id } : undefined)}
       />
 
       <DailyQuoteCard
@@ -83,34 +86,50 @@ export default function HomeScreen() {
   );
 }
 
-function MemoryOfDayCard({ memory, eyebrow, emptyBody, openLabel, onPress }) {
+function MemoryOfDayCard({ memory, eyebrow, title, emptyBody, openLabel, onPress }) {
   const { themeColors } = useTheme();
   const hasMemory = !!memory;
+  const body = memory?.body || memory?.text || emptyBody;
   return (
     <AppCard
       variant="soft"
-      onPress={hasMemory ? onPress : undefined}
+      onPress={onPress}
       style={styles.memoryCard}
     >
       <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>
       {hasMemory ? (
         <>
-          {memory.title ? (
-            <Text style={[styles.memoryTitle, { color: themeColors.textPrimary }]} numberOfLines={2}>{memory.title}</Text>
-          ) : null}
-          {memory.body ? (
-            <Text style={styles.memoryBody} numberOfLines={3}>{memory.body}</Text>
-          ) : null}
+          <Text
+            style={[styles.memoryTitle, { color: themeColors.textPrimary }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.84}
+          >
+            {title}
+          </Text>
+          <Text style={styles.memoryBody} numberOfLines={3}>{body}</Text>
           <View style={styles.openRow}>
-            <Text style={[styles.openLink, { color: themeColors.moss }]}>{openLabel}</Text>
-            <Feather name="arrow-right" size={14} color={themeColors.moss} />
+            <Text style={[styles.openLink, { color: themeColors.moss }]}>{`${openLabel} →`}</Text>
           </View>
         </>
       ) : (
-        <Text style={styles.memoryBody}>{emptyBody}</Text>
+        <>
+          <Text style={styles.memoryBody}>{emptyBody}</Text>
+          <View style={styles.openRow}>
+            <Text style={[styles.openLink, { color: themeColors.moss }]}>{`${openLabel} →`}</Text>
+          </View>
+        </>
       )}
     </AppCard>
   );
+}
+
+function toPossessive(name, language) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return language === 'fi' ? 'Rakkaan' : 'Beloved';
+  if (language !== 'fi') return /s$/i.test(trimmed) ? `${trimmed}'` : `${trimmed}'s`;
+  const last = trimmed[trimmed.length - 1]?.toLowerCase() || '';
+  return 'aeiouäöy'.includes(last) ? `${trimmed}n` : `${trimmed}in`;
 }
 
 function DailyQuoteCard({ eyebrow, quote }) {

@@ -29,7 +29,7 @@ import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
-import { getMemorialDate, getMemorialImage, getMemorialName } from '../models/memorial';
+import { getMemorialDate, getMemorialDayName, getMemorialImage, getMemorialName } from '../models/memorial';
 
 // ── Time-of-day sky system (matches PWA: morning / day / evening / night) ──────
 function getTimeOfDay() {
@@ -80,7 +80,7 @@ function toAllative(name, language) {
 // ── Finnish possessive (page title) ───────────────────────────────────────────
 function toPossessive(name, language) {
   if (!name) return '';
-  if (language !== 'fi') return `${name}'s`;
+  if (language !== 'fi') return /s$/i.test(name) ? `${name}'` : `${name}'s`;
   const last = name[name.length - 1]?.toLowerCase() || '';
   return 'aeiouäöy'.includes(last) ? `${name}n` : `${name}in`;
 }
@@ -230,7 +230,6 @@ export default function MemorialDayScreen() {
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName] = useState('');
   const [portraitUri, setPortraitUri] = useState(null);
-  const [savedPortrait, setSavedPortrait] = useState(false);
 
   // Time-of-day sky — computed once per render (re-mounts on navigation return)
   const timeOfDay = getTimeOfDay();
@@ -244,9 +243,8 @@ export default function MemorialDayScreen() {
       setDescription(activeMemorial.description ?? '');
       setPetType(activeMemorial.petType ?? '');
       setPetTypeCustom(activeMemorial.petTypeCustom ?? '');
-      setMemorialName(activeMemorial.memorialName ?? '');
+      setMemorialName(getMemorialDayName(activeMemorial));
       setPortraitUri(getMemorialImage(activeMemorial) || null);
-      setSavedPortrait(true);
     }
   }, [editOpen, activeMemorial]);
 
@@ -281,7 +279,6 @@ export default function MemorialDayScreen() {
       horseName: trimmed,
       memorialDate: death.trim(),
       memorialImage: portraitUri ?? '',
-      heroImage: portraitUri ?? '',
       theme: themeKey,
       language,
       name: trimmed,
@@ -290,10 +287,10 @@ export default function MemorialDayScreen() {
       description: description.trim(),
       petType: petType || null,
       petTypeCustom: petTypeCustom.trim(),
+      memorialDayName: memorialName.trim(),
       memorialName: memorialName.trim(),
       portraitUri: portraitUri ?? null,
     });
-    setSavedPortrait(true);
     setEditOpen(false);
   };
 
@@ -347,12 +344,10 @@ export default function MemorialDayScreen() {
   const displayDate = getMemorialDate(activeMemorial);
   const displayImage = getMemorialImage(activeMemorial);
   const possessiveName = toPossessive(displayName, language);
-  const pageTitle = language === 'fi'
-    ? `${possessiveName} päivä`
-    : `${possessiveName} day`;
+  const pageTitle = t('memorial.dayTitle', { name: possessiveName || t('memorial.fallbackName') });
 
   // Topbar h2 title (memorialName takes priority, e.g. "Pepen päivä")
-  const cardTitle = activeMemorial.memorialName || pageTitle;
+  const cardTitle = getMemorialDayName(activeMemorial) || pageTitle;
 
   // Card h3 heading — Finnish allative ("Pepelle"), English plain name ("Pepe")
   // Matches PWA: elements.memorialHeading.textContent = toAllative(state.horseName)
@@ -401,7 +396,12 @@ export default function MemorialDayScreen() {
               <Text style={[styles.eyebrow, { color: eyebrowColor }]}>
                 {t('memorial.eyebrow')}
               </Text>
-              <Text style={[styles.pageTitle, { color: titleColor }]} numberOfLines={2}>
+              <Text
+                style={[styles.pageTitle, { color: titleColor }]}
+                numberOfLines={3}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+              >
                 {cardTitle}
               </Text>
             </View>
@@ -449,7 +449,14 @@ export default function MemorialDayScreen() {
 
               {/* h3 heading — PWA: toAllative(horseName) = "Pepelle" */}
               {cardHeading ? (
-                <Text style={[styles.memorialHeading, { color: themeColors.textPrimary }]}>{cardHeading}</Text>
+                <Text
+                  style={[styles.memorialHeading, { color: themeColors.textPrimary }]}
+                  numberOfLines={3}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.84}
+                >
+                  {cardHeading}
+                </Text>
               ) : null}
 
               {/* Memorial text paragraph */}
@@ -498,9 +505,9 @@ export default function MemorialDayScreen() {
                 <View style={styles.formCardShadow}>
                   <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
 
-                    {/* Portrait picker */}
+                    {/* Memorial day image picker */}
                     <View>
-                      <Text style={styles.modalFieldLabel}>{t('creation.portrait')}</Text>
+                      <Text style={styles.modalFieldLabel}>{t('settings.memorialImage')}</Text>
                       <Pressable
                         onPress={onPickPortrait}
                         style={({ pressed }) => [styles.portraitFrame, pressed && { opacity: 0.8 }]}

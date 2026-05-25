@@ -44,7 +44,8 @@ export const strings = {
     home: {
       welcome: 'Tervetuloa kotiin',
       memoryOfDay: 'Päivän muisto',
-      memoryEmpty: 'Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.',
+      memoryOfDayTitle: '{name} päivän muisto',
+      memoryEmpty: 'Hetki, jonka lämpö jäi sydämeen kulkemaan.',
       openMemory: 'Avaa muisto',
       dailyQuote: 'Päivän sanat',
       quickActions: 'Pikavalinnat',
@@ -63,6 +64,13 @@ export const strings = {
       changeVideo: 'Vaihda video',
       removeMedia: 'Poista media',
       noMemorial: 'Luo ensin muistopaikka, johon voit liittää muistoja.',
+      form: {
+        title: 'Muiston otsikko',
+        titlePlaceholder: 'Esim. Kesäilta puutarhassa',
+        text: 'Pieni teksti muistolle',
+        textPlaceholder: 'Esim. Viimeinen kesälaidun, kun kaikki oli vielä tässä.',
+        calendarDate: 'Päivä kalenterissa (valinnainen)',
+      },
     },
 
     letters: {
@@ -101,8 +109,8 @@ export const strings = {
     },
 
     memorial: {
-      dayTitle: '{name}n päivä',
-      dayTitleEn: '{name}\'s day',
+      dayTitle: '{name} päivä',
+      dayTitleEn: '{name} päivä',
       eyebrow: 'Muistopäivä',
       born: 'Syntyi',
       died: 'Poismeni',
@@ -285,7 +293,8 @@ export const strings = {
     home: {
       welcome: 'Welcome home',
       memoryOfDay: 'Memory of the day',
-      memoryEmpty: 'Add your first memory when the moment feels right.',
+      memoryOfDayTitle: '{name} memory of the day',
+      memoryEmpty: 'A moment whose warmth stayed with the heart.',
       openMemory: 'Open memory',
       dailyQuote: "Today's words",
       quickActions: 'Quick links',
@@ -304,6 +313,13 @@ export const strings = {
       changeVideo: 'Change video',
       removeMedia: 'Remove media',
       noMemorial: 'Create a memorial space first so you can add memories to it.',
+      form: {
+        title: 'Memory title',
+        titlePlaceholder: 'E.g. Summer evening in the garden',
+        text: 'A short note for the memory',
+        textPlaceholder: 'E.g. The last summer pasture, when everything was still here.',
+        calendarDate: 'Date in the calendar (optional)',
+      },
     },
 
     letters: {
@@ -342,8 +358,8 @@ export const strings = {
     },
 
     memorial: {
-      dayTitle: '{name}\'s day',
-      dayTitleEn: '{name}\'s day',
+      dayTitle: '{name} day',
+      dayTitleEn: '{name} day',
       eyebrow: 'Memorial day',
       born: 'Born',
       died: 'Passed',

@@ -31,6 +31,7 @@ import EmptyStateCard from '../components/EmptyStateCard';
 
 const SCREEN_BG = require('../../assets/bg-muistot.png');
 import {
+  DEFAULT_VIDEO_CLIP_SECONDS,
   pickImageFromLibrary,
   pickVideoFromLibrary,
   removePersistedMedia,
@@ -42,7 +43,7 @@ import { useTheme } from '../state/ThemeContext';
 const MODE_ADD  = 'add';
 const MODE_EDIT = 'edit';
 
-export default function MemoryWallScreen() {
+export default function MemoryWallScreen({ route }) {
   const { t } = useI18n();
   const { activeMemorial, addMemory, updateMemory, deleteMemory } = useMemorials();
   const { themeColors } = useTheme();
@@ -52,10 +53,12 @@ export default function MemoryWallScreen() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [calendarDate, setCalendarDate] = useState('');
   const [media, setMedia] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   const memories = activeMemorial?.memories ?? [];
+  const highlightedMemoryId = route?.params?.highlightMemoryId ?? null;
 
   const mediaRef = useRef(null);
   useEffect(() => { mediaRef.current = media; }, [media]);
@@ -70,6 +73,7 @@ export default function MemoryWallScreen() {
     setEditingId(null);
     setTitle('');
     setBody('');
+    setCalendarDate('');
     setMedia(null);
     setOpen(true);
   };
@@ -78,10 +82,11 @@ export default function MemoryWallScreen() {
     setModalMode(MODE_EDIT);
     setEditingId(memory.id);
     setTitle(memory.title ?? '');
-    setBody(memory.body ?? '');
+    setBody(memory.body ?? memory.text ?? '');
+    setCalendarDate(memory.calendarDate ?? memory.date ?? '');
     setMedia(
-      memory.mediaUri
-        ? { type: memory.mediaType, uri: memory.mediaUri, _persisted: true }
+      getMemoryMediaUri(memory)
+        ? { type: getMemoryMediaType(memory), uri: getMemoryMediaUri(memory), _persisted: true }
         : null,
     );
     setOpen(true);
@@ -92,6 +97,7 @@ export default function MemoryWallScreen() {
     setOpen(false);
     setTitle('');
     setBody('');
+    setCalendarDate('');
     setMedia(null);
     setEditingId(null);
   };
@@ -109,12 +115,14 @@ export default function MemoryWallScreen() {
   };
 
   const onPickVideo = async () => {
-    const result = await pickVideoFromLibrary(t);
+    const result = await pickVideoFromLibrary(t, { maxDurationSeconds: DEFAULT_VIDEO_CLIP_SECONDS });
     if (result) swapMedia({ type: 'video', uri: result.uri, mimeType: result.mimeType });
   };
 
   const save = async () => {
     if (!title.trim() && !body.trim() && !media) { close(); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const memoryDate = calendarDate.trim() || today;
 
     const mediaChanged = media && !media._persisted;
     let uploaded = null;
@@ -137,23 +145,36 @@ export default function MemoryWallScreen() {
     const payload = {
       title: title.trim(),
       body: body.trim(),
-      date: new Date().toISOString().slice(0, 10),
+      text: body.trim(),
+      date: memoryDate,
+      calendarDate: memoryDate,
+      createdAt: modalMode === MODE_ADD ? new Date().toISOString() : undefined,
       mediaType: media?.type ?? null,
       mediaUri: media?.uri ?? null,
       mediaRemoteUrl: uploaded?.publicUrl ?? (media?._persisted ? undefined : null),
       mediaRemotePath: uploaded?.path ?? (media?._persisted ? undefined : null),
+      type: media?.type ?? null,
+      media: uploaded?.publicUrl ?? media?.uri ?? '',
+      storagePath: uploaded?.path ?? (media?._persisted ? undefined : ''),
+      // TODO: Add true native 10-second video trimming when a trimming-capable
+      // dependency is available. For now the picker gets a 10s hint and we
+      // store PWA-compatible clip metadata without changing the uploaded file.
+      clipStart: media?.type === 'video' ? 0 : undefined,
+      clipEnd: media?.type === 'video' ? DEFAULT_VIDEO_CLIP_SECONDS : undefined,
+      videoClipSeconds: media?.type === 'video' ? DEFAULT_VIDEO_CLIP_SECONDS : undefined,
     };
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
     if (modalMode === MODE_EDIT && editingId) {
       updateMemory(activeMemorial.id, editingId, payload);
     } else {
-      addMemory(activeMemorial.id, { ...payload, date: new Date().toISOString().slice(0, 10) });
+      addMemory(activeMemorial.id, payload);
     }
 
     setOpen(false);
     setTitle('');
     setBody('');
+    setCalendarDate('');
     setMedia(null);
     setEditingId(null);
   };
@@ -208,6 +229,7 @@ export default function MemoryWallScreen() {
                 key={m.id}
                 memory={m}
                 t={t}
+                highlighted={m.id === highlightedMemoryId}
                 onEdit={() => openEdit(m)}
                 onDelete={() => confirmDelete(m)}
               />
@@ -274,18 +296,25 @@ export default function MemoryWallScreen() {
               </View>
 
               <AppInput
-                label={t('mock.memoryTitle')}
+                label={t('wall.form.title')}
                 value={title}
                 onChangeText={setTitle}
-                placeholder={t('mock.memoryTitle')}
+                placeholder={t('wall.form.titlePlaceholder')}
                 style={styles.inputWrap}
               />
               <AppInput
-                label={t('mock.memoryBody')}
+                label={t('wall.form.text')}
                 value={body}
                 onChangeText={setBody}
-                placeholder={t('mock.memoryBody')}
+                placeholder={t('wall.form.textPlaceholder')}
                 multiline
+                style={styles.inputWrap}
+              />
+              <AppInput
+                label={t('wall.form.calendarDate')}
+                value={calendarDate}
+                onChangeText={setCalendarDate}
+                placeholder={t('creation.datePlaceholder')}
                 style={styles.inputWrap}
               />
 
@@ -310,17 +339,25 @@ export default function MemoryWallScreen() {
 }
 
 // PWA: .memory-card.card — overflow:hidden card, full-bleed media, body padding
-function MemoryCard({ memory, t, onEdit, onDelete }) {
+function MemoryCard({ memory, t, highlighted, onEdit, onDelete }) {
   const { themeColors } = useTheme();
+  const dateLabel = memory.calendarDate || memory.date || memory.createdAt;
+  const text = memory.body || memory.text;
+  const mediaUri = getMemoryMediaUri(memory);
+  const mediaType = getMemoryMediaType(memory);
   return (
     // Shadow wrapper separate from overflow:hidden (RN clips shadow if overflow:hidden)
     <View style={styles.memCardShadow}>
-      <View style={[styles.memCard, { backgroundColor: themeColors.card }]}>
+      <View style={[
+        styles.memCard,
+        highlighted && [styles.memCardHighlighted, { borderColor: themeColors.moss }],
+        { backgroundColor: themeColors.card },
+      ]}>
         {/* Full-bleed media — PWA: .memory-card .media-preview { min-height: 230px } */}
-        {memory.mediaUri && memory.mediaType === 'image' ? (
-          <Image source={{ uri: memory.mediaUri }} style={styles.memMedia} resizeMode="cover" />
-        ) : memory.mediaUri && memory.mediaType === 'video' ? (
-          <VideoClip uri={memory.mediaUri} style={styles.memMedia} />
+        {mediaUri && mediaType === 'image' ? (
+          <Image source={{ uri: mediaUri }} style={styles.memMedia} resizeMode="cover" />
+        ) : mediaUri && mediaType === 'video' ? (
+          <VideoClip uri={mediaUri} style={styles.memMedia} />
         ) : (
           <View style={styles.memMediaPlaceholder} />
         )}
@@ -338,19 +375,27 @@ function MemoryCard({ memory, t, onEdit, onDelete }) {
         {/* PWA: .memory-body { padding: 16px } */}
         <View style={styles.memBody}>
           {/* PWA: .date-line — brown, serif, italic */}
-          {memory.date ? (
-            <Text style={[styles.dateLine, { color: themeColors.brown }]}>{memory.date}</Text>
+          {dateLabel ? (
+            <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
           ) : null}
           {memory.title ? (
             <Text style={[styles.memTitle, { color: themeColors.textPrimary }]}>{memory.title}</Text>
           ) : null}
-          {memory.body ? (
-            <Text style={styles.memBodyText} numberOfLines={5}>{memory.body}</Text>
+          {text ? (
+            <Text style={styles.memBodyText} numberOfLines={5}>{text}</Text>
           ) : null}
         </View>
       </View>
     </View>
   );
+}
+
+function getMemoryMediaUri(memory) {
+  return memory?.mediaUri || memory?.mediaRemoteUrl || memory?.media || '';
+}
+
+function getMemoryMediaType(memory) {
+  return memory?.mediaType || memory?.type || null;
 }
 
 function VideoClip({ uri, style }) {
@@ -433,6 +478,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
+  },
+  memCardHighlighted: {
+    borderWidth: 2,
   },
   // PWA: .memory-card .media-preview { min-height: 230px; background-color: var(--sand) }
   memMedia: {

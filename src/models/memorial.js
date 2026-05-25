@@ -15,6 +15,27 @@ function firstText(...values) {
   return '';
 }
 
+function parseMemoryDate(value) {
+  if (!value) return null;
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) {
+    const [year, month, day] = text.slice(0, 10).split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const dmy = text.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+  return null;
+}
+
+function toDateKey(date) {
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 function normalizePosition(value) {
   const position = asObject(value);
   const x = Number(position.x);
@@ -54,9 +75,12 @@ export function getMemorialDate(memorial) {
 export function getMemorialImage(memorial) {
   return firstText(
     memorial?.memorialImage,
-    memorial?.heroImage,
     memorial?.portraitUri,
   );
+}
+
+export function getMemorialDayName(memorial) {
+  return firstText(memorial?.memorialDayName, memorial?.memorialName);
 }
 
 export function getHeroImage(memorial) {
@@ -83,12 +107,24 @@ export function getMonthPhotosArray(memorial) {
   return monthPhotosToCalendarImages(getMonthPhotos(memorial), memorial?.calendarImages);
 }
 
+export function getHomeMemoryOfDay(memories, today = new Date()) {
+  const items = asArray(memories);
+  if (!items.length) return null;
+  const todayKey = toDateKey(today);
+  return (
+    items.find((memory) => toDateKey(parseMemoryDate(memory?.calendarDate || memory?.date)) === todayKey)
+    || items.find((memory) => memory.isFirstMemorialMemory)
+    || items[0]
+  );
+}
+
 export function normalizeMemorial(memorial) {
   const value = asObject(memorial);
   const horseName = getMemorialName(value);
   const memorialDate = getMemorialDate(value);
   const memorialImage = getMemorialImage(value);
   const heroImage = getHeroImage(value);
+  const memorialDayName = getMemorialDayName(value);
   const importantDays = getImportantDays(value);
   const monthPhotos = getMonthPhotos(value);
   const calendarImages = monthPhotosToCalendarImages(monthPhotos, value.calendarImages);
@@ -104,6 +140,8 @@ export function normalizeMemorial(memorial) {
     monthPhotoPositions: asObject(value.monthPhotoPositions),
     memories: asArray(value.memories),
     letters: asArray(value.letters),
+    memorialDayName,
+    memorialName: firstText(value.memorialName, memorialDayName),
     theme: value.theme || 'classic',
     language: value.language || 'en',
     heroImagePosition: normalizePosition(value.heroImagePosition),
