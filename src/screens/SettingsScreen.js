@@ -3,13 +3,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
-import { colors } from '../theme/colors';
+import {
+  colors,
+  typography,
+  spacing,
+  radii,
+  screenStyles,
+} from '../theme/designSystem';
 import ScreenHeader from '../components/ScreenHeader';
+import AppCard from '../components/AppCard';
+import SectionLabel from '../components/SectionLabel';
 import { clearAllData } from '../storage/storage';
 
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useI18n();
-  const { activeMemorial, clearActive } = useMemorials();
+  const { activeMemorial, clearActive, deleteMemorial } = useMemorials();
 
   const onClearAll = () => {
     Alert.alert(
@@ -29,13 +37,35 @@ export default function SettingsScreen() {
     );
   };
 
+  const onDeleteMemorial = () => {
+    if (!activeMemorial) return;
+    Alert.alert(
+      t('memorial.deleteTitle'),
+      t('memorial.deleteBody'),
+      [
+        { text: t('memorial.deleteCancel'), style: 'cancel' },
+        {
+          text: t('memorial.deleteConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            deleteMemorial(activeMemorial.id);
+            clearActive();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScreenHeader title={t('settings.title')} />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Group label={t('settings.language')}>
-          <View style={styles.row}>
+      <ScrollView contentContainerStyle={screenStyles.scroll}>
+
+        {/* Language */}
+        <SectionLabel style={styles.groupLabel}>{t('settings.language')}</SectionLabel>
+        <AppCard variant="soft" style={styles.groupCard}>
+          <View style={styles.langRow}>
             <LanguagePill
               label={t('settings.languageFi')}
               active={language === 'fi'}
@@ -47,51 +77,71 @@ export default function SettingsScreen() {
               onPress={() => setLanguage('en')}
             />
           </View>
-        </Group>
+        </AppCard>
 
-        <Group label={t('settings.memorial')}>
+        {/* Active memorial */}
+        <SectionLabel style={styles.groupLabel}>{t('settings.memorial')}</SectionLabel>
+        <AppCard variant="soft" style={styles.groupCard}>
           {activeMemorial ? (
-            <View style={styles.card}>
-              <Text style={styles.cardName}>{activeMemorial.name}</Text>
+            <View style={styles.memorialInfo}>
+              <Text style={styles.memorialName}>{activeMemorial.name}</Text>
               {activeMemorial.description ? (
-                <Text style={styles.cardBody}>{activeMemorial.description}</Text>
+                <Text style={styles.memorialDesc}>{activeMemorial.description}</Text>
               ) : null}
             </View>
           ) : null}
+
           <Pressable
             onPress={clearActive}
             style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
           >
-            <Feather name="repeat" size={18} color={colors.accentDark} />
+            <View style={styles.linkIcon}>
+              <Feather name="repeat" size={16} color={colors.textOnPrimary} />
+            </View>
             <Text style={styles.linkText}>{t('settings.switchMemorial')}</Text>
+            <Feather name="chevron-right" size={16} color={colors.textMuted} />
           </Pressable>
-        </Group>
 
-        <Group label={t('settings.about')}>
+          {activeMemorial ? (
+            <Pressable
+              onPress={onDeleteMemorial}
+              style={({ pressed }) => [styles.dangerLinkRow, pressed && styles.pressed]}
+            >
+              <View style={styles.dangerIcon}>
+                <Feather name="trash-2" size={16} color={colors.danger} />
+              </View>
+              <Text style={styles.dangerLinkText}>{t('settings.deleteMemorial')}</Text>
+            </Pressable>
+          ) : null}
+        </AppCard>
+
+        {/* About */}
+        <SectionLabel style={styles.groupLabel}>{t('settings.about')}</SectionLabel>
+        <AppCard variant="warm" style={styles.groupCard}>
           <Text style={styles.aboutBody}>{t('settings.aboutBody')}</Text>
-          <Text style={styles.version}>{t('settings.version')} 0.1.0</Text>
-        </Group>
+          <View style={styles.versionRow}>
+            <Feather name="info" size={13} color={colors.textSoft} />
+            <Text style={styles.version}>{t('settings.version')} 0.1.0</Text>
+          </View>
+        </AppCard>
 
-        <Group label={t('settings.devSection')}>
+        {/* Developer */}
+        <SectionLabel style={styles.groupLabel}>{t('settings.devSection')}</SectionLabel>
+        <AppCard variant="soft" style={styles.groupCard}>
           <Pressable
             onPress={onClearAll}
             style={({ pressed }) => [styles.dangerRow, pressed && styles.pressed]}
           >
-            <Feather name="trash-2" size={18} color={colors.danger} />
+            <View style={styles.dangerRowIcon}>
+              <Feather name="trash-2" size={16} color={colors.danger} />
+            </View>
             <Text style={styles.dangerText}>{t('settings.clearAll')}</Text>
+            <Feather name="chevron-right" size={16} color={colors.danger} style={{ opacity: 0.5 }} />
           </Pressable>
-        </Group>
+        </AppCard>
+
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Group({ label, children }) {
-  return (
-    <View style={styles.group}>
-      <Text style={styles.groupLabel}>{label}</Text>
-      {children}
-    </View>
   );
 }
 
@@ -100,70 +150,146 @@ function LanguagePill({ label, active, onPress }) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.pill,
-        active && styles.pillActive,
+        styles.langPill,
+        active && styles.langPillActive,
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.pillLabel, active && styles.pillLabelActive]}>{label}</Text>
+      <Text style={[styles.langPillLabel, active && styles.langPillLabelActive]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48 },
-  group: { marginBottom: 28 },
-  groupLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  row: { flexDirection: 'row', gap: 10 },
-  pill: {
-    paddingHorizontal: 18,
+
+  groupLabel: { marginBottom: spacing.xs, marginLeft: 2 },
+  groupCard: { marginBottom: spacing.lg },
+
+  // Language
+  langRow: { flexDirection: 'row', gap: spacing.sm },
+  langPill: {
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    backgroundColor: 'transparent',
-  },
-  pillActive: { backgroundColor: colors.accentDark, borderColor: colors.accentDark },
-  pillLabel: { fontSize: 14, color: colors.accentDark, letterSpacing: 0.5 },
-  pillLabelActive: { color: '#fbf6ec' },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.divider,
-    marginBottom: 12,
+    backgroundColor: 'transparent',
   },
-  cardName: { fontSize: 18, color: colors.textPrimary, fontWeight: '500' },
-  cardBody: {
-    marginTop: 6,
-    fontSize: 14,
+  langPillActive: { backgroundColor: colors.moss, borderColor: colors.moss },
+  pressed: { opacity: 0.72 },
+  langPillLabel: {
+    fontSize: typography.sizes.label,
+    color: colors.moss,
+    fontWeight: typography.weights.semibold,
+    letterSpacing: 0.3,
+  },
+  langPillLabelActive: { color: colors.textOnPrimary },
+
+  // Memorial info
+  memorialInfo: {
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  memorialName: {
+    fontFamily: typography.serif,
+    fontSize: typography.sizes.title,
+    color: colors.textPrimary,
+    fontWeight: typography.weights.regular,
+  },
+  memorialDesc: {
+    marginTop: 4,
+    fontSize: typography.sizes.label,
     color: colors.textMuted,
-    lineHeight: 22,
+    lineHeight: typography.lineHeights.body,
     fontStyle: 'italic',
   },
+
+  // Switch link row
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
+    gap: spacing.sm,
+    paddingVertical: 4,
+    marginBottom: 8,
   },
-  pressed: { opacity: 0.7 },
-  linkText: { fontSize: 15, color: colors.accentDark, letterSpacing: 0.5 },
-  aboutBody: { fontSize: 14, color: colors.textMuted, lineHeight: 22, fontStyle: 'italic' },
-  version: { marginTop: 12, fontSize: 12, color: colors.textSoft, letterSpacing: 1 },
+  linkIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.moss,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkText: {
+    flex: 1,
+    fontSize: typography.sizes.body,
+    color: colors.textPrimary,
+    fontWeight: typography.weights.medium,
+  },
+
+  // Delete memorial link row (inside memorial card)
+  dangerLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 4,
+  },
+  dangerIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(143, 77, 56, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerLinkText: {
+    flex: 1,
+    fontSize: typography.sizes.body,
+    color: colors.danger,
+    fontWeight: typography.weights.medium,
+  },
+
+  // About
+  aboutBody: {
+    fontSize: typography.sizes.label,
+    color: colors.textMuted,
+    lineHeight: typography.lineHeights.body,
+    fontStyle: 'italic',
+    marginBottom: spacing.sm,
+  },
+  versionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  version: {
+    fontSize: typography.sizes.eyebrow,
+    color: colors.textSoft,
+    letterSpacing: 0.8,
+  },
+
+  // Dev danger section
   dangerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
+    gap: spacing.sm,
+    paddingVertical: 4,
   },
-  dangerText: { fontSize: 15, color: colors.danger },
+  dangerRowIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(143, 77, 56, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerText: {
+    flex: 1,
+    fontSize: typography.sizes.body,
+    color: colors.danger,
+    fontWeight: typography.weights.medium,
+  },
 });

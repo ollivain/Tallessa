@@ -8,6 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import MemoryWallScreen from '../screens/MemoryWallScreen';
 import LettersScreen from '../screens/LettersScreen';
 import CalendarScreen from '../screens/CalendarScreen';
+import MemorialDayScreen from '../screens/MemorialDayScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -17,6 +18,7 @@ const ICONS = {
   Wall: 'image',
   Letters: 'mail',
   Calendar: 'calendar',
+  Memorial: 'heart',
   Settings: 'settings',
 };
 
@@ -28,27 +30,17 @@ export default function MainTabs() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <PaperTabBar {...props} />}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('tab.home') }} />
-      <Tab.Screen name="Wall" component={MemoryWallScreen} options={{ title: t('tab.wall') }} />
-      <Tab.Screen name="Letters" component={LettersScreen} options={{ title: t('tab.letters') }} />
-      <Tab.Screen
-        name="Calendar"
-        component={CalendarScreen}
-        options={{ title: t('tab.calendar') }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: t('tab.settings') }}
-      />
+      <Tab.Screen name="Home"     component={HomeScreen}      options={{ title: t('tab.home') }} />
+      <Tab.Screen name="Wall"     component={MemoryWallScreen} options={{ title: t('tab.wall') }} />
+      <Tab.Screen name="Letters"  component={LettersScreen}   options={{ title: t('tab.letters') }} />
+      <Tab.Screen name="Calendar" component={CalendarScreen}  options={{ title: t('tab.calendar') }} />
+      <Tab.Screen name="Memorial" component={MemorialDayScreen} options={{ title: t('tab.memorial') }} />
+      <Tab.Screen name="Settings" component={SettingsScreen}  options={{ title: t('tab.settings') }} />
     </Tab.Navigator>
   );
 }
 
-// Fully custom tab bar so we can render the warm-cream paper container and
-// the rounded "card" highlight on the active tab (matching the web `.bottom-
-// nav button.is-active` style). React Navigation's standard `tabBarStyle`
-// can't deliver the rounded-pill active background on its own.
+// Fully custom tab bar with warm-cream paper container and rounded active tab.
 function PaperTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   return (
@@ -94,7 +86,7 @@ function PaperTabBar({ state, descriptors, navigation }) {
             >
               <Feather
                 name={iconName}
-                size={20}
+                size={18}
                 color={color}
                 style={focused ? styles.iconActive : null}
               />
@@ -120,7 +112,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 250, 240, 0.62)',
     paddingTop: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     ...shadows.tabBar,
   },
   row: {
@@ -130,11 +122,11 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
-    minHeight: 48,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-    marginHorizontal: 2,
-    borderRadius: 15,
+    minHeight: 46,
+    paddingVertical: 5,
+    paddingHorizontal: 1,
+    marginHorizontal: 1,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
@@ -152,10 +144,10 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -1 }, { scale: 1.05 }],
   },
   label: {
-    fontSize: 10.5,
+    fontSize: 9.5,
     fontWeight: '700',
     color: colors.tabInactiveText,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   labelActive: {
     color: colors.tabActiveText,

@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,8 +14,15 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
-import { colors } from '../theme/colors';
-import PrimaryButton from '../components/PrimaryButton';
+import {
+  colors,
+  typography,
+  spacing,
+  radii,
+} from '../theme/designSystem';
+import AppButton from '../components/AppButton';
+import AppInput from '../components/AppInput';
+import SectionLabel from '../components/SectionLabel';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 
 export default function MemorialCreationScreen() {
@@ -32,8 +38,6 @@ export default function MemorialCreationScreen() {
   const [error, setError] = useState('');
   const [savedPortrait, setSavedPortrait] = useState(false);
 
-  // If the user picked a portrait but then navigates away without saving,
-  // drop the persisted copy so the app sandbox doesn't accumulate orphans.
   useEffect(() => () => {
     if (portraitUri && !savedPortrait) removePersistedMedia(portraitUri);
   }, [portraitUri, savedPortrait]);
@@ -41,9 +45,7 @@ export default function MemorialCreationScreen() {
   const onPickPortrait = async () => {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
-    if (portraitUri && portraitUri !== result.uri) {
-      removePersistedMedia(portraitUri);
-    }
+    if (portraitUri && portraitUri !== result.uri) removePersistedMedia(portraitUri);
     setPortraitUri(result.uri);
   };
 
@@ -74,6 +76,7 @@ export default function MemorialCreationScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* Top bar */}
         <View style={styles.topBar}>
           <Pressable
             onPress={() => navigation.goBack()}
@@ -88,62 +91,64 @@ export default function MemorialCreationScreen() {
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
+          {/* Header */}
           <Text style={styles.title}>{t('creation.title')}</Text>
           <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
 
-          <View style={styles.portraitBlock}>
-            <Text style={styles.fieldLabel}>{t('creation.portrait')}</Text>
-            <Pressable
-              onPress={onPickPortrait}
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.portraitFrame, pressed && styles.pressed]}
-            >
-              {portraitUri ? (
-                <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
-              ) : (
-                <View style={styles.portraitPlaceholder}>
-                  <Feather name="image" size={26} color={colors.accent} />
-                </View>
-              )}
+          {/* Portrait */}
+          <SectionLabel style={styles.fieldLabel}>{t('creation.portrait')}</SectionLabel>
+          <Pressable
+            onPress={onPickPortrait}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.portraitFrame, pressed && styles.pressed]}
+          >
+            {portraitUri ? (
+              <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
+            ) : (
+              <View style={styles.portraitPlaceholder}>
+                <Feather name="user" size={32} color={colors.brown} />
+                <Text style={styles.portraitHint}>{t('creation.pickPortrait')}</Text>
+              </View>
+            )}
+          </Pressable>
+          <View style={styles.portraitActions}>
+            <Pressable onPress={onPickPortrait} style={styles.portraitBtn}>
+              <Feather name="image" size={14} color={colors.moss} />
+              <Text style={styles.portraitBtnLabel}>
+                {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+              </Text>
             </Pressable>
-            <View style={styles.portraitActions}>
-              <Pressable onPress={onPickPortrait} style={styles.portraitBtn}>
-                <Feather name="image" size={14} color={colors.accentDark} />
-                <Text style={styles.portraitBtnLabel}>
-                  {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+            {portraitUri ? (
+              <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
+                <Feather name="trash-2" size={14} color={colors.danger} />
+                <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
+                  {t('creation.removePortrait')}
                 </Text>
               </Pressable>
-              {portraitUri ? (
-                <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
-                  <Feather name="trash-2" size={14} color={colors.danger} />
-                  <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
-                    {t('creation.removePortrait')}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
+            ) : null}
           </View>
 
-          <Field
+          {/* Name */}
+          <AppInput
             label={t('creation.name')}
             value={name}
-            onChangeText={(v) => {
-              setError('');
-              setName(v);
-            }}
+            onChangeText={(v) => { setError(''); setName(v); }}
             placeholder={t('creation.namePlaceholder')}
+            style={styles.fieldWrap}
           />
 
+          {/* Dates row */}
           <View style={styles.row}>
-            <Field
+            <AppInput
               label={t('creation.birth')}
               value={birth}
               onChangeText={setBirth}
               placeholder={t('creation.datePlaceholder')}
               style={styles.rowField}
             />
-            <Field
+            <AppInput
               label={t('creation.death')}
               value={death}
               onChangeText={setDeath}
@@ -152,22 +157,24 @@ export default function MemorialCreationScreen() {
             />
           </View>
 
-          <Field
+          {/* Description */}
+          <AppInput
             label={t('creation.description')}
             value={description}
             onChangeText={setDescription}
             placeholder={t('creation.descriptionPlaceholder')}
             multiline
+            style={styles.fieldWrap}
           />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <PrimaryButton label={t('creation.save')} onPress={onSave} style={styles.save} />
-          <PrimaryButton
+          <AppButton label={t('creation.save')} onPress={onSave} style={styles.saveBtn} />
+          <AppButton
             label={t('creation.cancel')}
             onPress={() => navigation.goBack()}
             variant="secondary"
-            style={styles.cancel}
+            style={styles.cancelBtn}
           />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -175,111 +182,96 @@ export default function MemorialCreationScreen() {
   );
 }
 
-function Field({ label, multiline, style, ...inputProps }) {
-  return (
-    <View style={[styles.field, style]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        {...inputProps}
-        style={[styles.input, multiline && styles.inputMultiline]}
-        placeholderTextColor={colors.textSoft}
-        multiline={multiline}
-        numberOfLines={multiline ? 4 : 1}
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+
   topBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
   },
-  iconBtn: { padding: 8 },
+  iconBtn: { padding: spacing.xs },
   pressed: { opacity: 0.6 },
+
   scroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 48,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxxl,
   },
+
   title: {
-    fontSize: 26,
-    fontWeight: '300',
+    fontFamily: typography.serif,
+    fontSize: typography.sizes.titleLarge,
+    fontWeight: typography.weights.regular,
     color: colors.textPrimary,
-    letterSpacing: 1,
+    letterSpacing: 0.4,
+    marginBottom: 6,
   },
   subtitle: {
-    marginTop: 6,
-    marginBottom: 24,
-    fontSize: 14,
+    fontSize: typography.sizes.label,
     color: colors.textMuted,
     fontStyle: 'italic',
+    marginBottom: spacing.xl,
   },
-  row: { flexDirection: 'row', gap: 12 },
-  rowField: { flex: 1 },
-  field: { marginBottom: 18 },
+
   fieldLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
-  input: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  inputMultiline: {
-    minHeight: 96,
-    textAlignVertical: 'top',
-  },
-  error: {
-    color: colors.danger,
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  save: { marginTop: 8 },
-  cancel: { marginTop: 12 },
-  portraitBlock: { marginBottom: 18 },
+  fieldWrap: { marginBottom: spacing.md },
+  row: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  rowField: { flex: 1 },
+
+  // Portrait
   portraitFrame: {
-    height: 180,
-    borderRadius: 14,
+    height: 200,
+    borderRadius: radii.lg,
     overflow: 'hidden',
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.divider,
+    marginBottom: spacing.sm,
   },
   portraitImage: { width: '100%', height: '100%' },
   portraitPlaceholder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  portraitHint: {
+    fontSize: typography.sizes.label,
+    color: colors.textSoft,
+    letterSpacing: 0.3,
   },
   portraitActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
   },
   portraitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.divider,
     backgroundColor: colors.card,
   },
-  portraitBtnLabel: { fontSize: 12, color: colors.accentDark, letterSpacing: 0.5 },
+  portraitBtnLabel: {
+    fontSize: typography.sizes.label,
+    color: colors.moss,
+    letterSpacing: 0.3,
+  },
+
+  error: {
+    color: colors.danger,
+    fontSize: typography.sizes.label,
+    marginBottom: spacing.sm,
+  },
+  saveBtn: { marginTop: spacing.xs },
+  cancelBtn: { marginTop: spacing.sm },
 });

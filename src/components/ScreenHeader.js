@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { colors, typography, spacing } from '../theme/designSystem';
 
 export default function ScreenHeader({ title, subtitle }) {
   return (
@@ -13,27 +13,28 @@ export default function ScreenHeader({ title, subtitle }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '300',
+    fontFamily: typography.serif,
+    fontSize: typography.sizes.titleLarge,
+    fontWeight: typography.weights.regular,
     color: colors.textPrimary,
-    letterSpacing: 1,
+    letterSpacing: typography.letterSpacing.title,
   },
   subtitle: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: typography.sizes.label,
     color: colors.textMuted,
     fontStyle: 'italic',
   },
   divider: {
-    marginTop: 14,
+    marginTop: 12,
     height: 1,
     width: 48,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.brown,
     opacity: 0.5,
   },
 });

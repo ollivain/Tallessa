@@ -8,6 +8,7 @@ export const strings = {
       wall: 'Muistoseinä',
       letters: 'Kirjeet',
       calendar: 'Kalenteri',
+      memorial: 'Paikka',
       settings: 'Asetukset',
     },
 
@@ -53,6 +54,7 @@ export const strings = {
       title: 'Muistoseinä',
       subtitle: 'Kuvia, videoita ja pieniä sanoja.',
       add: 'Lisää muisto',
+      edit: 'Muokkaa muistoa',
       empty: 'Muistoseinä odottaa ensimmäistä kuvaa, videota tai lausetta.',
       pickImage: 'Valitse kuva',
       pickVideo: 'Valitse video',
@@ -66,6 +68,7 @@ export const strings = {
       title: 'Kirjeet',
       subtitle: 'Kirjeitä, joita ei tarvitse lähettää minnekään.',
       add: 'Kirjoita kirje',
+      edit: 'Muokkaa kirjettä',
       empty: 'Kirjeet ovat hiljainen paikka sanoille.',
     },
 
@@ -73,8 +76,40 @@ export const strings = {
       title: 'Kalenteri',
       subtitle: 'Tärkeät päivät ja muistopäivät.',
       add: 'Lisää päivä',
-      empty: 'Ei tulevia päiviä juuri nyt.',
-      upcoming: 'Tulevat',
+      edit: 'Muokkaa päivää',
+      empty: 'Ei merkittyjä päiviä.',
+      upcoming: 'Merkityt päivät',
+      prev: '‹',
+      next: '›',
+      weekdays: ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'],
+    },
+
+    memorial: {
+      dayTitle: '{name}n päivä',
+      dayTitleEn: '{name}\'s day',
+      born: 'Syntyi',
+      died: 'Poismeni',
+      note: 'Muutama sana',
+      notePlaceholder: 'Lyhyt kuvaus tai muisto...',
+      candleLight: 'Sytytä kynttilä',
+      candleLit: 'Kynttilä palaa',
+      editTitle: 'Muokkaa muistopaikkaa',
+      noDescription: 'Lisää lyhyt kuvaus muokkaamalla muistopaikkaa.',
+      deleteTitle: 'Poista muistopaikka',
+      deleteBody: 'Kaikki muistot, kirjeet ja tapahtumat poistetaan pysyvästi. Tätä ei voi peruuttaa.',
+      deleteConfirm: 'Poista',
+      deleteCancel: 'Peruuta',
+    },
+
+    delete: {
+      confirm: 'Poista',
+      cancel: 'Peruuta',
+      memoryTitle: 'Poistetaanko muisto?',
+      memoryBody: 'Tätä ei voi peruuttaa.',
+      letterTitle: 'Poistetaanko kirje?',
+      letterBody: 'Tätä ei voi peruuttaa.',
+      eventTitle: 'Poistetaanko tapahtuma?',
+      eventBody: 'Tätä ei voi peruuttaa.',
     },
 
     settings: {
@@ -84,6 +119,7 @@ export const strings = {
       languageEn: 'English',
       memorial: 'Muistopaikka',
       switchMemorial: 'Vaihda muistopaikkaa',
+      deleteMemorial: 'Poista tämä muistopaikka',
       about: 'Tietoa',
       aboutBody:
         'Tallessa on rauhallinen paikka rakkaiden muistoille. Tämä on mobiiliversion varhainen luonnos.',
@@ -139,6 +175,7 @@ export const strings = {
       wall: 'Wall',
       letters: 'Letters',
       calendar: 'Calendar',
+      memorial: 'Place',
       settings: 'Settings',
     },
 
@@ -148,7 +185,7 @@ export const strings = {
       create: 'Create a new memorial space',
       open: 'Open',
       placeSuffix: 'memorial space',
-      empty: 'You don’t have any memorial spaces yet. Begin by creating one.',
+      empty: 'You don't have any memorial spaces yet. Begin by creating one.',
     },
 
     creation: {
@@ -175,15 +212,16 @@ export const strings = {
       memoryOfDay: 'Memory of the day',
       memoryEmpty: 'Add your first memory when the moment feels right.',
       openMemory: 'Open memory',
-      dailyQuote: 'Today’s words',
+      dailyQuote: 'Today's words',
       quickActions: 'Quick links',
-      heroMemoryLine: '{name}’s memories that stay with you.',
+      heroMemoryLine: '{name}\'s memories that stay with you.',
     },
 
     wall: {
       title: 'Memory wall',
       subtitle: 'Pictures, videos and small sentences.',
       add: 'Add memory',
+      edit: 'Edit memory',
       empty: 'The memory wall is waiting for its first picture, video or sentence.',
       pickImage: 'Choose photo',
       pickVideo: 'Choose video',
@@ -195,8 +233,9 @@ export const strings = {
 
     letters: {
       title: 'Letters',
-      subtitle: 'Letters that don’t need to be sent anywhere.',
+      subtitle: 'Letters that don't need to be sent anywhere.',
       add: 'Write a letter',
+      edit: 'Edit letter',
       empty: 'Letters are a quiet place for words.',
     },
 
@@ -204,8 +243,40 @@ export const strings = {
       title: 'Calendar',
       subtitle: 'Important days and remembrance days.',
       add: 'Add day',
-      empty: 'No upcoming days for now.',
-      upcoming: 'Upcoming',
+      edit: 'Edit day',
+      empty: 'No marked days yet.',
+      upcoming: 'Marked days',
+      prev: '‹',
+      next: '›',
+      weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+    },
+
+    memorial: {
+      dayTitle: '{name}\'s day',
+      dayTitleEn: '{name}\'s day',
+      born: 'Born',
+      died: 'Passed',
+      note: 'A few words',
+      notePlaceholder: 'A short description or memory...',
+      candleLight: 'Light a candle',
+      candleLit: 'Candle is burning',
+      editTitle: 'Edit memorial space',
+      noDescription: 'Add a short note by editing this memorial space.',
+      deleteTitle: 'Delete memorial space',
+      deleteBody: 'All memories, letters, and events will be permanently removed. This cannot be undone.',
+      deleteConfirm: 'Delete',
+      deleteCancel: 'Cancel',
+    },
+
+    delete: {
+      confirm: 'Delete',
+      cancel: 'Cancel',
+      memoryTitle: 'Delete this memory?',
+      memoryBody: 'This cannot be undone.',
+      letterTitle: 'Delete this letter?',
+      letterBody: 'This cannot be undone.',
+      eventTitle: 'Delete this day?',
+      eventBody: 'This cannot be undone.',
     },
 
     settings: {
@@ -215,6 +286,7 @@ export const strings = {
       languageEn: 'English',
       memorial: 'Memorial space',
       switchMemorial: 'Switch memorial',
+      deleteMemorial: 'Delete this memorial space',
       about: 'About',
       aboutBody:
         'Withen is a quiet place for cherished memories. This is an early draft of the mobile version.',
@@ -231,20 +303,20 @@ export const strings = {
     media: {
       permissionTitle: 'Photo library access',
       permissionBody:
-        'Withen needs permission to your photo library to attach pictures and videos. You can enable it in your phone’s settings.',
+        'Withen needs permission to your photo library to attach pictures and videos. You can enable it in your phone's settings.',
       permissionOpenSettings: 'Open settings',
       permissionCancel: 'Not now',
       errorTitle: 'Something went sideways',
       errorBody:
-        'Picking media didn’t work just now. Please try again in a moment.',
+        'Picking media didn't work just now. Please try again in a moment.',
       uploading: 'Uploading media…',
       uploadErrorTitle: 'Upload failed',
       uploadErrorNotConfigured:
-        'Cloud storage isn’t configured. Add your Supabase credentials to .env and try again.',
+        'Cloud storage isn't configured. Add your Supabase credentials to .env and try again.',
       uploadErrorNetwork:
         'The connection dropped while uploading. Check your network and try again.',
       uploadErrorGeneric:
-        'Uploading the media to the cloud didn’t work. The memory is saved on this device only.',
+        'Uploading the media to the cloud didn't work. The memory is saved on this device only.',
     },
 
     quote:
@@ -256,7 +328,7 @@ export const strings = {
       memoryBody: 'Sunflowers were in bloom, and laughter drifted through the kitchen window.',
       letterTitle: 'Good morning',
       letterBody:
-        'This morning I made coffee for two. I set the second cup on the table even though I know you won’t drink it — it still felt right.',
+        'This morning I made coffee for two. I set the second cup on the table even though I know you won't drink it — it still felt right.',
       eventName: 'Birthday',
     },
   },
