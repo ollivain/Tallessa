@@ -35,6 +35,13 @@ const { width: SCREEN_W } = Dimensions.get('window');
 // PWA: .calendar-grid { gap: 6px } with calendar-card padding 14 and screen padding 16
 const CELL_GAP = 6;
 const CELL_SIZE = Math.floor((SCREEN_W - spacing.md * 2 - 14 * 2 - CELL_GAP * 6) / 7);
+const SYMBOL_OPTIONS = [
+  { value: '\u2661', labelKey: 'calendar.form.symbolHeart' },
+  { value: '\u2726', labelKey: 'calendar.form.symbolStar' },
+  { value: '\u2662', labelKey: 'calendar.form.symbolMemory' },
+  { value: '\u{1F56F}', labelKey: 'calendar.form.symbolCandle' },
+];
+const DEFAULT_SYMBOL = SYMBOL_OPTIONS[0].value;
 
 // Parse "dd.mm.yyyy", "d.m.yyyy" or ISO "yyyy-mm-dd"
 function parseAnyDate(str) {
@@ -76,14 +83,19 @@ export default function CalendarScreen() {
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
+  const [note, setNote] = useState('');
 
   const events = getImportantDays(activeMemorial);
-  const sortedEvents = events.slice().sort((a, b) =>
-    String(a.date).localeCompare(String(b.date)),
-  );
 
   const deathDate = parseAnyDate(getMemorialDate(activeMemorial));
   const gridCells = buildGridCells(visibleMonth, events, deathDate);
+  const sortedEvents = sortDaysForVisibleMonth(events, visibleMonth);
+  const calendarMemories = sortMemoriesForVisibleMonth(activeMemorial?.memories ?? [], visibleMonth);
+  const visibleCards = [
+    ...getMemorialDayCards(activeMemorial, visibleMonth, t),
+    ...sortedEvents,
+  ];
 
   // Monthly cover image — index 0=Jan … 11=Dec
   const calendarImages = getMonthPhotosArray(activeMemorial);
@@ -98,6 +110,8 @@ export default function CalendarScreen() {
     setEditingId(null);
     setName('');
     setDate('');
+    setSymbol(DEFAULT_SYMBOL);
+    setNote('');
     setOpen(true);
   };
 
@@ -105,6 +119,8 @@ export default function CalendarScreen() {
     setEditingId(ev.id);
     setName(ev.name ?? '');
     setDate(ev.date ?? '');
+    setSymbol(ev.symbol || DEFAULT_SYMBOL);
+    setNote(ev.note ?? ev.description ?? ev.text ?? '');
     setOpen(true);
   };
 
@@ -112,17 +128,33 @@ export default function CalendarScreen() {
     setOpen(false);
     setName('');
     setDate('');
+    setSymbol(DEFAULT_SYMBOL);
+    setNote('');
     setEditingId(null);
   };
 
   const save = () => {
     const trimmedName = name.trim();
-    if (!trimmedName) { close(); return; }
+    const trimmedDate = date.trim();
+    if (!trimmedName || !trimmedDate) {
+      Alert.alert(t('calendar.add'), t('calendar.form.required'));
+      return;
+    }
 
     if (editingId) {
-      updateEvent(activeMemorial.id, editingId, { name: trimmedName, date: date.trim() });
+      updateEvent(activeMemorial.id, editingId, {
+        name: trimmedName,
+        date: trimmedDate,
+        note: note.trim(),
+        symbol: symbol || DEFAULT_SYMBOL,
+      });
     } else {
-      addEvent(activeMemorial.id, { name: trimmedName, date: date.trim() });
+      addEvent(activeMemorial.id, {
+        name: trimmedName,
+        date: trimmedDate,
+        note: note.trim(),
+        symbol: symbol || DEFAULT_SYMBOL,
+      });
     }
     close();
   };
@@ -225,18 +257,21 @@ export default function CalendarScreen() {
         </Pressable>
 
         {/* PWA: .day-list — grid gap:12 */}
-        {sortedEvents.length === 0 ? (
+        {visibleCards.length === 0 && calendarMemories.length === 0 ? (
           <EmptyStateCard eyebrow={t('calendar.title')} body={t('calendar.empty')} />
         ) : (
           <View style={styles.eventList}>
-            {sortedEvents.map((ev) => (
+            {visibleCards.map((ev) => (
               <EventCard
                 key={ev.id}
                 event={ev}
                 language={language}
-                onEdit={() => openEdit(ev)}
-                onDelete={() => confirmDelete(ev)}
+                onEdit={ev.type === 'memorial-day' ? null : () => openEdit(ev)}
+                onDelete={ev.type === 'memorial-day' ? null : () => confirmDelete(ev)}
               />
+            ))}
+            {calendarMemories.map((memory) => (
+              <MemoryDayCard key={memory.id} memory={memory} language={language} />
             ))}
           </View>
         )}
@@ -261,17 +296,48 @@ export default function CalendarScreen() {
                 {editingId ? t('calendar.edit') : t('calendar.add')}
               </Text>
               <AppInput
-                label={t('mock.eventName')}
+                label={t('calendar.form.name')}
                 value={name}
                 onChangeText={setName}
-                placeholder={t('mock.eventName')}
+                placeholder={t('calendar.form.namePlaceholder')}
                 style={styles.inputWrap}
               />
               <AppInput
-                label={t('creation.birth')}
+                label={t('calendar.form.date')}
                 value={date}
                 onChangeText={setDate}
                 placeholder={t('creation.datePlaceholder')}
+                style={styles.inputWrap}
+              />
+              <Text style={styles.fieldLabel}>{t('calendar.form.symbol')}</Text>
+              <View style={styles.symbolRow}>
+                {SYMBOL_OPTIONS.map((option) => {
+                  const active = symbol === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => setSymbol(option.value)}
+                      style={({ pressed }) => [
+                        styles.symbolPill,
+                        active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
+                        pressed && styles.pressed,
+                      ]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.symbolText, active && styles.symbolTextActive]}>{option.value}</Text>
+                      <Text style={[styles.symbolLabel, active && styles.symbolLabelActive]}>
+                        {t(option.labelKey)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <AppInput
+                label={t('calendar.form.text')}
+                value={note}
+                onChangeText={setNote}
+                placeholder={t('calendar.form.textPlaceholder')}
+                multiline
                 style={styles.inputWrap}
               />
               <AppButton label={t('creation.save')} onPress={save} />
@@ -302,18 +368,27 @@ function buildGridCells(visibleMonth, events, deathDate) {
     const inMonth = d.getMonth() === month;
     const isToday = key === todayKey;
     const isMemorial = deathDate ? sameMonthDay(d, deathDate) : false;
-    const hasEvent = events.some((ev) => {
+    const event = events.find((ev) => {
       const pd = parseAnyDate(ev.date);
       return pd && toDateKey(pd) === key;
     });
-    return { date: d, day: d.getDate(), inMonth, isToday, isMemorial, hasEvent };
+    return {
+      date: d,
+      day: d.getDate(),
+      inMonth,
+      isToday,
+      isMemorial,
+      hasEvent: Boolean(event),
+      symbol: event ? event.symbol || DEFAULT_SYMBOL : '',
+    };
   });
 }
 
 // PWA: .day-cell { min-height:44px; border-radius:13px; bg:rgba(255,250,240,0.82) }
 function DayCell({ cell }) {
   const { themeColors } = useTheme();
-  const { day, inMonth, isToday, isMemorial, hasEvent } = cell;
+  const { day, inMonth, isToday, isMemorial, hasEvent, symbol } = cell;
+  const marker = isMemorial ? DEFAULT_SYMBOL : symbol;
   return (
     <View style={[
       styles.cell,
@@ -325,11 +400,14 @@ function DayCell({ cell }) {
         styles.cellText,
         isMemorial && styles.cellTextMemorial,
       ]}>
-        {isMemorial && !isToday ? '♡' : day}
+        {isMemorial && !isToday ? DEFAULT_SYMBOL : day}
       </Text>
-      {/* PWA: .has-note::after — event dot indicator */}
+      {/* PWA: .has-note::after uses the day symbol */}
       {hasEvent && !isMemorial ? (
-        <View style={[styles.eventDot, { backgroundColor: themeColors.brown }]} />
+        <Text style={[styles.eventMarker, { color: themeColors.brown }]}>{marker}</Text>
+      ) : null}
+      {isMemorial && marker ? (
+        <Text style={[styles.eventMarker, { color: '#fffaf0' }]}>{marker}</Text>
       ) : null}
     </View>
   );
@@ -341,25 +419,32 @@ function EventCard({ event, language, onEdit, onDelete }) {
   const day = formatDay(event.date);
   const month = formatMonth(event.date, language);
   const dateLabel = day !== '·' ? `${day}${month ? '. ' + month : ''}` : null;
+  const body = event.note || event.description || event.text;
 
   return (
     <View style={styles.eventCardShadow}>
       <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
         {/* PWA: .delete-action absolute top:12 right:12 */}
-        <View style={styles.cardActions}>
-          <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
-            <Feather name="edit-2" size={12} color={themeColors.moss} />
-          </Pressable>
-          <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
-            <Feather name="trash-2" size={12} color="#fffaf0" />
-          </Pressable>
-        </View>
+        {onEdit || onDelete ? (
+          <View style={styles.cardActions}>
+            {onEdit ? (
+              <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
+                <Feather name="edit-2" size={12} color={themeColors.moss} />
+              </Pressable>
+            ) : null}
+            {onDelete ? (
+              <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
+                <Feather name="trash-2" size={12} color="#fffaf0" />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* PWA: .day-card grid: auto 1fr, gap:12 */}
         <View style={styles.eventRow}>
           {/* PWA: .day-symbol { width:38; height:38; border-radius:50%; bg:var(--moss) } */}
           <View style={[styles.daySymbol, { backgroundColor: themeColors.moss }]}>
-            <Text style={styles.daySymbolText}>♡</Text>
+            <Text style={styles.daySymbolText}>{event.symbol || DEFAULT_SYMBOL}</Text>
           </View>
           <View style={styles.eventBody}>
             {/* PWA: .date-line { brown serif italic } */}
@@ -368,6 +453,36 @@ function EventCard({ event, language, onEdit, onDelete }) {
             ) : null}
             {/* PWA: h3 { font-size:1.35rem; color:var(--moss-dark) } */}
             <Text style={[styles.eventName, { color: themeColors.textPrimary }]} numberOfLines={2}>{event.name}</Text>
+            {body ? <Text style={styles.eventNote} numberOfLines={4}>{body}</Text> : null}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function MemoryDayCard({ memory, language }) {
+  const { themeColors } = useTheme();
+  const day = formatDay(memory.calendarDate);
+  const month = formatMonth(memory.calendarDate, language);
+  const dateLabel = day !== '·' ? `${day}${month ? '. ' + month : ''}` : null;
+  const body = memory.text || memory.body || memory.title || '';
+
+  return (
+    <View style={styles.eventCardShadow}>
+      <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
+        <View style={styles.eventRow}>
+          <View style={[styles.daySymbol, { backgroundColor: themeColors.moss }]}>
+            <Text style={styles.daySymbolText}>{DEFAULT_SYMBOL}</Text>
+          </View>
+          <View style={styles.eventBody}>
+            {dateLabel ? (
+              <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
+            ) : null}
+            <Text style={[styles.eventName, { color: themeColors.textPrimary }]} numberOfLines={2}>
+              {memory.title || 'Memory'}
+            </Text>
+            {body ? <Text style={styles.eventNote} numberOfLines={4}>{body}</Text> : null}
           </View>
         </View>
       </View>
@@ -396,6 +511,44 @@ function formatMonth(iso, language) {
 function capitalize(s) {
   if (!s) return '';
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function isSameVisibleMonth(dateString, visibleMonth) {
+  const date = parseAnyDate(dateString);
+  return (
+    date &&
+    date.getFullYear() === visibleMonth.getFullYear() &&
+    date.getMonth() === visibleMonth.getMonth()
+  );
+}
+
+function sortDaysForVisibleMonth(days, visibleMonth) {
+  return days
+    .filter((day) => isSameVisibleMonth(day.date, visibleMonth))
+    .slice()
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
+
+function sortMemoriesForVisibleMonth(memories, visibleMonth) {
+  const dated = memories.filter((memory) => parseAnyDate(memory.calendarDate));
+  return [
+    ...dated.filter((memory) => isSameVisibleMonth(memory.calendarDate, visibleMonth)),
+    ...dated.filter((memory) => !isSameVisibleMonth(memory.calendarDate, visibleMonth)),
+  ];
+}
+
+function getMemorialDayCards(activeMemorial, visibleMonth, t) {
+  const memorialDate = getMemorialDate(activeMemorial);
+  const parsed = parseAnyDate(memorialDate);
+  if (!parsed || parsed.getMonth() !== visibleMonth.getMonth()) return [];
+  return [{
+    id: 'memorial-day',
+    name: activeMemorial?.memorialName || t('tab.memorial'),
+    date: memorialDate,
+    note: t('calendar.memorialRecurring'),
+    symbol: DEFAULT_SYMBOL,
+    type: 'memorial-day',
+  }];
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -552,15 +705,13 @@ const styles = StyleSheet.create({
     color: '#fffaf0',
     fontWeight: '600',
   },
-  // PWA: .day-cell.has-note::after — brown dot indicator
-  eventDot: {
+  // PWA: .day-cell.has-note::after — symbol indicator
+  eventMarker: {
     position: 'absolute',
     bottom: 4,
     right: 6,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.brown,
+    fontSize: 11,
+    lineHeight: 13,
   },
 
   // PWA: .add-card-toggle (same as wall/letters screens)
@@ -681,6 +832,12 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.textPrimary,
   },
+  eventNote: {
+    color: colors.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 6,
+  },
 
   // Modal
   modalSafe: { flex: 1, backgroundColor: colors.background },
@@ -701,5 +858,41 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     letterSpacing: 0.3,
   },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textBody,
+    marginBottom: 8,
+  },
+  symbolRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  symbolPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+  },
+  symbolText: {
+    fontSize: 15,
+    color: colors.moss,
+    lineHeight: 18,
+  },
+  symbolTextActive: { color: colors.textOnPrimary },
+  symbolLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.moss,
+  },
+  symbolLabelActive: { color: colors.textOnPrimary },
+  pressed: { opacity: 0.72 },
   inputWrap: { marginBottom: spacing.md },
 });

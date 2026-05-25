@@ -85,6 +85,19 @@ export const strings = {
       weekdays: ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'],
       memorialRecurring: 'Toistuu automaattisesti joka vuosi.',
       eyebrow: 'Kalenteri',
+      form: {
+        name: 'Muistopäivän nimi',
+        namePlaceholder: 'Esim. Ensimmäinen maastolenkki',
+        date: 'Päivämäärä',
+        symbol: 'Lempeä merkki',
+        symbolHeart: 'Sydän',
+        symbolStar: 'Tähti',
+        symbolMemory: 'Muisto',
+        symbolCandle: 'Kynttilä',
+        text: 'Teksti',
+        textPlaceholder: 'Mitä haluat muistaa juuri tästä päivästä?',
+        required: 'Lisää ainakin nimi ja päivämäärä.',
+      },
     },
 
     memorial: {
@@ -313,6 +326,19 @@ export const strings = {
       weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
       memorialRecurring: 'Repeats automatically every year.',
       eyebrow: 'Calendar',
+      form: {
+        name: 'Memorial day name',
+        namePlaceholder: 'E.g. First trail ride',
+        date: 'Date',
+        symbol: 'Gentle symbol',
+        symbolHeart: 'Heart',
+        symbolStar: 'Star',
+        symbolMemory: 'Memory',
+        symbolCandle: 'Candle',
+        text: 'Text',
+        textPlaceholder: 'What do you want to remember about this day?',
+        required: 'Add at least a name and date.',
+      },
     },
 
     memorial: {

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   ImageBackground,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -24,17 +25,28 @@ import {
 } from '../theme/designSystem';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
-import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
+import { pickImageFromLibrary, pickMultipleImagesFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
+import { themes, THEME_KEYS } from '../theme/themes';
 
 const SCREEN_BG = require('../../assets/selector-background.png');
 
-const PET_TYPE_KEYS = ['human', 'horse', 'dog', 'cat', 'rabbit', 'bird', 'guineaPig', 'hamster', 'ferret', 'turtle', 'other'];
+const PET_TYPE_KEYS = [
+  'human', 'horse', 'dog', 'cat', 'rabbit', 'bird',
+  'guineaPig', 'hamster', 'ferret', 'turtle', 'other',
+];
+
+function toMonthPhotos(calendarImages) {
+  return calendarImages.reduce((acc, uri, index) => {
+    if (uri) acc[String(index + 1)] = uri;
+    return acc;
+  }, {});
+}
 
 export default function MemorialCreationScreen() {
-  const { t, language } = useI18n();
+  const { t, language, setLanguage } = useI18n();
   const { createMemorial } = useMemorials();
-  const { themeKey } = useTheme();
+  const { themeKey, setTheme, themeColors } = useTheme();
   const navigation = useNavigation();
 
   const [name, setName] = useState('');
@@ -44,24 +56,57 @@ export default function MemorialCreationScreen() {
   const [petType, setPetType] = useState('');
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName] = useState('');
-  const [portraitUri, setPortraitUri] = useState(null);
+  const [heroImageUri, setHeroImageUri] = useState(null);
+  const [memorialImageUri, setMemorialImageUri] = useState(null);
+  const [calendarImages, setCalendarImages] = useState(() => Array(12).fill(null));
   const [error, setError] = useState('');
-  const [savedPortrait, setSavedPortrait] = useState(false);
+  const savedMediaRef = useRef(false);
+  const [petTypeOpen, setPetTypeOpen] = useState(false);
+  const [calExpanded, setCalExpanded] = useState(false);
+  const [themeExpanded, setThemeExpanded] = useState(false);
 
   useEffect(() => () => {
-    if (portraitUri && !savedPortrait) removePersistedMedia(portraitUri);
-  }, [portraitUri, savedPortrait]);
+    if (savedMediaRef.current) return;
+    if (heroImageUri) removePersistedMedia(heroImageUri);
+    if (memorialImageUri) removePersistedMedia(memorialImageUri);
+    calendarImages.forEach((uri) => { if (uri) removePersistedMedia(uri); });
+  }, [calendarImages, heroImageUri, memorialImageUri]);
 
-  const onPickPortrait = async () => {
+  const pickHeroImage = async () => {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
-    if (portraitUri && portraitUri !== result.uri) removePersistedMedia(portraitUri);
-    setPortraitUri(result.uri);
+    if (heroImageUri && heroImageUri !== result.uri) removePersistedMedia(heroImageUri);
+    setHeroImageUri(result.uri);
   };
 
-  const onRemovePortrait = () => {
-    if (portraitUri) removePersistedMedia(portraitUri);
-    setPortraitUri(null);
+  const removeHeroImage = () => {
+    if (heroImageUri) removePersistedMedia(heroImageUri);
+    setHeroImageUri(null);
+  };
+
+  const pickMemorialImage = async () => {
+    const result = await pickImageFromLibrary(t);
+    if (!result) return;
+    if (memorialImageUri && memorialImageUri !== result.uri) removePersistedMedia(memorialImageUri);
+    setMemorialImageUri(result.uri);
+  };
+
+  const removeMemorialImage = () => {
+    if (memorialImageUri) removePersistedMedia(memorialImageUri);
+    setMemorialImageUri(null);
+  };
+
+  const pickCalendarImages = async () => {
+    const results = await pickMultipleImagesFromLibrary(t, 12);
+    if (!results?.length) return;
+    const next = [...calendarImages];
+    results.forEach((result, index) => {
+      if (index < 12) {
+        if (next[index] && next[index] !== result.uri) removePersistedMedia(next[index]);
+        next[index] = result.uri;
+      }
+    });
+    setCalendarImages(next);
   };
 
   const onSave = () => {
@@ -70,12 +115,15 @@ export default function MemorialCreationScreen() {
       setError(t('creation.nameRequired'));
       return;
     }
-    setSavedPortrait(true);
+
+    savedMediaRef.current = true;
     createMemorial({
       horseName: trimmed,
       memorialDate: death.trim(),
-      memorialImage: portraitUri ?? '',
-      heroImage: portraitUri ?? '',
+      memorialImage: memorialImageUri ?? '',
+      heroImage: heroImageUri ?? '',
+      monthPhotos: toMonthPhotos(calendarImages),
+      importantDays: [],
       theme: themeKey,
       language,
       name: trimmed,
@@ -85,9 +133,12 @@ export default function MemorialCreationScreen() {
       petType: petType || null,
       petTypeCustom: petTypeCustom.trim(),
       memorialName: memorialName.trim(),
-      portraitUri: portraitUri ?? null,
+      portraitUri: memorialImageUri ?? heroImageUri ?? null,
+      calendarImages,
     });
   };
+
+  const calCount = calendarImages.filter(Boolean).length;
 
   return (
     <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
@@ -96,7 +147,6 @@ export default function MemorialCreationScreen() {
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Top bar */}
           <View style={styles.topBar}>
             <Pressable
               onPress={() => navigation.goBack()}
@@ -113,76 +163,58 @@ export default function MemorialCreationScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Title + subtitle above the form card */}
             <Text style={styles.title}>{t('creation.title')}</Text>
             <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
 
-            {/* PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98) } */}
             <View style={styles.formCardShadow}>
-              <View style={styles.formCard}>
-
-                {/* Portrait */}
-                <View>
-                  <Text style={styles.fieldLabel}>{t('creation.portrait')}</Text>
-                  <Pressable
-                    onPress={onPickPortrait}
-                    accessibilityRole="button"
-                    style={({ pressed }) => [styles.portraitFrame, pressed && styles.pressed]}
-                  >
-                    {portraitUri ? (
-                      <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
-                    ) : (
-                      <View style={styles.portraitPlaceholder}>
-                        <Feather name="user" size={32} color={colors.brown} />
-                        <Text style={styles.portraitHint}>{t('creation.pickPortrait')}</Text>
-                      </View>
-                    )}
-                  </Pressable>
-                  <View style={styles.portraitActions}>
-                    <Pressable onPress={onPickPortrait} style={styles.portraitBtn}>
-                      <Feather name="image" size={14} color={colors.moss} />
-                      <Text style={styles.portraitBtnLabel}>
-                        {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
-                      </Text>
-                    </Pressable>
-                    {portraitUri ? (
-                      <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
-                        <Feather name="trash-2" size={14} color={colors.danger} />
-                        <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
-                          {t('creation.removePortrait')}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
+              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+                <View style={styles.langRow}>
+                  <LanguagePill
+                    label={t('settings.languageFi')}
+                    active={language === 'fi'}
+                    onPress={() => setLanguage('fi')}
+                  />
+                  <LanguagePill
+                    label={t('settings.languageEn')}
+                    active={language === 'en'}
+                    onPress={() => setLanguage('en')}
+                  />
                 </View>
+              </View>
+            </View>
 
-                {/* Name */}
+            <View style={styles.formCardShadow}>
+              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.sectionTitle}>{t('settings.createNote')}</Text>
                 <AppInput
-                  label={t('creation.name')}
+                  label={t('settings.horseName')}
                   value={name}
-                  onChangeText={(v) => { setError(''); setName(v); }}
-                  placeholder={t('creation.namePlaceholder')}
+                  onChangeText={(value) => { setError(''); setName(value); }}
+                  placeholder={t('settings.horseNamePlaceholder')}
                 />
 
-                {/* Dates row */}
-                <View style={styles.row}>
-                  <AppInput
-                    label={t('creation.birth')}
-                    value={birth}
-                    onChangeText={setBirth}
-                    placeholder={t('creation.datePlaceholder')}
-                    style={styles.rowField}
-                  />
-                  <AppInput
-                    label={t('creation.death')}
-                    value={death}
-                    onChangeText={setDeath}
-                    placeholder={t('creation.datePlaceholder')}
-                    style={styles.rowField}
-                  />
+                <View>
+                  <Text style={styles.fieldLabel}>{t('settings.petType')}</Text>
+                  <Pressable
+                    onPress={() => setPetTypeOpen(true)}
+                    style={({ pressed }) => [styles.selectRow, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.selectValue, !petType && styles.selectPlaceholder]}>
+                      {petType ? t(`settings.petTypeOptions.${petType}`) : t('settings.petType')}
+                    </Text>
+                    <Feather name="chevron-down" size={18} color={themeColors.moss} />
+                  </Pressable>
                 </View>
 
-                {/* Description */}
+                <AppInput
+                  label={t('settings.petTypeCustom')}
+                  value={petTypeCustom}
+                  onChangeText={setPetTypeCustom}
+                  placeholder={t('settings.petTypeCustomPlaceholder')}
+                />
+
                 <AppInput
                   label={t('creation.description')}
                   value={description}
@@ -191,41 +223,6 @@ export default function MemorialCreationScreen() {
                   multiline
                 />
 
-                {/* Pet type — PWA: <select name="petType"> */}
-                <View>
-                  <Text style={styles.fieldLabel}>{t('settings.petType')}</Text>
-                  <View style={styles.petTypeGrid}>
-                    {PET_TYPE_KEYS.map((key) => {
-                      const active = petType === key;
-                      return (
-                        <Pressable
-                          key={key}
-                          onPress={() => setPetType(active ? '' : key)}
-                          style={({ pressed }) => [
-                            styles.petTypePill,
-                            active && styles.petTypePillActive,
-                            pressed && styles.pressed,
-                          ]}
-                          accessibilityRole="button"
-                        >
-                          <Text style={[styles.petTypePillLabel, active && styles.petTypePillLabelActive]}>
-                            {t(`settings.petTypeOptions.${key}`)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Add details if you wish — PWA: always visible */}
-                <AppInput
-                  label={t('settings.petTypeCustom')}
-                  value={petTypeCustom}
-                  onChangeText={setPetTypeCustom}
-                  placeholder={t('settings.petTypeCustomPlaceholder')}
-                />
-
-                {/* Memorial day name */}
                 <AppInput
                   label={t('settings.memorialName')}
                   value={memorialName}
@@ -233,23 +230,244 @@ export default function MemorialCreationScreen() {
                   placeholder={t('settings.memorialNamePlaceholder')}
                 />
 
-                {error ? <Text style={styles.error}>{error}</Text> : null}
+                <AppInput
+                  label={t('settings.memorialDate')}
+                  value={death}
+                  onChangeText={setDeath}
+                  placeholder={t('creation.datePlaceholder')}
+                />
 
-                {/* PWA: .primary-action { min-height:52px; border-radius:17px; bg:moss } */}
+                <AppInput
+                  label={t('creation.birth')}
+                  value={birth}
+                  onChangeText={setBirth}
+                  placeholder={t('creation.datePlaceholder')}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formCardShadow}>
+              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                <ImagePickerBlock
+                  label={t('creation.portrait')}
+                  uri={heroImageUri}
+                  icon="image"
+                  onPick={pickHeroImage}
+                  onRemove={removeHeroImage}
+                  pickLabel={heroImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                  removeLabel={t('creation.removePortrait')}
+                  tint={themeColors.brown}
+                />
+
+                <ImagePickerBlock
+                  label={t('settings.memorialImage')}
+                  uri={memorialImageUri}
+                  icon="heart"
+                  onPick={pickMemorialImage}
+                  onRemove={removeMemorialImage}
+                  pickLabel={memorialImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                  removeLabel={t('creation.removePortrait')}
+                  tint={themeColors.brown}
+                />
+
+                <Pressable
+                  onPress={() => setCalExpanded((value) => !value)}
+                  style={({ pressed }) => [styles.accordion, { backgroundColor: themeColors.mossDark }, pressed && { opacity: 0.88 }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.accordionTitle}>{t('settings.calendarImages')}</Text>
+                  <View style={styles.accordionRight}>
+                    <View style={styles.accordionBadge}>
+                      <Text style={styles.accordionBadgeText}>{calCount}/12</Text>
+                    </View>
+                    <Feather name={calExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#fffaf0" />
+                  </View>
+                </Pressable>
+
+                {calExpanded ? (
+                  <View style={styles.accordionBody}>
+                    <Text style={styles.accordionNote}>{t('settings.calendarImagesDesc')}</Text>
+                    <Pressable
+                      onPress={pickCalendarImages}
+                      style={({ pressed }) => [styles.pickButton, pressed && styles.pressed]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.pickButtonTitle, { color: themeColors.textPrimary }]}>{t('settings.calendarImagesPick')}</Text>
+                      <Text style={styles.pickButtonSub}>{t('settings.calendarImagesPickSub')}</Text>
+                    </Pressable>
+                    {calendarImages.some(Boolean) ? (
+                      <View style={styles.thumbGrid}>
+                        {calendarImages.map((uri, index) => (
+                          <View key={index} style={styles.thumb}>
+                            {uri ? (
+                              <Image source={{ uri }} style={styles.thumbImg} resizeMode="cover" />
+                            ) : (
+                              <View style={styles.thumbEmpty}>
+                                <Text style={styles.thumbNum}>{index + 1}</Text>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            <View style={styles.formCardShadow}>
+              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                <Pressable
+                  onPress={() => setThemeExpanded((value) => !value)}
+                  style={({ pressed }) => [styles.accordion, { backgroundColor: themeColors.mossDark }, pressed && { opacity: 0.88 }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.accordionTitle}>{t('settings.themeSection')}</Text>
+                  <View style={styles.accordionRight}>
+                    <Text style={styles.accordionCurrentTheme}>{t(`settings.themes.${themeKey}`)}</Text>
+                    <Feather name={themeExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#fffaf0" />
+                  </View>
+                </Pressable>
+
+                {themeExpanded ? (
+                  <View style={styles.accordionBody}>
+                    <View style={styles.themeList}>
+                      {THEME_KEYS.map((key) => {
+                        const th = themes[key];
+                        const active = themeKey === key;
+                        return (
+                          <Pressable
+                            key={key}
+                            onPress={() => setTheme(key)}
+                            style={({ pressed }) => [
+                              styles.themeCard,
+                              active && styles.themeCardActive,
+                              pressed && styles.pressed,
+                            ]}
+                            accessibilityRole="button"
+                          >
+                            <View style={[styles.themeAccent, { backgroundColor: th.accentHex }]} />
+                            <View style={styles.themeBody}>
+                              <Text style={[styles.themeName, { color: th.mossDark }]}>
+                                {t(`settings.themes.${key}`)}
+                              </Text>
+                              <Text style={styles.themeTagline}>{t('tagline')}</Text>
+                            </View>
+                            {active ? (
+                              <View style={[styles.themeCheck, { backgroundColor: th.moss }]}>
+                                <Feather name="check" size={14} color="#fffaf0" />
+                              </View>
+                            ) : null}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            <View style={styles.formCardShadow}>
+              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                {error ? <Text style={styles.error}>{error}</Text> : null}
                 <AppButton label={t('creation.save')} onPress={onSave} />
-                {/* PWA: .secondary-action { min-height:48px; border-radius:16px } */}
                 <AppButton
                   label={t('creation.cancel')}
                   onPress={() => navigation.goBack()}
                   variant="secondary"
                 />
-
               </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal
+        visible={petTypeOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPetTypeOpen(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setPetTypeOpen(false)}>
+          <View style={[styles.modalSheet, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('settings.petType')}</Text>
+              <Pressable onPress={() => setPetTypeOpen(false)} style={styles.modalClose} accessibilityRole="button">
+                <Feather name="x" size={20} color={colors.textMuted} />
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {PET_TYPE_KEYS.map((key) => {
+                const active = petType === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => { setPetType(key); setPetTypeOpen(false); }}
+                    style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.optionText, active && { color: themeColors.moss, fontWeight: '700' }]}>
+                      {t(`settings.petTypeOptions.${key}`)}
+                    </Text>
+                    {active ? <Feather name="check" size={17} color={themeColors.moss} /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </ImageBackground>
+  );
+}
+
+function ImagePickerBlock({ label, uri, icon, onPick, onRemove, pickLabel, removeLabel, tint }) {
+  return (
+    <View>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Pressable
+        onPress={onPick}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.imageFrame, pressed && styles.pressed]}
+      >
+        {uri ? (
+          <Image source={{ uri }} style={styles.imageFill} resizeMode="cover" />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Feather name={icon} size={30} color={tint} />
+          </View>
+        )}
+      </Pressable>
+      <View style={styles.imageActions}>
+        <Pressable onPress={onPick} style={styles.smallButton}>
+          <Feather name="image" size={14} color={colors.moss} />
+          <Text style={styles.smallButtonLabel}>{pickLabel}</Text>
+        </Pressable>
+        {uri ? (
+          <Pressable onPress={onRemove} style={styles.smallButton}>
+            <Feather name="trash-2" size={14} color={colors.danger} />
+            <Text style={[styles.smallButtonLabel, { color: colors.danger }]}>{removeLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function LanguagePill({ label, active, onPress }) {
+  const { themeColors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.langPill,
+        active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
+        pressed && styles.pressed,
+      ]}
+      accessibilityRole="button"
+    >
+      <Text style={[styles.langPillLabel, { color: themeColors.moss }, active && styles.langPillLabelActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -265,19 +483,15 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   iconBtn: { padding: spacing.xs },
-  pressed: { opacity: 0.6 },
+  pressed: { opacity: 0.72 },
 
-  // PWA .selector-screen: padding-left/right max(28px, safe-area+20px)
-  //   padding-top: calc(safe-area-top + 96px) — SafeAreaView handles safe-area,
-  //   so paddingTop here is the extra breathing room under the close button.
   scroll: {
     paddingHorizontal: 28,
     paddingTop: 52,
-    paddingBottom: 52,
+    paddingBottom: 80,
+    gap: 14,
   },
 
-  // PWA .selector-hero h1: font-size clamp(4.6rem, 20vw, 6.7rem) → ~78px at 390px
-  //   font-weight: 700; line-height: 0.82; letter-spacing: 0; color: var(--color-primary)
   title: {
     fontFamily: typography.serif,
     fontSize: 60,
@@ -285,20 +499,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
     letterSpacing: 0,
-    marginBottom: 14,
+    marginBottom: 0,
   },
-  // PWA .selector-hero p: font-size clamp(1.1rem, 4.7vw, 1.42rem) → ~18px at 390px
-  //   font-weight: 500; color: rgba(80,86,76,0.88)
   subtitle: {
     fontSize: 18,
     fontWeight: '500',
     color: 'rgba(80, 86, 76, 0.88)',
     lineHeight: 27,
-    marginBottom: 42,
+    marginBottom: 28,
   },
 
-  // PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98); overflow:hidden }
-  // Shadow wrapper (shadow separate from overflow:hidden)
   formCardShadow: {
     borderRadius: 24,
     ...shadows.soft,
@@ -313,7 +523,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
 
-  // PWA: form-card label span { font-size:13px; font-weight:700; color:var(--text) }
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
+    lineHeight: 19,
+  },
   fieldLabel: {
     fontSize: 13,
     fontWeight: '700',
@@ -321,37 +536,50 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  row: { flexDirection: 'row', gap: spacing.sm },
-  rowField: { flex: 1 },
+  selectRow: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 252, 246, 0.88)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectValue: {
+    fontSize: 16,
+    color: colors.textBody,
+    fontWeight: '400',
+    flex: 1,
+    marginRight: 6,
+  },
+  selectPlaceholder: { color: colors.textSoft },
 
-  // Portrait
-  portraitFrame: {
-    height: 180,
-    borderRadius: radii.lg,
+  imageFrame: {
+    height: 150,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.divider,
     marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  portraitImage: { width: '100%', height: '100%' },
-  portraitPlaceholder: {
+  imageFill: { width: '100%', height: '100%' },
+  imagePlaceholder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
   },
-  portraitHint: {
-    fontSize: typography.sizes.label,
-    color: colors.textSoft,
-    letterSpacing: 0.3,
-  },
-  portraitActions: {
+  imageActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
-  portraitBtn: {
+  smallButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -362,42 +590,210 @@ const styles = StyleSheet.create({
     borderColor: colors.divider,
     backgroundColor: colors.card,
   },
-  portraitBtnLabel: {
+  smallButtonLabel: {
     fontSize: typography.sizes.label,
     color: colors.moss,
     letterSpacing: 0.3,
   },
 
-  // PWA: form-card label span { font-size:13px; font-weight:700; color:var(--text) }
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textBody,
-    marginBottom: 8,
+  accordion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-
-  petTypeGrid: {
+  accordionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fffaf0',
+    letterSpacing: 0.2,
+  },
+  accordionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  accordionBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+  },
+  accordionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fffaf0',
+    letterSpacing: 0.4,
+  },
+  accordionCurrentTheme: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 250, 240, 0.78)',
+    letterSpacing: 0.3,
+  },
+  accordionBody: {
+    gap: 12,
+    paddingTop: 2,
+  },
+  accordionNote: {
+    fontSize: 13,
+    color: colors.textMuted,
+    lineHeight: 19,
+  },
+  pickButton: {
+    minHeight: 64,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: spacing.md,
+  },
+  pickButtonTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  pickButtonSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    letterSpacing: 0.3,
+  },
+  thumbGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
-  petTypePill: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
+  thumb: {
+    width: '22%',
+    aspectRatio: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbImg: { width: '100%', height: '100%' },
+  thumbEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  thumbNum: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSoft,
+  },
+
+  themeList: { gap: 10 },
+  themeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    overflow: 'hidden',
+    minHeight: 68,
+  },
+  themeCardActive: {
+    borderColor: 'rgba(88, 98, 68, 0.42)',
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+  },
+  themeAccent: {
+    width: 6,
+    alignSelf: 'stretch',
+  },
+  themeBody: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 2,
+  },
+  themeName: {
+    fontFamily: typography.serif,
+    fontSize: 20,
+    fontWeight: '400',
+    letterSpacing: 0.2,
+    lineHeight: 24,
+  },
+  themeTagline: {
+    fontSize: 12,
+    color: colors.textMuted,
+    letterSpacing: 0.2,
+  },
+  themeCheck: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+
+  langRow: { flexDirection: 'row', gap: spacing.sm },
+  langPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.divider,
     backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  petTypePillActive: { backgroundColor: colors.moss, borderColor: colors.moss },
-  pressed: { opacity: 0.72 },
-  petTypePillLabel: {
+  langPillLabel: {
     fontSize: 13,
     color: colors.moss,
     fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  langPillLabelActive: { color: colors.textOnPrimary },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.38)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '72%',
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textBody,
     letterSpacing: 0.2,
   },
-  petTypePillLabelActive: { color: colors.textOnPrimary },
+  modalClose: { padding: 4 },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  optionText: {
+    fontSize: 15,
+    color: colors.textBody,
+    fontWeight: '500',
+  },
 
   error: {
     color: colors.danger,

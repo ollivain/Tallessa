@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { saveMemorialSpaces, saveActiveMemorialSpaceId } from '../storage/storage';
-import { normalizeMemorial, normalizeMemorials } from '../models/memorial';
+import { getImportantDays, normalizeMemorial, normalizeMemorials } from '../models/memorial';
 
 let idCounter = 1;
 const nextId = () => `id-${Date.now().toString(36)}-${idCounter++}`;
@@ -168,7 +168,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
   const addEvent = useCallback((memorialId, event) => {
     setMemorials((prev) =>
       prev.map((m) =>
-        m.id === memorialId ? updateImportantDays(m, [...(m.importantDays ?? []), { id: nextId(), ...event }]) : m,
+        m.id === memorialId ? updateImportantDays(m, [...getImportantDays(m), { id: nextId(), ...event }]) : m,
       ),
     );
   }, []);
@@ -179,7 +179,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
         m.id === memorialId
           ? updateImportantDays(
               m,
-              (m.importantDays ?? []).map((ev) => ev.id === eventId ? { ...ev, ...changes } : ev),
+              getImportantDays(m).map((ev) => ev.id === eventId ? { ...ev, ...changes } : ev),
             )
           : m,
       ),
@@ -190,7 +190,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? updateImportantDays(m, (m.importantDays ?? []).filter((ev) => ev.id !== eventId))
+          ? updateImportantDays(m, getImportantDays(m).filter((ev) => ev.id !== eventId))
           : m,
       ),
     );
