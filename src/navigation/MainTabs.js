@@ -13,12 +13,12 @@ import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
+// PWA bottom nav icons (in order): home, heart(wall/memories), mail, calendar, settings
 const ICONS = {
   Home: 'home',
-  Wall: 'image',
+  Wall: 'heart',
   Letters: 'mail',
   Calendar: 'calendar',
-  Memorial: 'heart',
   Settings: 'settings',
 };
 
@@ -27,14 +27,14 @@ export default function MainTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, tabBarStyle: { position: 'absolute' } }}
       tabBar={(props) => <PaperTabBar {...props} />}
     >
       <Tab.Screen name="Home"     component={HomeScreen}      options={{ title: t('tab.home') }} />
       <Tab.Screen name="Wall"     component={MemoryWallScreen} options={{ title: t('tab.wall') }} />
       <Tab.Screen name="Letters"  component={LettersScreen}   options={{ title: t('tab.letters') }} />
       <Tab.Screen name="Calendar" component={CalendarScreen}  options={{ title: t('tab.calendar') }} />
-      <Tab.Screen name="Memorial" component={MemorialDayScreen} options={{ title: t('tab.memorial') }} />
+      <Tab.Screen name="Memorial" component={MemorialDayScreen} options={{ title: t('tab.memorial'), tabBarHidden: true }} />
       <Tab.Screen name="Settings" component={SettingsScreen}  options={{ title: t('tab.settings') }} />
     </Tab.Navigator>
   );
@@ -44,9 +44,12 @@ export default function MainTabs() {
 function PaperTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.outer, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+    <View style={[styles.outer, { paddingBottom: Math.max(insets.bottom, 7) }]}>
       <View style={styles.row}>
-        {state.routes.map((route, index) => {
+        {state.routes
+          .filter((route) => !descriptors[route.key].options.tabBarHidden)
+          .map((route) => {
+          const index = state.routes.indexOf(route);
           const { options } = descriptors[route.key];
           const focused = state.index === index;
           const label = options.title ?? route.name;
@@ -86,7 +89,7 @@ function PaperTabBar({ state, descriptors, navigation }) {
             >
               <Feather
                 name={iconName}
-                size={18}
+                size={24}
                 color={color}
                 style={focused ? styles.iconActive : null}
               />
@@ -106,13 +109,17 @@ function PaperTabBar({ state, descriptors, navigation }) {
 
 const styles = StyleSheet.create({
   outer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.tabBg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 250, 240, 0.62)',
     paddingTop: 6,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     ...shadows.tabBar,
   },
   row: {
@@ -122,11 +129,11 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 44,
     paddingVertical: 5,
-    paddingHorizontal: 1,
+    paddingHorizontal: 2,
     marginHorizontal: 1,
-    borderRadius: 14,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
@@ -135,7 +142,7 @@ const styles = StyleSheet.create({
   itemActive: {
     backgroundColor: colors.tabActiveBg,
     borderWidth: 1,
-    borderColor: 'rgba(88, 98, 68, 0.10)',
+    borderColor: 'rgba(88, 98, 68, 0.08)',
   },
   itemPressed: {
     opacity: 0.7,
@@ -144,10 +151,11 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -1 }, { scale: 1.05 }],
   },
   label: {
-    fontSize: 9.5,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.tabInactiveText,
-    letterSpacing: 0.1,
+    letterSpacing: 0,
+    lineHeight: 13,
   },
   labelActive: {
     color: colors.tabActiveText,

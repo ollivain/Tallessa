@@ -33,7 +33,6 @@ export default function AppScreen({
   if (background) {
     return (
       <ImageBackground source={background} resizeMode="cover" style={styles.flex}>
-        <View style={styles.tint} pointerEvents="none" />
         <SafeAreaView style={styles.flex} edges={edges}>
           {inner}
         </SafeAreaView>
@@ -51,11 +50,6 @@ export default function AppScreen({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  // Subtle cream wash on top of any background image so cards still feel warm.
-  tint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(242, 232, 215, 0.32)',
-  },
 });
 
 export { spacing };

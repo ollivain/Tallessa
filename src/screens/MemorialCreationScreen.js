@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,11 +20,13 @@ import {
   typography,
   spacing,
   radii,
+  shadows,
 } from '../theme/designSystem';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
-import SectionLabel from '../components/SectionLabel';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
+
+const SCREEN_BG = require('../../assets/selector-background.png');
 
 export default function MemorialCreationScreen() {
   const { t } = useI18n();
@@ -71,119 +74,130 @@ export default function MemorialCreationScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* Top bar */}
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            hitSlop={12}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-          >
-            <Feather name="x" size={22} color={colors.textPrimary} />
-          </Pressable>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Header */}
-          <Text style={styles.title}>{t('creation.title')}</Text>
-          <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
-
-          {/* Portrait */}
-          <SectionLabel style={styles.fieldLabel}>{t('creation.portrait')}</SectionLabel>
-          <Pressable
-            onPress={onPickPortrait}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.portraitFrame, pressed && styles.pressed]}
-          >
-            {portraitUri ? (
-              <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.portraitPlaceholder}>
-                <Feather name="user" size={32} color={colors.brown} />
-                <Text style={styles.portraitHint}>{t('creation.pickPortrait')}</Text>
-              </View>
-            )}
-          </Pressable>
-          <View style={styles.portraitActions}>
-            <Pressable onPress={onPickPortrait} style={styles.portraitBtn}>
-              <Feather name="image" size={14} color={colors.moss} />
-              <Text style={styles.portraitBtnLabel}>
-                {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
-              </Text>
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              hitSlop={12}
+              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+            >
+              <Feather name="x" size={22} color={colors.textPrimary} />
             </Pressable>
-            {portraitUri ? (
-              <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
-                <Feather name="trash-2" size={14} color={colors.danger} />
-                <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
-                  {t('creation.removePortrait')}
-                </Text>
-              </Pressable>
-            ) : null}
           </View>
 
-          {/* Name */}
-          <AppInput
-            label={t('creation.name')}
-            value={name}
-            onChangeText={(v) => { setError(''); setName(v); }}
-            placeholder={t('creation.namePlaceholder')}
-            style={styles.fieldWrap}
-          />
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Title + subtitle above the form card */}
+            <Text style={styles.title}>{t('creation.title')}</Text>
+            <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
 
-          {/* Dates row */}
-          <View style={styles.row}>
-            <AppInput
-              label={t('creation.birth')}
-              value={birth}
-              onChangeText={setBirth}
-              placeholder={t('creation.datePlaceholder')}
-              style={styles.rowField}
-            />
-            <AppInput
-              label={t('creation.death')}
-              value={death}
-              onChangeText={setDeath}
-              placeholder={t('creation.datePlaceholder')}
-              style={styles.rowField}
-            />
-          </View>
+            {/* PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98) } */}
+            <View style={styles.formCardShadow}>
+              <View style={styles.formCard}>
 
-          {/* Description */}
-          <AppInput
-            label={t('creation.description')}
-            value={description}
-            onChangeText={setDescription}
-            placeholder={t('creation.descriptionPlaceholder')}
-            multiline
-            style={styles.fieldWrap}
-          />
+                {/* Portrait */}
+                <View>
+                  <Text style={styles.fieldLabel}>{t('creation.portrait')}</Text>
+                  <Pressable
+                    onPress={onPickPortrait}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [styles.portraitFrame, pressed && styles.pressed]}
+                  >
+                    {portraitUri ? (
+                      <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.portraitPlaceholder}>
+                        <Feather name="user" size={32} color={colors.brown} />
+                        <Text style={styles.portraitHint}>{t('creation.pickPortrait')}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                  <View style={styles.portraitActions}>
+                    <Pressable onPress={onPickPortrait} style={styles.portraitBtn}>
+                      <Feather name="image" size={14} color={colors.moss} />
+                      <Text style={styles.portraitBtnLabel}>
+                        {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                      </Text>
+                    </Pressable>
+                    {portraitUri ? (
+                      <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
+                        <Feather name="trash-2" size={14} color={colors.danger} />
+                        <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
+                          {t('creation.removePortrait')}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+                {/* Name */}
+                <AppInput
+                  label={t('creation.name')}
+                  value={name}
+                  onChangeText={(v) => { setError(''); setName(v); }}
+                  placeholder={t('creation.namePlaceholder')}
+                />
 
-          <AppButton label={t('creation.save')} onPress={onSave} style={styles.saveBtn} />
-          <AppButton
-            label={t('creation.cancel')}
-            onPress={() => navigation.goBack()}
-            variant="secondary"
-            style={styles.cancelBtn}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                {/* Dates row */}
+                <View style={styles.row}>
+                  <AppInput
+                    label={t('creation.birth')}
+                    value={birth}
+                    onChangeText={setBirth}
+                    placeholder={t('creation.datePlaceholder')}
+                    style={styles.rowField}
+                  />
+                  <AppInput
+                    label={t('creation.death')}
+                    value={death}
+                    onChangeText={setDeath}
+                    placeholder={t('creation.datePlaceholder')}
+                    style={styles.rowField}
+                  />
+                </View>
+
+                {/* Description */}
+                <AppInput
+                  label={t('creation.description')}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder={t('creation.descriptionPlaceholder')}
+                  multiline
+                />
+
+                {error ? <Text style={styles.error}>{error}</Text> : null}
+
+                {/* PWA: .primary-action { min-height:52px; border-radius:17px; bg:moss } */}
+                <AppButton label={t('creation.save')} onPress={onSave} />
+                {/* PWA: .secondary-action { min-height:48px; border-radius:16px } */}
+                <AppButton
+                  label={t('creation.cancel')}
+                  onPress={() => navigation.goBack()}
+                  variant="secondary"
+                />
+
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  bgWrap: { flex: 1 },
+  safe: { flex: 1 },
   flex: { flex: 1 },
 
   topBar: {
@@ -196,7 +210,8 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
 
   scroll: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 24,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xxxl,
   },
 
@@ -212,25 +227,45 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.label,
     color: colors.textMuted,
     fontStyle: 'italic',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
 
-  fieldLabel: {
-    marginBottom: spacing.xs,
+  // PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98); overflow:hidden }
+  // Shadow wrapper (shadow separate from overflow:hidden)
+  formCardShadow: {
+    borderRadius: 24,
+    ...shadows.soft,
   },
-  fieldWrap: { marginBottom: spacing.md },
-  row: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  formCard: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    padding: 16,
+    gap: 14,
+  },
+
+  // PWA: form-card label span { font-size:13px; font-weight:700; color:var(--text) }
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textBody,
+    marginBottom: 8,
+  },
+
+  row: { flexDirection: 'row', gap: spacing.sm },
   rowField: { flex: 1 },
 
   // Portrait
   portraitFrame: {
-    height: 200,
+    height: 180,
     borderRadius: radii.lg,
     overflow: 'hidden',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.divider,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   portraitImage: { width: '100%', height: '100%' },
   portraitPlaceholder: {
@@ -248,7 +283,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
-    marginBottom: spacing.lg,
   },
   portraitBtn: {
     flexDirection: 'row',
@@ -270,8 +304,5 @@ const styles = StyleSheet.create({
   error: {
     color: colors.danger,
     fontSize: typography.sizes.label,
-    marginBottom: spacing.sm,
   },
-  saveBtn: { marginTop: spacing.xs },
-  cancelBtn: { marginTop: spacing.sm },
 });

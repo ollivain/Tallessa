@@ -22,14 +22,14 @@ import {
   typography,
   spacing,
   radii,
-  screenStyles,
+  shadows,
 } from '../theme/designSystem';
-import ScreenHeader from '../components/ScreenHeader';
-import AppCard from '../components/AppCard';
+import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
-import SectionLabel from '../components/SectionLabel';
+
+const SCREEN_BG = require('../../assets/bg-muistot.png');
 import {
   pickImageFromLibrary,
   pickVideoFromLibrary,
@@ -38,7 +38,6 @@ import {
 import { uploadMedia, UploadError } from '../lib/uploadMedia';
 import { isSupabaseConfigured } from '../lib/supabase';
 
-// Modal mode: 'add' or 'edit'
 const MODE_ADD  = 'add';
 const MODE_EDIT = 'edit';
 
@@ -51,14 +50,13 @@ export default function MemoryWallScreen() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [media, setMedia] = useState(null);  // { type, uri, mimeType }
+  const [media, setMedia] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   const memories = activeMemorial?.memories ?? [];
 
   const mediaRef = useRef(null);
   useEffect(() => { mediaRef.current = media; }, [media]);
-  // Clean up draft media when the screen unmounts (add mode only)
   useEffect(() => () => {
     if (mediaRef.current?.uri && !mediaRef.current._persisted) {
       removePersistedMedia(mediaRef.current.uri);
@@ -79,7 +77,6 @@ export default function MemoryWallScreen() {
     setEditingId(memory.id);
     setTitle(memory.title ?? '');
     setBody(memory.body ?? '');
-    // Load existing media (mark as persisted so we don't delete on close)
     setMedia(
       memory.mediaUri
         ? { type: memory.mediaType, uri: memory.mediaUri, _persisted: true }
@@ -89,7 +86,6 @@ export default function MemoryWallScreen() {
   };
 
   const close = () => {
-    // Only clean up newly picked (not yet saved) media
     if (media?.uri && !media._persisted) removePersistedMedia(media.uri);
     setOpen(false);
     setTitle('');
@@ -99,7 +95,6 @@ export default function MemoryWallScreen() {
   };
 
   const swapMedia = (next) => {
-    // Remove the previous draft if it's new (not already saved to the memory)
     if (media?.uri && !media._persisted && media.uri !== next?.uri) {
       removePersistedMedia(media.uri);
     }
@@ -119,7 +114,6 @@ export default function MemoryWallScreen() {
   const save = async () => {
     if (!title.trim() && !body.trim() && !media) { close(); return; }
 
-    // Determine if media actually changed (new pick vs existing)
     const mediaChanged = media && !media._persisted;
     let uploaded = null;
     if (mediaChanged && isSupabaseConfigured()) {
@@ -147,7 +141,6 @@ export default function MemoryWallScreen() {
       mediaRemoteUrl: uploaded?.publicUrl ?? (media?._persisted ? undefined : null),
       mediaRemotePath: uploaded?.path ?? (media?._persisted ? undefined : null),
     };
-    // Remove undefined keys so existing values are preserved on update
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
     if (modalMode === MODE_EDIT && editingId) {
@@ -174,32 +167,37 @@ export default function MemoryWallScreen() {
           style: 'destructive',
           onPress: () => {
             deleteMemory(activeMemorial.id, memory.id);
-            if (memory.mediaRemotePath) {
-              // Remote cleanup is fire-and-forget; local file stays as-is
-            }
           },
         },
       ],
     );
   };
 
-  if (!activeMemorial) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <ScreenHeader title={t('wall.title')} subtitle={t('wall.subtitle')} />
-        <ScrollView contentContainerStyle={screenStyles.scroll}>
-          <EmptyStateCard eyebrow={t('wall.title')} body={t('wall.noMemorial')} />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScreenHeader title={t('wall.title')} subtitle={t('wall.subtitle')} />
+    <AppScreen scroll={false} background={SCREEN_BG} contentStyle={styles.noInnerPad}>
+      {/* PWA: topbar is position:static, scrolls with content */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* PWA: <h2> wall.title — transparent, no divider */}
+        <View style={styles.wallHeader}>
+          <Text style={styles.wallTitle}>{t('wall.title')}</Text>
+        </View>
 
-      <ScrollView contentContainerStyle={screenStyles.scroll}>
-        {memories.length === 0 ? (
+        {/* PWA: .add-card-toggle — card button with + circle and label */}
+        <Pressable
+          onPress={openAdd}
+          style={({ pressed }) => [styles.addToggle, pressed && styles.addTogglePressed]}
+          accessibilityRole="button"
+        >
+          <View style={styles.addIcon}>
+            <Text style={styles.addPlus}>+</Text>
+          </View>
+          <Text style={styles.addLabel}>{t('wall.add')}</Text>
+        </Pressable>
+
+        {/* Memory grid */}
+        {!activeMemorial ? (
+          <EmptyStateCard eyebrow={t('wall.title')} body={t('wall.noMemorial')} />
+        ) : memories.length === 0 ? (
           <EmptyStateCard eyebrow={t('wall.title')} body={t('wall.empty')} />
         ) : (
           <View style={styles.grid}>
@@ -214,17 +212,11 @@ export default function MemoryWallScreen() {
             ))}
           </View>
         )}
-
-        <AppButton
-          label={t('wall.add')}
-          onPress={openAdd}
-          style={styles.cta}
-        />
       </ScrollView>
 
       {/* Add / Edit Modal */}
       <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
           <KeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -242,7 +234,7 @@ export default function MemoryWallScreen() {
                 {modalMode === MODE_EDIT ? t('wall.edit') : t('wall.add')}
               </Text>
 
-              {/* Media preview */}
+              {/* Media preview — PWA: .memory-draft-preview { border-radius: 18px } */}
               <View style={styles.mediaPreviewBox}>
                 {media?.type === 'image' ? (
                   <Image source={{ uri: media.uri }} style={styles.mediaPreview} resizeMode="cover" />
@@ -311,46 +303,50 @@ export default function MemoryWallScreen() {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
+// PWA: .memory-card.card — overflow:hidden card, full-bleed media, body padding
 function MemoryCard({ memory, t, onEdit, onDelete }) {
   return (
-    <AppCard variant="soft">
-      {/* Action bar */}
-      <View style={styles.cardActions}>
-        <Pressable onPress={onEdit} hitSlop={8} style={styles.cardActionBtn}>
-          <Feather name="edit-2" size={14} color={colors.moss} />
-        </Pressable>
-        <Pressable onPress={onDelete} hitSlop={8} style={styles.cardActionBtn}>
-          <Feather name="trash-2" size={14} color={colors.danger} />
-        </Pressable>
+    // Shadow wrapper separate from overflow:hidden (RN clips shadow if overflow:hidden)
+    <View style={styles.memCardShadow}>
+      <View style={styles.memCard}>
+        {/* Full-bleed media — PWA: .memory-card .media-preview { min-height: 230px } */}
+        {memory.mediaUri && memory.mediaType === 'image' ? (
+          <Image source={{ uri: memory.mediaUri }} style={styles.memMedia} resizeMode="cover" />
+        ) : memory.mediaUri && memory.mediaType === 'video' ? (
+          <VideoClip uri={memory.mediaUri} style={styles.memMedia} />
+        ) : (
+          <View style={styles.memMediaPlaceholder} />
+        )}
+
+        {/* PWA: .delete-action — absolute pill buttons over media */}
+        <View style={styles.memActions}>
+          <Pressable onPress={onEdit} hitSlop={8} style={styles.memActionPill}>
+            <Feather name="edit-2" size={12} color={colors.moss} />
+          </Pressable>
+          <Pressable onPress={onDelete} hitSlop={8} style={[styles.memActionPill, styles.memDeletePill]}>
+            <Feather name="trash-2" size={12} color="#fffaf0" />
+          </Pressable>
+        </View>
+
+        {/* PWA: .memory-body { padding: 16px } */}
+        <View style={styles.memBody}>
+          {/* PWA: .date-line — brown, serif, italic */}
+          {memory.date ? (
+            <Text style={styles.dateLine}>{memory.date}</Text>
+          ) : null}
+          {memory.title ? (
+            <Text style={styles.memTitle}>{memory.title}</Text>
+          ) : null}
+          {memory.body ? (
+            <Text style={styles.memBodyText} numberOfLines={5}>{memory.body}</Text>
+          ) : null}
+        </View>
       </View>
-
-      {/* Media */}
-      {memory.mediaUri && memory.mediaType === 'image' ? (
-        <Image source={{ uri: memory.mediaUri }} style={styles.thumb} resizeMode="cover" />
-      ) : memory.mediaUri && memory.mediaType === 'video' ? (
-        <VideoClip uri={memory.mediaUri} style={styles.thumb} />
-      ) : (
-        <View style={styles.thumbPlaceholder}>
-          <Feather name="image" size={22} color={colors.brown} />
-        </View>
-      )}
-
-      {memory.title ? (
-        <Text style={styles.memoryTitle}>{memory.title}</Text>
-      ) : null}
-      {memory.body ? (
-        <Text style={styles.memoryBody} numberOfLines={3}>{memory.body}</Text>
-      ) : null}
-      {memory.date ? (
-        <View style={styles.datePillWrap}>
-          <SectionLabel variant="pill">{memory.date}</SectionLabel>
-        </View>
-      ) : null}
-    </AppCard>
+    </View>
   );
 }
 
@@ -360,52 +356,147 @@ function VideoClip({ uri, style }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
+  noInnerPad: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
+  // PWA: screen padding matches shell + topbar reset (padding-top: 6px after static reset)
+  scrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: 150,
+  },
 
-  grid: { gap: spacing.md, marginBottom: spacing.lg },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
+  // PWA: .topbar { h2 } — transparent, static, large serif title
+  wallHeader: {
+    paddingTop: 6,
+    paddingBottom: 14,
   },
-  cardActionBtn: {
-    padding: 6,
-    borderRadius: radii.xs,
-    backgroundColor: colors.surface,
+  wallTitle: {
+    fontFamily: typography.serif,
+    fontSize: 36,
+    lineHeight: 37,
+    fontWeight: '400',
+    color: colors.textPrimary,
+    letterSpacing: 0.2,
   },
-  thumb: {
-    height: 180,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
-    marginBottom: spacing.sm,
-  },
-  thumbPlaceholder: {
-    height: 96,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
+
+  // PWA: .add-card-toggle — white card, 96px, + circle, label
+  addToggle: {
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    gap: 8,
+    minHeight: 96,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    marginBottom: 12,
+    ...shadows.card,
   },
-  memoryTitle: {
-    fontFamily: typography.serif,
-    fontSize: typography.sizes.bodyLarge,
+  addTogglePressed: { transform: [{ scale: 0.99 }], opacity: 0.95 },
+  addIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.moss,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPlus: {
+    fontSize: 27,
+    fontWeight: '600',
+    color: colors.textOnPrimary,
+    lineHeight: 32,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  addLabel: {
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.textPrimary,
-    fontWeight: typography.weights.medium,
+  },
+
+  // PWA: .memory-grid { gap: 12px }
+  grid: { gap: 12 },
+
+  // Shadow wrapper (shadow separate from overflow:hidden)
+  memCardShadow: {
+    borderRadius: 24,
+    ...shadows.soft,
+  },
+  // PWA: .memory-card.card — overflow:hidden, border-radius:24px, border:1px var(--line), bg rgba(255,250,240,0.98)
+  memCard: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+  },
+  // PWA: .memory-card .media-preview { min-height: 230px; background-color: var(--sand) }
+  memMedia: {
+    width: '100%',
+    height: 230,
+  },
+  memMediaPlaceholder: {
+    width: '100%',
+    height: 230,
+    backgroundColor: colors.surface,
+  },
+  // PWA: .delete-action { position:absolute; top:12px; right:12px; border-radius:999px }
+  memActions: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    gap: 6,
+    zIndex: 2,
+  },
+  memActionPill: {
+    minHeight: 36,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    borderWidth: 1,
+    borderColor: colors.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // PWA: .delete-action { background: rgba(143,77,56,0.92) }
+  memDeletePill: {
+    backgroundColor: 'rgba(143, 77, 56, 0.92)',
+    borderColor: 'transparent',
+  },
+  // PWA: .memory-body { padding: 16px }
+  memBody: {
+    padding: 16,
+  },
+  // PWA: .date-line { font-family:serif; font-size:1.12rem; font-style:italic; font-weight:500; color:var(--brown) }
+  dateLine: {
+    fontFamily: typography.serif,
+    fontSize: 18,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    color: colors.brown,
+    lineHeight: 21,
+    marginBottom: 6,
+  },
+  memTitle: {
+    fontFamily: typography.serif,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    lineHeight: 20,
     marginBottom: 4,
   },
-  memoryBody: {
-    fontSize: typography.sizes.label,
+  // PWA: .memory-body p { color:var(--muted); line-height:1.6 }
+  memBodyText: {
     color: colors.textMuted,
-    lineHeight: typography.lineHeights.body,
-    marginTop: 4,
+    fontSize: 15,
+    lineHeight: 24,
   },
-  datePillWrap: { marginTop: spacing.sm },
-  cta: { marginTop: spacing.md },
 
   // Modal
+  modalSafe: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   modalBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -422,13 +513,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     letterSpacing: 0.3,
   },
+  // PWA: .memory-draft-preview { border-radius: 18px }
   mediaPreviewBox: {
-    borderRadius: radii.md,
+    borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: colors.surface,
     marginBottom: spacing.sm,
   },
-  mediaPreview: { width: '100%', height: 220 },
+  // PWA: .memory-draft-preview .media-preview { min-height: 230px }
+  mediaPreview: { width: '100%', height: 230 },
   mediaPlaceholder: {
     width: '100%',
     height: 140,

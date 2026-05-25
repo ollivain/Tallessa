@@ -31,10 +31,10 @@ export const colors = {
   brown: '#9a7657',             // --brown / --color-accent
   brownSoft: '#b89b70',
 
-  // Lines / overlays
-  divider: 'rgba(79, 83, 62, 0.14)',     // --line
-  cardBorder: 'rgba(255, 250, 240, 0.74)',
-  cardBorderSoft: 'rgba(255, 250, 240, 0.92)',
+  // Lines / overlays — values from PWA styles.css --line and card border overrides
+  divider: 'rgba(79, 83, 62, 0.14)',      // --line (base card border, input border)
+  cardBorder: 'rgba(255, 250, 240, 0.72)', // .memory-of-day, .daily-quote border-color
+  cardBorderSoft: 'rgba(255, 250, 240, 0.72)', // warm variant border
   hairline: 'rgba(48, 56, 45, 0.10)',
 
   // Hero gradient (stacked overlays — RN has no native gradient without an
@@ -52,12 +52,12 @@ export const colors = {
   pillBg: 'rgba(224, 216, 196, 0.78)',
   pillText: 'rgba(48, 56, 45, 0.82)',
 
-  // Tab bar
-  tabBg: 'rgba(255, 250, 240, 0.96)',
+  // Tab bar — PWA: background: rgba(255,250,240,0.78) backdrop-filter blur
+  tabBg: 'rgba(255, 250, 240, 0.78)',
   tabBgInactive: 'rgba(255, 250, 240, 0.78)',
   tabActiveBg: 'rgba(88, 98, 68, 0.10)',
   tabActiveText: '#26352a',
-  tabInactiveText: '#7a6555',
+  tabInactiveText: 'rgba(101, 105, 93, 0.72)',  // color-mix(muted 72%, cream 28%)
 
   // Feedback
   danger: '#8f4d38',
@@ -133,7 +133,7 @@ export const radii = {
   pill: 999,
   xs: 8,
   sm: 12,
-  md: 16,
+  md: 17,  // PWA: .primary-action, .section-button { border-radius: 17px }
   lg: 20,
   xl: 24,        // matches --card-radius equivalent in web (24px)
   xxl: 28,       // hero card
@@ -143,24 +143,37 @@ export const radii = {
 // Shadows tuned to the warm/sepia feel of the web (soft brown shadow rather
 // than the default cold black RN drop shadow).
 export const shadows = {
+  // PWA --soft-shadow: 0 12px 30px rgba(83,73,55,0.08)
   soft: Platform.select({
     ios: {
-      shadowColor: '#5a4a2a',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.10,
-      shadowRadius: 18,
+      shadowColor: '#534937',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
     },
     android: { elevation: 2 },
     default: {},
   }),
+  // PWA --shadow: 0 18px 48px rgba(83,73,55,0.13)
   card: Platform.select({
     ios: {
-      shadowColor: '#5a4a2a',
-      shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.14,
-      shadowRadius: 26,
+      shadowColor: '#534937',
+      shadowOffset: { width: 0, height: 18 },
+      shadowOpacity: 0.13,
+      shadowRadius: 16,
     },
     android: { elevation: 4 },
+    default: {},
+  }),
+  // PWA .primary-action: box-shadow 0 13px 30px rgba(88,98,68,0.18)
+  button: Platform.select({
+    ios: {
+      shadowColor: '#586244',
+      shadowOffset: { width: 0, height: 13 },
+      shadowOpacity: 0.18,
+      shadowRadius: 10,
+    },
+    android: { elevation: 6 },
     default: {},
   }),
   hero: Platform.select({
@@ -173,25 +186,27 @@ export const shadows = {
     android: { elevation: 8 },
     default: {},
   }),
+  // PWA: box-shadow 0 -8px 26px rgba(55,48,35,0.08)
   tabBar: Platform.select({
     ios: {
-      shadowColor: '#3a2f1c',
-      shadowOffset: { width: 0, height: -6 },
-      shadowOpacity: 0.10,
-      shadowRadius: 18,
+      shadowColor: '#373023',
+      shadowOffset: { width: 0, height: -8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
     },
-    android: { elevation: 12 },
+    android: { elevation: 8 },
     default: {},
   }),
 };
 
 // Reusable style fragments.
 export const cardStyles = {
+  // PWA: .card { border: 1px solid var(--line) } — dark subtle border
   base: {
     backgroundColor: colors.card,
     borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.divider,
     padding: spacing.md,
     ...shadows.soft,
   },
@@ -199,21 +214,23 @@ export const cardStyles = {
     backgroundColor: colors.card,
     borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.divider,
     padding: spacing.md,
     ...shadows.card,
   },
+  // PWA: .daily-quote { border-color: rgba(255,250,240,0.72) } — light border
   warm: {
     backgroundColor: colors.cardWarm,
     borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: colors.cardBorderSoft,
+    borderColor: colors.cardBorder,
     padding: spacing.md,
     ...shadows.soft,
   },
 };
 
 export const buttonStyles = {
+  // PWA: .primary-action { border-radius: 17px; box-shadow: 0 13px 30px rgba(88,98,68,0.18) }
   primary: {
     minHeight: 52,
     paddingHorizontal: spacing.lg,
@@ -221,7 +238,7 @@ export const buttonStyles = {
     backgroundColor: colors.moss,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.soft,
+    ...shadows.button,
   },
   primaryLabel: {
     color: colors.textOnPrimary,
@@ -289,14 +306,16 @@ export const screenStyles = {
     backgroundColor: colors.background,
   },
   // Content container for ScrollView with comfortable side gutters.
+  // PWA: phone-shell padding-bottom: calc(150px + safe-area-bottom)
   scroll: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: 120, // leaves room for the floating-ish tab bar
+    paddingBottom: 150,
   },
 };
 
 // Tab bar styling (consumed by MainTabs.js).
+// PWA: .bottom-nav button { border-radius: 15px } .bottom-nav { background: rgba(255,250,240,0.78) }
 export const tabBarStyle = {
   container: {
     backgroundColor: colors.tabBg,

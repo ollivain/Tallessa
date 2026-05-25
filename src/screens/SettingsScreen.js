@@ -1,5 +1,4 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
@@ -7,13 +6,13 @@ import {
   colors,
   typography,
   spacing,
-  radii,
-  screenStyles,
+  shadows,
 } from '../theme/designSystem';
-import ScreenHeader from '../components/ScreenHeader';
+import AppScreen from '../components/AppScreen';
 import AppCard from '../components/AppCard';
-import SectionLabel from '../components/SectionLabel';
 import { clearAllData } from '../storage/storage';
+
+const SCREEN_BG = require('../../assets/bg-asetukset.png');
 
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useI18n();
@@ -57,67 +56,75 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScreenHeader title={t('settings.title')} />
+    <AppScreen scroll={false} background={SCREEN_BG} contentStyle={styles.noInnerPad}>
+      {/* PWA: topbar is position:static, scrolls with content */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-      <ScrollView contentContainerStyle={screenStyles.scroll}>
+        {/* PWA: transparent h2 header, no divider */}
+        <View style={styles.wallHeader}>
+          <Text style={styles.wallTitle}>{t('settings.title')}</Text>
+        </View>
 
-        {/* Language */}
-        <SectionLabel style={styles.groupLabel}>{t('settings.language')}</SectionLabel>
-        <AppCard variant="soft" style={styles.groupCard}>
-          <View style={styles.langRow}>
-            <LanguagePill
-              label={t('settings.languageFi')}
-              active={language === 'fi'}
-              onPress={() => setLanguage('fi')}
-            />
-            <LanguagePill
-              label={t('settings.languageEn')}
-              active={language === 'en'}
-              onPress={() => setLanguage('en')}
-            />
-          </View>
-        </AppCard>
+        {/* PWA: .memory-switch-button.memory-place-switch — pill outside the form card */}
+        <Pressable
+          onPress={clearActive}
+          style={({ pressed }) => [styles.switchPill, pressed && styles.switchPillPressed]}
+          accessibilityRole="button"
+        >
+          <Text style={styles.switchPillLabel}>{t('settings.switchMemorial')}</Text>
+        </Pressable>
 
-        {/* Active memorial */}
-        <SectionLabel style={styles.groupLabel}>{t('settings.memorial')}</SectionLabel>
-        <AppCard variant="soft" style={styles.groupCard}>
-          {activeMemorial ? (
-            <View style={styles.memorialInfo}>
-              <Text style={styles.memorialName}>{activeMemorial.name}</Text>
-              {activeMemorial.description ? (
-                <Text style={styles.memorialDesc}>{activeMemorial.description}</Text>
-              ) : null}
-            </View>
-          ) : null}
+        {/* PWA: .form-card.card — main settings card */}
+        <View style={styles.formCardShadow}>
+          <View style={styles.formCard}>
 
-          <Pressable
-            onPress={clearActive}
-            style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
-          >
-            <View style={styles.linkIcon}>
-              <Feather name="repeat" size={16} color={colors.textOnPrimary} />
-            </View>
-            <Text style={styles.linkText}>{t('settings.switchMemorial')}</Text>
-            <Feather name="chevron-right" size={16} color={colors.textMuted} />
-          </Pressable>
-
-          {activeMemorial ? (
-            <Pressable
-              onPress={onDeleteMemorial}
-              style={({ pressed }) => [styles.dangerLinkRow, pressed && styles.pressed]}
-            >
-              <View style={styles.dangerIcon}>
-                <Feather name="trash-2" size={16} color={colors.danger} />
+            {/* Language — PWA: label + select */}
+            <View>
+              <Text style={styles.fieldLabel}>{t('settings.language')}</Text>
+              <View style={styles.langRow}>
+                <LanguagePill
+                  label={t('settings.languageFi')}
+                  active={language === 'fi'}
+                  onPress={() => setLanguage('fi')}
+                />
+                <LanguagePill
+                  label={t('settings.languageEn')}
+                  active={language === 'en'}
+                  onPress={() => setLanguage('en')}
+                />
               </View>
-              <Text style={styles.dangerLinkText}>{t('settings.deleteMemorial')}</Text>
-            </Pressable>
-          ) : null}
-        </AppCard>
+            </View>
 
-        {/* About */}
-        <SectionLabel style={styles.groupLabel}>{t('settings.about')}</SectionLabel>
-        <AppCard variant="warm" style={styles.groupCard}>
+            {/* Active memorial info — PWA: horseName + description fields */}
+            {activeMemorial ? (
+              <View>
+                <Text style={styles.fieldLabel}>{t('settings.memorial')}</Text>
+                <Text style={styles.memorialName}>{activeMemorial.name}</Text>
+                {activeMemorial.description ? (
+                  <Text style={styles.memorialDesc}>{activeMemorial.description}</Text>
+                ) : null}
+              </View>
+            ) : null}
+
+            {/* PWA: .danger-zone — delete memorial */}
+            {activeMemorial ? (
+              <View style={styles.dangerZone}>
+                <Pressable
+                  onPress={onDeleteMemorial}
+                  style={({ pressed }) => [styles.dangerAction, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.dangerActionText}>{t('settings.deleteMemorial')}</Text>
+                </Pressable>
+                <Text style={styles.dangerNote}>{t('memorial.deleteBody')}</Text>
+              </View>
+            ) : null}
+
+          </View>
+        </View>
+
+        {/* About — warm card */}
+        <AppCard variant="warm" style={styles.aboutCard}>
           <Text style={styles.aboutBody}>{t('settings.aboutBody')}</Text>
           <View style={styles.versionRow}>
             <Feather name="info" size={13} color={colors.textSoft} />
@@ -125,23 +132,21 @@ export default function SettingsScreen() {
           </View>
         </AppCard>
 
-        {/* Developer */}
-        <SectionLabel style={styles.groupLabel}>{t('settings.devSection')}</SectionLabel>
-        <AppCard variant="soft" style={styles.groupCard}>
-          <Pressable
-            onPress={onClearAll}
-            style={({ pressed }) => [styles.dangerRow, pressed && styles.pressed]}
-          >
-            <View style={styles.dangerRowIcon}>
-              <Feather name="trash-2" size={16} color={colors.danger} />
-            </View>
-            <Text style={styles.dangerText}>{t('settings.clearAll')}</Text>
-            <Feather name="chevron-right" size={16} color={colors.danger} style={{ opacity: 0.5 }} />
-          </Pressable>
-        </AppCard>
+        {/* Developer — PWA-style danger zone card */}
+        <View style={styles.formCardShadow}>
+          <View style={styles.formCard}>
+            <Pressable
+              onPress={onClearAll}
+              style={({ pressed }) => [styles.dangerAction, pressed && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.dangerActionText}>{t('settings.clearAll')}</Text>
+            </Pressable>
+          </View>
+        </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -154,6 +159,7 @@ function LanguagePill({ label, active, onPress }) {
         active && styles.langPillActive,
         pressed && styles.pressed,
       ]}
+      accessibilityRole="button"
     >
       <Text style={[styles.langPillLabel, active && styles.langPillLabelActive]}>{label}</Text>
     </Pressable>
@@ -161,102 +167,154 @@ function LanguagePill({ label, active, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  noInnerPad: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
+  scrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: 150,
+  },
 
-  groupLabel: { marginBottom: spacing.xs, marginLeft: 2 },
-  groupCard: { marginBottom: spacing.lg },
+  // PWA: transparent static h2 (same pattern as Wall, Letters, Calendar)
+  wallHeader: {
+    paddingTop: 6,
+    paddingBottom: 14,
+  },
+  wallTitle: {
+    fontFamily: typography.serif,
+    fontSize: 36,
+    lineHeight: 37,
+    fontWeight: '400',
+    color: colors.textPrimary,
+    letterSpacing: 0.2,
+  },
 
-  // Language
+  // PWA: .memory-switch-button { min-height:38px; padding:0 14px; border-radius:999px;
+  //   bg:rgba(255,252,244,.76); border:1px solid rgba(255,255,255,.72);
+  //   color:var(--muted); font-size:0.76rem; font-weight:800; text-transform:uppercase }
+  switchPill: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 252, 244, 0.76)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  switchPillPressed: { opacity: 0.72 },
+  switchPillLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
+
+  // PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px;
+  //   bg:rgba(255,250,240,.98); border:1px solid var(--line); overflow:hidden }
+  // Shadow wrapper (shadow separate from overflow:hidden)
+  formCardShadow: {
+    borderRadius: 24,
+    marginBottom: 14,
+    ...shadows.soft,
+  },
+  formCard: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    padding: 16,
+    gap: 14,
+  },
+
+  // PWA: form-card label > span { font-size:13px; font-weight:700; color:var(--text) }
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textBody,
+    marginBottom: 8,
+  },
+
+  // Language pills (native equivalent of PWA select)
   langRow: { flexDirection: 'row', gap: spacing.sm },
   langPill: {
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    borderRadius: radii.pill,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.divider,
     backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   langPillActive: { backgroundColor: colors.moss, borderColor: colors.moss },
   pressed: { opacity: 0.72 },
   langPillLabel: {
-    fontSize: typography.sizes.label,
+    fontSize: 13,
     color: colors.moss,
-    fontWeight: typography.weights.semibold,
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   langPillLabelActive: { color: colors.textOnPrimary },
 
-  // Memorial info
-  memorialInfo: {
-    marginBottom: spacing.sm,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
+  // Memorial info (display only in native — form fields in PWA)
   memorialName: {
     fontFamily: typography.serif,
-    fontSize: typography.sizes.title,
+    fontSize: 20,
     color: colors.textPrimary,
-    fontWeight: typography.weights.regular,
+    fontWeight: '400',
+    marginBottom: 4,
   },
   memorialDesc: {
-    marginTop: 4,
-    fontSize: typography.sizes.label,
+    fontSize: 13,
     color: colors.textMuted,
-    lineHeight: typography.lineHeights.body,
+    lineHeight: 20,
     fontStyle: 'italic',
   },
 
-  // Switch link row
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  linkIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkText: {
-    flex: 1,
-    fontSize: typography.sizes.body,
-    color: colors.textPrimary,
-    fontWeight: typography.weights.medium,
+  // PWA: .danger-zone { gap:8px; margin-top:6px; border-top:1px solid rgba(143,77,56,.16); padding-top:18px }
+  dangerZone: {
+    marginTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(143, 77, 56, 0.16)',
+    paddingTop: 18,
+    gap: 8,
   },
 
-  // Delete memorial link row (inside memorial card)
-  dangerLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 4,
-  },
-  dangerIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(143, 77, 56, 0.10)',
+  // PWA: .danger-action { min-height:48px; border-radius:16px; padding:0 16px;
+  //   font-weight:800; border:1px solid rgba(143,77,56,.28); color:#8f4d38; bg:rgba(252,236,230,.72) }
+  dangerAction: {
+    minHeight: 48,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(143, 77, 56, 0.28)',
+    backgroundColor: 'rgba(252, 236, 230, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dangerLinkText: {
-    flex: 1,
+  dangerActionText: {
     fontSize: typography.sizes.body,
-    color: colors.danger,
-    fontWeight: typography.weights.medium,
+    fontWeight: '800',
+    color: '#8f4d38',
+  },
+
+  // PWA: .danger-zone p:last-child { color:var(--muted); font-size:0.82rem; line-height:1.45 }
+  dangerNote: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
   },
 
   // About
+  aboutCard: { marginBottom: 14 },
   aboutBody: {
-    fontSize: typography.sizes.label,
+    fontSize: 13,
     color: colors.textMuted,
-    lineHeight: typography.lineHeights.body,
+    lineHeight: 20,
     fontStyle: 'italic',
     marginBottom: spacing.sm,
   },
@@ -266,30 +324,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   version: {
-    fontSize: typography.sizes.eyebrow,
+    fontSize: 11,
     color: colors.textSoft,
     letterSpacing: 0.8,
-  },
-
-  // Dev danger section
-  dangerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 4,
-  },
-  dangerRowIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(143, 77, 56, 0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dangerText: {
-    flex: 1,
-    fontSize: typography.sizes.body,
-    color: colors.danger,
-    fontWeight: typography.weights.medium,
   },
 });

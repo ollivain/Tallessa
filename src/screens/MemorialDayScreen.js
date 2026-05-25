@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -29,6 +30,8 @@ import AppInput from '../components/AppInput';
 import SectionLabel from '../components/SectionLabel';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 
+const SCREEN_BG = require('../../assets/bg-koti.png');
+
 // Simple Finnish possessive: "Aino" → "Ainon", "Olaf" → "Olafin"
 function toPossessive(name, language) {
   if (!name) return '';
@@ -43,7 +46,6 @@ export default function MemorialDayScreen() {
   const { activeMemorial, updateMemorial, setCandleLit, deleteMemorial, clearActive } = useMemorials();
 
   const [editOpen, setEditOpen] = useState(false);
-  // Edit form state
   const [name, setName] = useState('');
   const [birth, setBirth] = useState('');
   const [death, setDeath] = useState('');
@@ -51,7 +53,6 @@ export default function MemorialDayScreen() {
   const [portraitUri, setPortraitUri] = useState(null);
   const [savedPortrait, setSavedPortrait] = useState(false);
 
-  // Populate edit form when modal opens
   useEffect(() => {
     if (editOpen && activeMemorial) {
       setName(activeMemorial.name ?? '');
@@ -59,7 +60,7 @@ export default function MemorialDayScreen() {
       setDeath(activeMemorial.death ?? '');
       setDescription(activeMemorial.description ?? '');
       setPortraitUri(activeMemorial.portraitUri ?? null);
-      setSavedPortrait(true); // don't delete existing portrait on unmount
+      setSavedPortrait(true);
     }
   }, [editOpen, activeMemorial]);
 
@@ -127,14 +128,16 @@ export default function MemorialDayScreen() {
 
   if (!activeMemorial) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <ScrollView contentContainerStyle={screenStyles.scroll}>
-          <AppCard variant="soft">
-            <Text style={styles.emptyTitle}>{t('selection.title')}</Text>
-            <Text style={styles.emptyBody}>{t('wall.noMemorial')}</Text>
-          </AppCard>
-        </ScrollView>
-      </SafeAreaView>
+      <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <ScrollView contentContainerStyle={screenStyles.scroll}>
+            <AppCard variant="soft">
+              <Text style={styles.emptyTitle}>{t('selection.title')}</Text>
+              <Text style={styles.emptyBody}>{t('wall.noMemorial')}</Text>
+            </AppCard>
+          </ScrollView>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
@@ -146,207 +149,216 @@ export default function MemorialDayScreen() {
   const candle = activeMemorial.candleLit;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={screenStyles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Portrait */}
-        <View style={styles.portraitWrap}>
-          {activeMemorial.portraitUri ? (
-            <Image
-              source={{ uri: activeMemorial.portraitUri }}
-              style={styles.portrait}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.portraitPlaceholder}>
-              <Feather name="user" size={48} color={colors.brown} />
-            </View>
-          )}
-          {/* Edit button overlay */}
-          <Pressable
-            onPress={openEdit}
-            style={({ pressed }) => [styles.editBadge, pressed && { opacity: 0.75 }]}
-            hitSlop={8}
-          >
-            <Feather name="edit-2" size={14} color={colors.textOnPrimary} />
-          </Pressable>
-        </View>
-
-        {/* Title */}
-        <Text style={styles.pageTitle}>{pageTitle}</Text>
-        <View style={styles.titleRule} />
-
-        {/* Info card */}
-        <AppCard variant="soft" style={styles.infoCard}>
-          <Text style={styles.memorialName}>{activeMemorial.name}</Text>
-          <View style={styles.datesRow}>
-            {activeMemorial.birth ? (
-              <View style={styles.dateItem}>
-                <SectionLabel>{t('memorial.born')}</SectionLabel>
-                <Text style={styles.dateText}>{activeMemorial.birth}</Text>
-              </View>
-            ) : null}
-            {activeMemorial.birth && activeMemorial.death ? (
-              <View style={styles.dateSep} />
-            ) : null}
-            {activeMemorial.death ? (
-              <View style={styles.dateItem}>
-                <SectionLabel>{t('memorial.died')}</SectionLabel>
-                <Text style={styles.dateText}>{activeMemorial.death}</Text>
-              </View>
-            ) : null}
-          </View>
-        </AppCard>
-
-        {/* Description / note */}
-        <AppCard variant="warm" style={styles.noteCard}>
-          {activeMemorial.description ? (
-            <Text style={styles.noteText}>{activeMemorial.description}</Text>
-          ) : (
-            <Text style={styles.noteEmpty}>{t('memorial.noDescription')}</Text>
-          )}
-        </AppCard>
-
-        {/* Candle section */}
-        <AppCard
-          variant="soft"
-          onPress={onToggleCandle}
-          style={styles.candleCard}
+    <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <ScrollView
+          contentContainerStyle={screenStyles.scroll}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.candleRow}>
-            <Text style={styles.candleEmoji}>{candle ? '🕯️' : '🕯'}</Text>
-            <View style={styles.candleInfo}>
-              <Text style={styles.candleLabel}>
-                {candle ? t('memorial.candleLit') : t('memorial.candleLight')}
-              </Text>
-              {candle ? (
-                <Text style={styles.candleHint}>
-                  {language === 'fi' ? 'Paina sammuttaaksesi' : 'Tap to extinguish'}
-                </Text>
-              ) : (
-                <Text style={styles.candleHint}>
-                  {language === 'fi' ? 'Paina sytyttääksesi' : 'Tap to light'}
-                </Text>
-              )}
-            </View>
-            <Feather
-              name={candle ? 'sun' : 'moon'}
-              size={20}
-              color={candle ? colors.brown : colors.textSoft}
-            />
-          </View>
-        </AppCard>
-
-        {/* Delete memorial */}
-        <Pressable
-          onPress={onDeleteMemorial}
-          style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}
-        >
-          <Feather name="trash-2" size={15} color={colors.danger} />
-          <Text style={styles.deleteText}>{t('memorial.deleteTitle')}</Text>
-        </Pressable>
-      </ScrollView>
-
-      {/* Edit Modal */}
-      <Modal visible={editOpen} animationType="slide" onRequestClose={closeEdit} transparent={false}>
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <View style={styles.modalBar}>
-              <Pressable onPress={closeEdit} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={colors.textPrimary} />
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerStyle={styles.modalScroll}
-              keyboardShouldPersistTaps="handled"
+          {/* Portrait */}
+          <View style={styles.portraitWrap}>
+            {activeMemorial.portraitUri ? (
+              <Image
+                source={{ uri: activeMemorial.portraitUri }}
+                style={styles.portrait}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.portraitPlaceholder}>
+                <Feather name="user" size={48} color={colors.brown} />
+              </View>
+            )}
+            <Pressable
+              onPress={openEdit}
+              style={({ pressed }) => [styles.editBadge, pressed && { opacity: 0.75 }]}
+              hitSlop={8}
             >
-              <Text style={styles.modalTitle}>{t('memorial.editTitle')}</Text>
+              <Feather name="edit-2" size={14} color={colors.textOnPrimary} />
+            </Pressable>
+          </View>
 
-              {/* Portrait picker */}
-              <SectionLabel style={styles.fieldLabel}>{t('creation.portrait')}</SectionLabel>
-              <Pressable
-                onPress={onPickPortrait}
-                style={({ pressed }) => [styles.portraitFrame, pressed && { opacity: 0.8 }]}
-              >
-                {portraitUri ? (
-                  <Image source={{ uri: portraitUri }} style={styles.portraitFrameImg} resizeMode="cover" />
-                ) : (
-                  <View style={styles.portraitFramePlaceholder}>
-                    <Feather name="user" size={28} color={colors.brown} />
-                  </View>
-                )}
-              </Pressable>
-              <View style={styles.portraitActions}>
-                <Pressable onPress={onPickPortrait} style={styles.smallBtn}>
-                  <Feather name="image" size={13} color={colors.moss} />
-                  <Text style={styles.smallBtnLabel}>
-                    {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+          {/* Title */}
+          <Text style={styles.pageTitle}>{pageTitle}</Text>
+          <View style={styles.titleRule} />
+
+          {/* Info card */}
+          <AppCard variant="soft" style={styles.infoCard}>
+            <Text style={styles.memorialName}>{activeMemorial.name}</Text>
+            <View style={styles.datesRow}>
+              {activeMemorial.birth ? (
+                <View style={styles.dateItem}>
+                  <SectionLabel>{t('memorial.born')}</SectionLabel>
+                  <Text style={styles.dateText}>{activeMemorial.birth}</Text>
+                </View>
+              ) : null}
+              {activeMemorial.birth && activeMemorial.death ? (
+                <View style={styles.dateSep} />
+              ) : null}
+              {activeMemorial.death ? (
+                <View style={styles.dateItem}>
+                  <SectionLabel>{t('memorial.died')}</SectionLabel>
+                  <Text style={styles.dateText}>{activeMemorial.death}</Text>
+                </View>
+              ) : null}
+            </View>
+          </AppCard>
+
+          {/* Description / note */}
+          <AppCard variant="warm" style={styles.noteCard}>
+            {activeMemorial.description ? (
+              <Text style={styles.noteText}>{activeMemorial.description}</Text>
+            ) : (
+              <Text style={styles.noteEmpty}>{t('memorial.noDescription')}</Text>
+            )}
+          </AppCard>
+
+          {/* Candle section */}
+          <AppCard
+            variant="soft"
+            onPress={onToggleCandle}
+            style={styles.candleCard}
+          >
+            <View style={styles.candleRow}>
+              <Text style={styles.candleEmoji}>{candle ? '🕯️' : '🕯'}</Text>
+              <View style={styles.candleInfo}>
+                <Text style={styles.candleLabel}>
+                  {candle ? t('memorial.candleLit') : t('memorial.candleLight')}
+                </Text>
+                {candle ? (
+                  <Text style={styles.candleHint}>
+                    {language === 'fi' ? 'Paina sammuttaaksesi' : 'Tap to extinguish'}
                   </Text>
+                ) : (
+                  <Text style={styles.candleHint}>
+                    {language === 'fi' ? 'Paina sytyttääksesi' : 'Tap to light'}
+                  </Text>
+                )}
+              </View>
+              <Feather
+                name={candle ? 'sun' : 'moon'}
+                size={20}
+                color={candle ? colors.brown : colors.textSoft}
+              />
+            </View>
+          </AppCard>
+
+          {/* Delete memorial */}
+          <Pressable
+            onPress={onDeleteMemorial}
+            style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}
+          >
+            <Feather name="trash-2" size={15} color={colors.danger} />
+            <Text style={styles.deleteText}>{t('memorial.deleteTitle')}</Text>
+          </Pressable>
+        </ScrollView>
+
+        {/* Edit Modal */}
+        <Modal visible={editOpen} animationType="slide" onRequestClose={closeEdit} transparent={false}>
+          <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
+            <KeyboardAvoidingView
+              style={styles.flex}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+              <View style={styles.modalBar}>
+                <Pressable onPress={closeEdit} hitSlop={12} style={styles.iconBtn}>
+                  <Feather name="x" size={22} color={colors.textPrimary} />
                 </Pressable>
-                {portraitUri ? (
-                  <Pressable onPress={onRemovePortrait} style={styles.smallBtn}>
-                    <Feather name="trash-2" size={13} color={colors.danger} />
-                    <Text style={[styles.smallBtnLabel, { color: colors.danger }]}>
-                      {t('creation.removePortrait')}
-                    </Text>
-                  </Pressable>
-                ) : null}
               </View>
+              <ScrollView
+                contentContainerStyle={styles.modalScroll}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.modalTitle}>{t('memorial.editTitle')}</Text>
 
-              <AppInput
-                label={t('creation.name')}
-                value={name}
-                onChangeText={setName}
-                placeholder={t('creation.namePlaceholder')}
-                style={styles.inputWrap}
-              />
-              <View style={styles.row}>
-                <AppInput
-                  label={t('creation.birth')}
-                  value={birth}
-                  onChangeText={setBirth}
-                  placeholder={t('creation.datePlaceholder')}
-                  style={styles.rowField}
-                />
-                <AppInput
-                  label={t('creation.death')}
-                  value={death}
-                  onChangeText={setDeath}
-                  placeholder={t('creation.datePlaceholder')}
-                  style={styles.rowField}
-                />
-              </View>
-              <AppInput
-                label={t('creation.description')}
-                value={description}
-                onChangeText={setDescription}
-                placeholder={t('creation.descriptionPlaceholder')}
-                multiline
-                style={styles.inputWrap}
-              />
+                {/* PWA: .form-card.card */}
+                <View style={styles.formCardShadow}>
+                  <View style={styles.formCard}>
 
-              <AppButton label={t('creation.save')} onPress={saveEdit} />
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+                    {/* Portrait picker */}
+                    <View>
+                      <Text style={styles.modalFieldLabel}>{t('creation.portrait')}</Text>
+                      <Pressable
+                        onPress={onPickPortrait}
+                        style={({ pressed }) => [styles.portraitFrame, pressed && { opacity: 0.8 }]}
+                      >
+                        {portraitUri ? (
+                          <Image source={{ uri: portraitUri }} style={styles.portraitFrameImg} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.portraitFramePlaceholder}>
+                            <Feather name="user" size={28} color={colors.brown} />
+                          </View>
+                        )}
+                      </Pressable>
+                      <View style={styles.portraitActions}>
+                        <Pressable onPress={onPickPortrait} style={styles.smallBtn}>
+                          <Feather name="image" size={13} color={colors.moss} />
+                          <Text style={styles.smallBtnLabel}>
+                            {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                          </Text>
+                        </Pressable>
+                        {portraitUri ? (
+                          <Pressable onPress={onRemovePortrait} style={styles.smallBtn}>
+                            <Feather name="trash-2" size={13} color={colors.danger} />
+                            <Text style={[styles.smallBtnLabel, { color: colors.danger }]}>
+                              {t('creation.removePortrait')}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    <AppInput
+                      label={t('creation.name')}
+                      value={name}
+                      onChangeText={setName}
+                      placeholder={t('creation.namePlaceholder')}
+                    />
+                    <View style={styles.row}>
+                      <AppInput
+                        label={t('creation.birth')}
+                        value={birth}
+                        onChangeText={setBirth}
+                        placeholder={t('creation.datePlaceholder')}
+                        style={styles.rowField}
+                      />
+                      <AppInput
+                        label={t('creation.death')}
+                        value={death}
+                        onChangeText={setDeath}
+                        placeholder={t('creation.datePlaceholder')}
+                        style={styles.rowField}
+                      />
+                    </View>
+                    <AppInput
+                      label={t('creation.description')}
+                      value={description}
+                      onChangeText={setDescription}
+                      placeholder={t('creation.descriptionPlaceholder')}
+                      multiline
+                    />
+
+                    <AppButton label={t('creation.save')} onPress={saveEdit} />
+
+                  </View>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  bgWrap: { flex: 1 },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   flex: { flex: 1 },
 
-  // Portrait
+  // Portrait — PWA: .memorial-image { min-height:280px; border-radius:22px }
   portraitWrap: {
     position: 'relative',
-    height: 260,
+    height: 280,
     borderRadius: radii.xl,
     overflow: 'hidden',
     backgroundColor: colors.surface,
@@ -484,6 +496,7 @@ const styles = StyleSheet.create({
   },
 
   // Edit modal
+  modalSafe: { flex: 1, backgroundColor: colors.background },
   modalBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -500,10 +513,32 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.titleLarge,
     fontWeight: typography.weights.regular,
     color: colors.textPrimary,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     letterSpacing: 0.3,
   },
-  fieldLabel: { marginBottom: spacing.xs },
+
+  // PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98) }
+  formCardShadow: {
+    borderRadius: 24,
+    ...shadows.soft,
+  },
+  formCard: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    padding: 16,
+    gap: 14,
+  },
+  // PWA: form-card label span { font-size:13px; font-weight:700; color:var(--text) }
+  modalFieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textBody,
+    marginBottom: 8,
+  },
+
   portraitFrame: {
     height: 180,
     borderRadius: radii.lg,
@@ -511,7 +546,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.divider,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   portraitFrameImg: { width: '100%', height: '100%' },
   portraitFramePlaceholder: {
@@ -523,7 +558,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
-    marginBottom: spacing.lg,
   },
   smallBtn: {
     flexDirection: 'row',
@@ -541,7 +575,6 @@ const styles = StyleSheet.create({
     color: colors.moss,
     letterSpacing: 0.3,
   },
-  inputWrap: { marginBottom: spacing.md },
-  row: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  row: { flexDirection: 'row', gap: spacing.sm },
   rowField: { flex: 1 },
 });

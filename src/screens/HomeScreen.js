@@ -11,7 +11,6 @@ import {
   colors,
   radii,
   shadows,
-  spacing,
   typography,
 } from '../theme/designSystem';
 
@@ -29,7 +28,6 @@ export default function HomeScreen() {
   const heroLine = name
     ? t('home.heroMemoryLine', { name })
     : t('tagline');
-  const heroEyebrow = t('brand');
 
   const portraitUri = activeMemorial?.portraitUri;
   const heroImage = portraitUri ? { uri: portraitUri } : null;
@@ -41,7 +39,6 @@ export default function HomeScreen() {
       <MemoryHeroCard
         imageSource={heroImage}
         fallbackSource={HERO_FALLBACK}
-        eyebrow={heroEyebrow}
         memoryLine={heroLine}
       />
 
@@ -58,10 +55,6 @@ export default function HomeScreen() {
         quote={t('quote')}
       />
 
-      <SectionLabel style={styles.quickActionsLabel}>
-        {t('home.quickActions')}
-      </SectionLabel>
-
       <View style={styles.actions}>
         <ActionTile
           icon="image"
@@ -77,6 +70,11 @@ export default function HomeScreen() {
           icon="calendar"
           label={t('tab.calendar')}
           onPress={() => navigation.navigate('Calendar')}
+        />
+        <ActionTile
+          icon="heart"
+          label={t('tab.memorial')}
+          onPress={() => navigation.navigate('Memorial')}
         />
       </View>
     </AppScreen>
@@ -138,10 +136,14 @@ function ActionTile({ icon, label, onPress }) {
 }
 
 const styles = StyleSheet.create({
+  // PWA: .home-memory-stack .memory-of-day { margin-top: -34px; padding-top: 48px; border-color: rgba(255,250,240,.72) }
   memoryCard: {
-    paddingTop: 14,
-    paddingBottom: 16,
-    marginBottom: spacing.md,
+    marginTop: -34,
+    paddingTop: 48,
+    paddingBottom: 15,
+    marginBottom: 14,
+    borderRadius: 22,
+    borderColor: colors.cardBorder,
   },
   eyebrow: { marginBottom: 10 },
   memoryTitle: {
@@ -168,45 +170,51 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.2,
   },
+  // PWA: .daily-quote { padding: 14px 16px 16px; border-radius: 22px }
   quoteCard: {
     paddingTop: 14,
-    paddingBottom: 18,
-    marginBottom: spacing.lg,
+    paddingBottom: 16,
+    marginBottom: 14,
+    borderRadius: 22,
   },
+  // PWA: blockquote { font-size: clamp(1.28rem,5.6vw,1.75rem); font-weight: 500; line-height: 1.2 }
   quote: {
     fontFamily: typography.serif,
     fontStyle: 'italic',
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 21,
+    lineHeight: 25,
     color: colors.brown,
+    fontWeight: '500',
   },
-  quickActionsLabel: {
-    marginLeft: 4,
-    marginBottom: 10,
-    color: colors.textPrimary,
-  },
+  // PWA: .quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px }
   actions: {
-    gap: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
+  // PWA: .section-button { min-height: 78px; border-radius: 17px; padding: 14px 10px 14px 12px }
   tile: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    minHeight: 68,
-    paddingVertical: 12,
+    width: '48%',
+    flexGrow: 1,
+    minHeight: 78,
+    paddingVertical: 14,
     paddingLeft: 12,
-    paddingRight: 14,
-    borderRadius: radii.lg,
+    paddingRight: 10,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    backgroundColor: 'rgba(255, 250, 240, 0.84)',
+    backgroundColor: 'rgba(255, 250, 240, 0.72)',
     ...shadows.soft,
   },
-  tilePressed: { transform: [{ scale: 0.985 }], opacity: 0.94 },
+  tilePressed: { transform: [{ scale: 0.98 }], opacity: 0.94 },
+  // PWA: .button-icon { width: 46px; height: 46px; border-radius: 50% }
   tileIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.moss,
     alignItems: 'center',
     justifyContent: 'center',

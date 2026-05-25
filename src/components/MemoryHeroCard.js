@@ -1,5 +1,5 @@
 import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, shadows, spacing, typography } from '../theme/designSystem';
+import { colors, radii, shadows, typography } from '../theme/designSystem';
 
 // Hero card shown at the top of HomeScreen. Mirrors the web `.hero` block:
 //   - Big rounded corners (28)
@@ -78,18 +78,19 @@ function GradientStack() {
 
 const styles = StyleSheet.create({
   // Shadow needs to live on a wrapper because the card itself clips children.
+  // zIndex:1 keeps the hero rendered above the memory-of-day card that overlaps it.
   shadow: {
     borderRadius: radii.xxl,
     backgroundColor: 'transparent',
     ...shadows.hero,
-    marginBottom: spacing.md,
+    marginBottom: 0,
+    zIndex: 1,
   },
   card: {
     borderRadius: radii.xxl,
     overflow: 'hidden',
     backgroundColor: colors.moss,
-    minHeight: 320,
-    aspectRatio: 0.92, // tall card, similar feel to the web `min-height: clamp(330px, 74vw, 382px)`
+    minHeight: 330,
   },
   image: {
     flex: 1,
@@ -107,17 +108,17 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     letterSpacing: 1.8,
-    color: 'rgba(255, 250, 240, 0.82)',
+    color: 'rgba(255, 250, 240, 0.78)',
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   memoryLine: {
     fontSize: 24,
-    lineHeight: 30,
+    lineHeight: 27,
     fontFamily: typography.serif,
     fontWeight: '600',
-    color: colors.textOnImage,
-    maxWidth: '92%',
+    color: 'rgba(255, 250, 240, 0.92)',
+    maxWidth: '84%',
     textShadowColor: 'rgba(28, 30, 24, 0.42)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 12,
