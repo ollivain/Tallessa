@@ -27,31 +27,213 @@ import {
 import AppCard from '../components/AppCard';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
-import SectionLabel from '../components/SectionLabel';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
+import { useTheme } from '../state/ThemeContext';
 
-const SCREEN_BG = require('../../assets/bg-koti.png');
+// ── Time-of-day sky system (matches PWA: morning / day / evening / night) ──────
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 10) return 'morning';
+  if (h >= 10 && h < 18) return 'day';
+  if (h >= 18 && h < 22) return 'evening';
+  return 'night';
+}
 
-// Simple Finnish possessive: "Aino" → "Ainon", "Olaf" → "Olafin"
+// Time-of-day background photos (user-provided, saved to assets/)
+const SKY_BG_IMAGE = {
+  morning: require('../../assets/memorial-bg-morning.jpg'),
+  day:     require('../../assets/memorial-bg-day.jpg'),
+  evening: require('../../assets/memorial-bg-evening.jpg'),
+  night:   require('../../assets/memorial-bg-night.jpg'),
+};
+
+// Semi-transparent mood overlay placed above the photo — enhances text
+// readability and preserves the warm paper feel across all time periods.
+const SKY_OVERLAY = {
+  morning: 'rgba(160, 90, 30, 0.22)',   // warm amber wash
+  day:     'rgba(20, 60, 10, 0.14)',    // subtle green tint
+  evening: 'rgba(60, 24, 8, 0.30)',     // deep rust veil
+  night:   'rgba(12, 10, 20, 0.42)',    // dark indigo overlay
+};
+
+// Fallback solid colour used if the image file is missing.
+const SKY_BG_FALLBACK = {
+  night:   '#1c1c2e',
+  morning: '#c8895a',
+  day:     '#7a9e5c',
+  evening: '#7a4230',
+};
+
+// night & evening use light text; morning & day use dark text
+const SKY_DARK = { night: true, morning: false, day: false, evening: true };
+
+// ── Finnish allative case: Pepe → Pepelle, Tom → Tomille ──────────────────────
+// Used as the h3 heading inside the memorial card (matches PWA toAllative())
+function toAllative(name, language) {
+  if (!name) return '';
+  if (language !== 'fi') return name; // English: show name as-is
+  const last = name[name.length - 1]?.toLowerCase() || '';
+  return 'aeiouäöy'.includes(last) ? `${name}lle` : `${name}ille`;
+}
+
+// ── Finnish possessive (page title) ───────────────────────────────────────────
 function toPossessive(name, language) {
   if (!name) return '';
   if (language !== 'fi') return `${name}'s`;
   const last = name[name.length - 1]?.toLowerCase() || '';
-  const vowels = 'aeiouäöy';
-  return vowels.includes(last) ? `${name}n` : `${name}in`;
+  return 'aeiouäöy'.includes(last) ? `${name}n` : `${name}in`;
 }
 
+// ── Date formatter: "19. May — Repeats automatically every year" ───────────────
+// Matches PWA: `${day}. ${monthName} — ${t("calendar.memorialRecurring")…}`
+function formatMemorialDate(dateStr, language, recurringText) {
+  if (!dateStr) return null;
+  const s = String(dateStr).trim();
+  let date = null;
+
+  // dd.mm.yyyy or d.m.yyyy
+  const dmy = s.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  if (dmy) {
+    date = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
+    date = new Date(y, m - 1, d);
+  }
+
+  if (!date || isNaN(date.getTime())) return s; // raw fallback
+
+  const day = date.getDate();
+  const monthIdx = date.getMonth();
+
+  // Month name — Intl preferred, hardcoded fallback for bare JSC builds
+  let monthName;
+  try {
+    monthName = new Intl.DateTimeFormat(
+      language === 'fi' ? 'fi-FI' : 'en-US',
+      { month: 'long' },
+    ).format(date);
+  } catch {
+    const EN = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+    const FI = ['tammikuuta','helmikuuta','maaliskuuta','huhtikuuta',
+                'toukokuuta','kesäkuuta','heinäkuuta','elokuuta',
+                'syyskuuta','lokakuuta','marraskuuta','joulukuuta'];
+    monthName = (language === 'fi' ? FI : EN)[monthIdx];
+  }
+
+  const cap = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  // PWA strips trailing period: t("calendar.memorialRecurring").replace(/\.$/, "")
+  const recurring = recurringText.replace(/\.$/, '');
+  return `${day}. ${cap} — ${recurring}`;
+}
+
+// ── Pet types for memorial text template ──────────────────────────────────────
+const PET_TYPES = ['human','horse','dog','cat','rabbit','bird',
+                   'guineaPig','hamster','ferret','turtle','other'];
+
+// ── Candle component — View-based shape matching PWA CSS candle ───────────────
+// PWA: .candle { width:54px; height:88px; margin:-54px auto 0 }
+//      .flame  { width:20px; height:31px; border-radius:55% 55% 55% 10% }
+//      .wick   { width:2px;  height:10px }
+function CandleView({ lit }) {
+  return (
+    <View style={cStyles.wrap}>
+      {/* Flame (only visible when lit) */}
+      <View style={cStyles.flameArea}>
+        {lit ? <View style={cStyles.flame} /> : null}
+      </View>
+      {/* Wick */}
+      <View style={cStyles.wick} />
+      {/* Body */}
+      <View style={cStyles.body}>
+        <View style={cStyles.shine} />
+      </View>
+    </View>
+  );
+}
+
+const cStyles = StyleSheet.create({
+  wrap: {
+    width: 54,
+    height: 88,
+    alignSelf: 'center',
+    alignItems: 'center',
+    marginTop: -50, // overlap the image below — matches PWA margin:-54px auto 0
+    ...Platform.select({
+      ios: {
+        shadowColor: '#74522c',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.22,
+        shadowRadius: 12,
+      },
+      android: { elevation: 4 },
+      default: {},
+    }),
+  },
+  flameArea: {
+    height: 32,
+    width: 22,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  // PWA: border-radius 55% 55% 55% 10% — teardrop shape
+  // RN approximation: top rounded, bottom-left sharp
+  flame: {
+    width: 18,
+    height: 28,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 2,
+    borderBottomRightRadius: 10,
+    backgroundColor: '#d69b48',
+  },
+  wick: {
+    width: 2,
+    height: 9,
+    backgroundColor: '#3b2700',
+    borderRadius: 1,
+  },
+  body: {
+    width: 36,
+    height: 54,
+    borderRadius: 4,
+    backgroundColor: '#f7f3ea',
+    borderWidth: 1,
+    borderColor: 'rgba(160, 140, 100, 0.22)',
+    overflow: 'hidden',
+  },
+  // Vertical highlight stripe (candle gloss)
+  shine: {
+    position: 'absolute',
+    left: 7,
+    top: 5,
+    width: 4,
+    height: 38,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.46)',
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function MemorialDayScreen() {
   const { t, language } = useI18n();
   const { activeMemorial, updateMemorial, setCandleLit, deleteMemorial, clearActive } = useMemorials();
+  const { themeColors } = useTheme();
 
   const [editOpen, setEditOpen] = useState(false);
   const [name, setName] = useState('');
   const [birth, setBirth] = useState('');
   const [death, setDeath] = useState('');
   const [description, setDescription] = useState('');
+  const [petType, setPetType] = useState('');
+  const [petTypeCustom, setPetTypeCustom] = useState('');
+  const [memorialName, setMemorialName] = useState('');
   const [portraitUri, setPortraitUri] = useState(null);
   const [savedPortrait, setSavedPortrait] = useState(false);
+
+  // Time-of-day sky — computed once per render (re-mounts on navigation return)
+  const timeOfDay = getTimeOfDay();
+  const isDark = SKY_DARK[timeOfDay];
 
   useEffect(() => {
     if (editOpen && activeMemorial) {
@@ -59,6 +241,9 @@ export default function MemorialDayScreen() {
       setBirth(activeMemorial.birth ?? '');
       setDeath(activeMemorial.death ?? '');
       setDescription(activeMemorial.description ?? '');
+      setPetType(activeMemorial.petType ?? '');
+      setPetTypeCustom(activeMemorial.petTypeCustom ?? '');
+      setMemorialName(activeMemorial.memorialName ?? '');
       setPortraitUri(activeMemorial.portraitUri ?? null);
       setSavedPortrait(true);
     }
@@ -96,6 +281,9 @@ export default function MemorialDayScreen() {
       birth: birth.trim(),
       death: death.trim(),
       description: description.trim(),
+      petType: petType || null,
+      petTypeCustom: petTypeCustom.trim(),
+      memorialName: memorialName.trim(),
       portraitUri: portraitUri ?? null,
     });
     setSavedPortrait(true);
@@ -126,13 +314,19 @@ export default function MemorialDayScreen() {
     );
   };
 
+  // ── Empty state ─────────────────────────────────────────────────────────────
   if (!activeMemorial) {
     return (
-      <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
+      <ImageBackground
+        source={SKY_BG_IMAGE[timeOfDay]}
+        style={[styles.bgWrap, { backgroundColor: SKY_BG_FALLBACK[timeOfDay] }]}
+        resizeMode="cover"
+      >
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: SKY_OVERLAY[timeOfDay] }]} />
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <ScrollView contentContainerStyle={screenStyles.scroll}>
             <AppCard variant="soft">
-              <Text style={styles.emptyTitle}>{t('selection.title')}</Text>
+              <Text style={[styles.emptyTitle, { color: themeColors.textPrimary }]}>{t('selection.title')}</Text>
               <Text style={styles.emptyBody}>{t('wall.noMemorial')}</Text>
             </AppCard>
           </ScrollView>
@@ -141,138 +335,158 @@ export default function MemorialDayScreen() {
     );
   }
 
+  // ── Derived display values ──────────────────────────────────────────────────
   const possessiveName = toPossessive(activeMemorial.name, language);
   const pageTitle = language === 'fi'
     ? `${possessiveName} päivä`
     : `${possessiveName} day`;
 
+  // Topbar h2 title (memorialName takes priority, e.g. "Pepen päivä")
+  const cardTitle = activeMemorial.memorialName || pageTitle;
+
+  // Card h3 heading — Finnish allative ("Pepelle"), English plain name ("Pepe")
+  // Matches PWA: elements.memorialHeading.textContent = toAllative(state.horseName)
+  const cardHeading = toAllative(activeMemorial.name, language);
+
+  // Formatted memorial date: "19. May — Repeats automatically every year"
+  const formattedDate = formatMemorialDate(
+    activeMemorial.death,
+    language,
+    t('calendar.memorialRecurring'),
+  );
+
+  // Memorial text template
+  const petTypeKey = PET_TYPES.includes(activeMemorial.petType)
+    ? activeMemorial.petType : 'horse';
+  const memorialBody = t(`memorialText.${petTypeKey}`, {
+    name: activeMemorial.name || t('memorialText.fallbackName'),
+    animal: activeMemorial.petTypeCustom || t('memorialText.fallbackAnimal'),
+  });
+
   const candle = activeMemorial.candleLit;
 
+  // Dynamic colours for dark (night/evening) vs light (morning/day) backgrounds
+  const eyebrowColor = isDark ? 'rgba(255, 247, 231, 0.80)' : colors.textSoft;
+  const titleColor   = isDark ? '#fff7e7' : themeColors.textPrimary;
+  const editBtnBg    = isDark ? 'rgba(255,255,255,0.13)' : 'rgba(88, 98, 68, 0.10)';
+  const editIconColor = isDark ? 'rgba(255,247,231,0.88)' : themeColors.moss;
+  const deleteColor  = isDark ? 'rgba(255, 180, 160, 0.80)' : colors.danger;
+
   return (
-    <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
+    <ImageBackground
+      source={SKY_BG_IMAGE[timeOfDay]}
+      style={[styles.bgWrap, { backgroundColor: SKY_BG_FALLBACK[timeOfDay] }]}
+      resizeMode="cover"
+    >
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: SKY_OVERLAY[timeOfDay] }]} />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView
-          contentContainerStyle={screenStyles.scroll}
+          contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          {/* Portrait */}
-          <View style={styles.portraitWrap}>
-            {activeMemorial.portraitUri ? (
-              <Image
-                source={{ uri: activeMemorial.portraitUri }}
-                style={styles.portrait}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.portraitPlaceholder}>
-                <Feather name="user" size={48} color={colors.brown} />
-              </View>
-            )}
+          {/* ── Topbar: eyebrow (script-style italic) + h2 title + edit btn ── */}
+          <View style={styles.topbar}>
+            <View style={styles.topbarLeft}>
+              {/* PWA: .topbar .eyebrow { font-family: var(--script); font-size:1.45rem } */}
+              <Text style={[styles.eyebrow, { color: eyebrowColor }]}>
+                {t('memorial.eyebrow')}
+              </Text>
+              <Text style={[styles.pageTitle, { color: titleColor }]} numberOfLines={2}>
+                {cardTitle}
+              </Text>
+            </View>
             <Pressable
               onPress={openEdit}
-              style={({ pressed }) => [styles.editBadge, pressed && { opacity: 0.75 }]}
+              style={({ pressed }) => [
+                styles.editBtn,
+                { backgroundColor: editBtnBg },
+                pressed && { opacity: 0.7 },
+              ]}
               hitSlop={8}
+              accessibilityRole="button"
             >
-              <Feather name="edit-2" size={14} color={colors.textOnPrimary} />
+              <Feather name="edit-2" size={16} color={editIconColor} />
             </Pressable>
           </View>
 
-          {/* Title */}
-          <Text style={styles.pageTitle}>{pageTitle}</Text>
-          <View style={styles.titleRule} />
+          {/* ── Memorial card: image + candle + date + h3 + text + button ──── */}
+          {/* PWA: .memorial-card { position:relative; display:grid; gap:14px;
+                padding:16px; text-align:center;
+                bg:rgba(255,250,240,.96); box-shadow:0 22px 60px rgba(55,48,35,.2) } */}
+          <View style={styles.cardShadow}>
+            <View style={[styles.card, candle && styles.cardLit, { backgroundColor: themeColors.card }]}>
 
-          {/* Info card */}
-          <AppCard variant="soft" style={styles.infoCard}>
-            <Text style={styles.memorialName}>{activeMemorial.name}</Text>
-            <View style={styles.datesRow}>
-              {activeMemorial.birth ? (
-                <View style={styles.dateItem}>
-                  <SectionLabel>{t('memorial.born')}</SectionLabel>
-                  <Text style={styles.dateText}>{activeMemorial.birth}</Text>
+              {/* Portrait image — PWA: .memorial-image { min-height:280px; border-radius:22px } */}
+              {activeMemorial.portraitUri ? (
+                <Image
+                  source={{ uri: activeMemorial.portraitUri }}
+                  style={styles.memorialImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.memorialImage, styles.memorialImagePlaceholder]}>
+                  <Feather name="user" size={52} color="rgba(80, 95, 62, 0.35)" />
                 </View>
-              ) : null}
-              {activeMemorial.birth && activeMemorial.death ? (
-                <View style={styles.dateSep} />
-              ) : null}
-              {activeMemorial.death ? (
-                <View style={styles.dateItem}>
-                  <SectionLabel>{t('memorial.died')}</SectionLabel>
-                  <Text style={styles.dateText}>{activeMemorial.death}</Text>
-                </View>
-              ) : null}
-            </View>
-          </AppCard>
+              )}
 
-          {/* Description / note */}
-          <AppCard variant="warm" style={styles.noteCard}>
-            {activeMemorial.description ? (
-              <Text style={styles.noteText}>{activeMemorial.description}</Text>
-            ) : (
-              <Text style={styles.noteEmpty}>{t('memorial.noDescription')}</Text>
-            )}
-          </AppCard>
+              {/* Candle — PWA: .candle { margin:-54px auto 0 } (overlaps image bottom) */}
+              <CandleView lit={candle} />
 
-          {/* Candle section */}
-          <AppCard
-            variant="soft"
-            onPress={onToggleCandle}
-            style={styles.candleCard}
-          >
-            <View style={styles.candleRow}>
-              <Text style={styles.candleEmoji}>{candle ? '🕯️' : '🕯'}</Text>
-              <View style={styles.candleInfo}>
-                <Text style={styles.candleLabel}>
-                  {candle ? t('memorial.candleLit') : t('memorial.candleLight')}
-                </Text>
-                {candle ? (
-                  <Text style={styles.candleHint}>
-                    {language === 'fi' ? 'Paina sammuttaaksesi' : 'Tap to extinguish'}
-                  </Text>
-                ) : (
-                  <Text style={styles.candleHint}>
-                    {language === 'fi' ? 'Paina sytyttääksesi' : 'Tap to light'}
-                  </Text>
-                )}
-              </View>
-              <Feather
-                name={candle ? 'sun' : 'moon'}
-                size={20}
-                color={candle ? colors.brown : colors.textSoft}
+              {/* Italic date: "19. May — Repeats automatically every year" */}
+              {formattedDate ? (
+                <Text style={styles.memorialDate}>{formattedDate}</Text>
+              ) : null}
+
+              {/* h3 heading — PWA: toAllative(horseName) = "Pepelle" */}
+              {cardHeading ? (
+                <Text style={[styles.memorialHeading, { color: themeColors.textPrimary }]}>{cardHeading}</Text>
+              ) : null}
+
+              {/* Memorial text paragraph */}
+              <Text style={styles.memorialText}>{memorialBody}</Text>
+
+              {/* Light a candle button */}
+              <AppButton
+                label={candle ? t('memorial.candleLit') : t('memorial.candleLight')}
+                onPress={onToggleCandle}
               />
-            </View>
-          </AppCard>
 
-          {/* Delete memorial */}
+            </View>
+          </View>
+
+          {/* Delete link */}
           <Pressable
             onPress={onDeleteMemorial}
             style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}
           >
-            <Feather name="trash-2" size={15} color={colors.danger} />
-            <Text style={styles.deleteText}>{t('memorial.deleteTitle')}</Text>
+            <Feather name="trash-2" size={15} color={deleteColor} />
+            <Text style={[styles.deleteText, { color: deleteColor }]}>
+              {t('memorial.deleteTitle')}
+            </Text>
           </Pressable>
+
         </ScrollView>
 
-        {/* Edit Modal */}
+        {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
         <Modal visible={editOpen} animationType="slide" onRequestClose={closeEdit} transparent={false}>
-          <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
+          <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
             <KeyboardAvoidingView
               style={styles.flex}
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
               <View style={styles.modalBar}>
                 <Pressable onPress={closeEdit} hitSlop={12} style={styles.iconBtn}>
-                  <Feather name="x" size={22} color={colors.textPrimary} />
+                  <Feather name="x" size={22} color={themeColors.textPrimary} />
                 </Pressable>
               </View>
               <ScrollView
                 contentContainerStyle={styles.modalScroll}
                 keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.modalTitle}>{t('memorial.editTitle')}</Text>
+                <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>{t('memorial.editTitle')}</Text>
 
-                {/* PWA: .form-card.card */}
                 <View style={styles.formCardShadow}>
-                  <View style={styles.formCard}>
+                  <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
 
                     {/* Portrait picker */}
                     <View>
@@ -285,14 +499,14 @@ export default function MemorialDayScreen() {
                           <Image source={{ uri: portraitUri }} style={styles.portraitFrameImg} resizeMode="cover" />
                         ) : (
                           <View style={styles.portraitFramePlaceholder}>
-                            <Feather name="user" size={28} color={colors.brown} />
+                            <Feather name="user" size={28} color={themeColors.brown} />
                           </View>
                         )}
                       </Pressable>
                       <View style={styles.portraitActions}>
                         <Pressable onPress={onPickPortrait} style={styles.smallBtn}>
-                          <Feather name="image" size={13} color={colors.moss} />
-                          <Text style={styles.smallBtnLabel}>
+                          <Feather name="image" size={13} color={themeColors.moss} />
+                          <Text style={[styles.smallBtnLabel, { color: themeColors.moss }]}>
                             {portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
                           </Text>
                         </Pressable>
@@ -308,10 +522,10 @@ export default function MemorialDayScreen() {
                     </View>
 
                     <AppInput
-                      label={t('creation.name')}
+                      label={t('settings.horseName')}
                       value={name}
                       onChangeText={setName}
-                      placeholder={t('creation.namePlaceholder')}
+                      placeholder={t('settings.horseNamePlaceholder')}
                     />
                     <View style={styles.row}>
                       <AppInput
@@ -322,13 +536,19 @@ export default function MemorialDayScreen() {
                         style={styles.rowField}
                       />
                       <AppInput
-                        label={t('creation.death')}
+                        label={t('settings.memorialDate')}
                         value={death}
                         onChangeText={setDeath}
                         placeholder={t('creation.datePlaceholder')}
                         style={styles.rowField}
                       />
                     </View>
+                    <AppInput
+                      label={t('settings.memorialName')}
+                      value={memorialName}
+                      onChangeText={setMemorialName}
+                      placeholder={t('settings.memorialNamePlaceholder')}
+                    />
                     <AppInput
                       label={t('creation.description')}
                       value={description}
@@ -355,133 +575,136 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent' },
   flex: { flex: 1 },
 
-  // Portrait — PWA: .memorial-image { min-height:280px; border-radius:22px }
-  portraitWrap: {
-    position: 'relative',
-    height: 280,
-    borderRadius: radii.xl,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-    marginBottom: spacing.lg,
-    ...shadows.card,
-  },
-  portrait: { width: '100%', height: '100%' },
-  portraitPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  editBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.soft,
+  scroll: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: 150,
   },
 
-  // Title
+  // ── Topbar ──────────────────────────────────────────────────────────────────
+  topbar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  topbarLeft: { flex: 1, marginRight: spacing.sm },
+
+  // PWA: .topbar .eyebrow { font-family: var(--script); font-size: 1.45rem; font-weight: 400 }
+  // Approximated with italic serif — Alex Brush not bundled in this build
+  eyebrow: {
+    fontFamily: typography.serifItalic,
+    fontSize: 22,
+    fontWeight: '400',
+    letterSpacing: 0.3,
+    marginBottom: 2,
+  },
+
+  // PWA: .topbar h2 { font-size: clamp(1.9rem, 7.8vw, 2.5rem) ≈ 30px; font-weight: 600 }
   pageTitle: {
     fontFamily: typography.serif,
-    fontSize: typography.sizes.display,
-    fontWeight: typography.weights.regular,
-    color: colors.textPrimary,
-    letterSpacing: 0.4,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  titleRule: {
-    height: 1,
-    width: 56,
-    backgroundColor: colors.brown,
-    opacity: 0.45,
-    alignSelf: 'center',
-    marginBottom: spacing.lg,
+    fontSize: 30,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    lineHeight: 34,
   },
 
-  // Info card
-  infoCard: { marginBottom: spacing.sm },
-  memorialName: {
+  editBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+
+  // ── Memorial card ───────────────────────────────────────────────────────────
+  // PWA: box-shadow: 0 22px 60px rgba(55,48,35,0.2)
+  cardShadow: {
+    borderRadius: 24,
+    marginBottom: spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#373023',
+        shadowOffset: { width: 0, height: 22 },
+        shadowOpacity: 0.20,
+        shadowRadius: 24,
+      },
+      android: { elevation: 8 },
+      default: {},
+    }),
+  },
+  card: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.96)',
+    padding: 16,
+    gap: 14,
+    alignItems: 'center',
+  },
+  // PWA: .memorial-card.is-lit { background: linear-gradient(rgba(251,247,239,.96), rgba(238,226,206,.92)) }
+  cardLit: {
+    backgroundColor: 'rgba(251, 247, 239, 0.96)',
+  },
+
+  // PWA: .memorial-image { min-height: 280px; border-radius: 22px }
+  memorialImage: {
+    width: '100%',
+    height: 280,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+  },
+  memorialImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Italic date below candle — PWA: .italic-note
+  memorialDate: {
+    fontSize: typography.sizes.label,
+    fontFamily: typography.serifItalic,
+    fontStyle: 'italic',
+    color: colors.textSoft,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+
+  // PWA: .memorial-card h3 { … } — heading inside card
+  memorialHeading: {
     fontFamily: typography.serif,
     fontSize: typography.sizes.title,
+    fontWeight: typography.weights.semibold,
     color: colors.textPrimary,
-    fontWeight: typography.weights.regular,
-    marginBottom: spacing.sm,
+    textAlign: 'center',
+    lineHeight: 26,
   },
-  datesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  dateItem: { gap: 4 },
-  dateSep: {
-    width: 1,
-    height: 32,
-    backgroundColor: colors.divider,
-  },
-  dateText: {
+
+  // PWA: .memorial-card p { color: var(--muted) }
+  memorialText: {
     fontSize: typography.sizes.body,
-    color: colors.textBody,
-    fontWeight: typography.weights.medium,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 
-  // Note card
-  noteCard: { marginBottom: spacing.sm },
-  noteText: {
-    fontFamily: typography.serif,
-    fontStyle: 'italic',
-    fontSize: typography.sizes.bodyLarge,
-    color: colors.brown,
-    lineHeight: typography.lineHeights.bodyLarge,
-  },
-  noteEmpty: {
-    fontSize: typography.sizes.label,
-    color: colors.textSoft,
-    fontStyle: 'italic',
-  },
-
-  // Candle
-  candleCard: { marginBottom: spacing.lg },
-  candleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  candleEmoji: { fontSize: 28 },
-  candleInfo: { flex: 1 },
-  candleLabel: {
-    fontSize: typography.sizes.body,
-    color: colors.textPrimary,
-    fontWeight: typography.weights.medium,
-  },
-  candleHint: {
-    fontSize: typography.sizes.label,
-    color: colors.textSoft,
-    marginTop: 2,
-  },
-
-  // Delete
+  // ── Delete ──────────────────────────────────────────────────────────────────
   deleteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },
   deleteText: {
     fontSize: typography.sizes.label,
-    color: colors.danger,
     fontWeight: typography.weights.medium,
   },
 
-  // Empty state
+  // ── Empty state ─────────────────────────────────────────────────────────────
   emptyTitle: {
     fontFamily: typography.serif,
     fontSize: typography.sizes.title,
@@ -495,7 +718,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Edit modal
+  // ── Edit modal ──────────────────────────────────────────────────────────────
   modalSafe: { flex: 1, backgroundColor: colors.background },
   modalBar: {
     flexDirection: 'row',
@@ -517,7 +740,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98) }
   formCardShadow: {
     borderRadius: 24,
     ...shadows.soft,
@@ -531,7 +753,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
   },
-  // PWA: form-card label span { font-size:13px; font-weight:700; color:var(--text) }
   modalFieldLabel: {
     fontSize: 13,
     fontWeight: '700',
@@ -575,6 +796,6 @@ const styles = StyleSheet.create({
     color: colors.moss,
     letterSpacing: 0.3,
   },
-  row: { flexDirection: 'row', gap: spacing.sm },
+  row: { flexDirection: 'row', gap: spacing.sm, width: '100%' },
   rowField: { flex: 1 },
 });

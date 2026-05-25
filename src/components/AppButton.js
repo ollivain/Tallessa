@@ -1,10 +1,11 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { buttonStyles } from '../theme/designSystem';
+import { useTheme } from '../state/ThemeContext';
 
 // Three variants:
-//   primary  → moss-green pill, used for hero CTAs
+//   primary  → moss-green pill, colour follows the active theme
 //   secondary → ivory pill with hairline border
-//   ghost    → tiny uppercase text button (e.g., "Switch memorial")
+//   ghost    → tiny uppercase text button
 export default function AppButton({
   label,
   onPress,
@@ -13,8 +14,15 @@ export default function AppButton({
   style,
   labelStyle,
 }) {
+  const { themeColors } = useTheme();
   const containerKey = variant in buttonStyles ? variant : 'primary';
   const labelKey = `${containerKey}Label`;
+
+  // Override primary background colour with the active theme's moss
+  const themeOverride = containerKey === 'primary'
+    ? { backgroundColor: themeColors.moss }
+    : null;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -23,6 +31,7 @@ export default function AppButton({
       disabled={disabled}
       style={({ pressed }) => [
         buttonStyles[containerKey],
+        themeOverride,
         pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
         style,

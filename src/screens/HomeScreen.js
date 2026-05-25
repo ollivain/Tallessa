@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+﻿import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
@@ -13,6 +13,7 @@ import {
   shadows,
   typography,
 } from '../theme/designSystem';
+import { useTheme } from '../state/ThemeContext';
 
 // Default soft watercolour shipped with the app — used when the active
 // memorial has no portrait of its own. Keeps the hero card feeling finished.
@@ -82,6 +83,7 @@ export default function HomeScreen() {
 }
 
 function MemoryOfDayCard({ memory, eyebrow, emptyBody, openLabel, onPress }) {
+  const { themeColors } = useTheme();
   const hasMemory = !!memory;
   return (
     <AppCard
@@ -93,14 +95,14 @@ function MemoryOfDayCard({ memory, eyebrow, emptyBody, openLabel, onPress }) {
       {hasMemory ? (
         <>
           {memory.title ? (
-            <Text style={styles.memoryTitle} numberOfLines={2}>{memory.title}</Text>
+            <Text style={[styles.memoryTitle, { color: themeColors.textPrimary }]} numberOfLines={2}>{memory.title}</Text>
           ) : null}
           {memory.body ? (
             <Text style={styles.memoryBody} numberOfLines={3}>{memory.body}</Text>
           ) : null}
           <View style={styles.openRow}>
-            <Text style={styles.openLink}>{openLabel}</Text>
-            <Feather name="arrow-right" size={14} color={colors.moss} />
+            <Text style={[styles.openLink, { color: themeColors.moss }]}>{openLabel}</Text>
+            <Feather name="arrow-right" size={14} color={themeColors.moss} />
           </View>
         </>
       ) : (
@@ -111,26 +113,28 @@ function MemoryOfDayCard({ memory, eyebrow, emptyBody, openLabel, onPress }) {
 }
 
 function DailyQuoteCard({ eyebrow, quote }) {
+  const { themeColors } = useTheme();
   return (
     <AppCard variant="warm" style={styles.quoteCard}>
       <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>
-      <Text style={styles.quote}>{`“${quote}”`}</Text>
+      <Text style={[styles.quote, { color: themeColors.brown }]}>{`"${quote}"`}</Text>
     </AppCard>
   );
 }
 
 function ActionTile({ icon, label, onPress }) {
+  const { themeColors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+      style={({ pressed }) => [styles.tile, { backgroundColor: themeColors.card }, pressed && styles.tilePressed]}
       accessibilityRole="button"
     >
-      <View style={styles.tileIcon}>
+      <View style={[styles.tileIcon, { backgroundColor: themeColors.mossDark }]}>
         <Feather name={icon} size={20} color={colors.textOnPrimary} />
       </View>
-      <Text style={styles.tileLabel} numberOfLines={1}>{label}</Text>
-      <Feather name="chevron-right" size={18} color="rgba(48,56,45,0.6)" />
+      <Text style={[styles.tileLabel, { color: themeColors.textPrimary }]} numberOfLines={1}>{label}</Text>
+      <Feather name="chevron-right" size={22} color="rgba(48,56,45,0.72)" />
     </Pressable>
   );
 }
@@ -191,6 +195,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginBottom: 14,
   },
   // PWA: .section-button { min-height: 78px; border-radius: 17px; padding: 14px 10px 14px 12px }
   tile: {
@@ -210,19 +215,22 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   tilePressed: { transform: [{ scale: 0.98 }], opacity: 0.94 },
-  // PWA: .button-icon { width: 46px; height: 46px; border-radius: 50% }
+  // PWA: .button-icon { width: 46px; height: 46px; border-radius: 50%;
+  //   background: linear-gradient(145deg, #687151, var(--moss-dark)) }
+  // Solid mid-tone approximates the gradient (#47533e ≈ midpoint of #687151→#26352a)
   tileIcon: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: colors.moss,
+    backgroundColor: '#47533e',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // PWA: font-size: clamp(0.9rem, 3.8vw, 1.05rem) → ~15px at 390px
   tileLabel: {
     flex: 1,
     fontFamily: typography.serif,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
   },

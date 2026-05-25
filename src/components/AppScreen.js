@@ -1,11 +1,12 @@
 import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, screenStyles, spacing } from '../theme/designSystem';
+import { screenStyles, spacing } from '../theme/designSystem';
+import { useTheme } from '../state/ThemeContext';
 
 // Paper-style screen wrapper. The optional `background` prop accepts a require
 // (e.g. require('../../assets/bg-koti.png')) so each screen can use its own
-// watercolour image like the web version. Falling back to a flat cream when no
-// image is supplied keeps the screen safe even if the asset is missing.
+// watercolour image like the web version. Falling back to the active theme's
+// background colour when no image is supplied keeps the screen safe.
 //
 // edges defaults to `['top', 'left', 'right']` because the tab bar already
 // handles bottom inset.
@@ -17,6 +18,8 @@ export default function AppScreen({
   edges = ['top', 'left', 'right'],
   ...scrollProps
 }) {
+  const { themeColors } = useTheme();
+
   const inner = scroll ? (
     <ScrollView
       style={styles.flex}
@@ -41,14 +44,14 @@ export default function AppScreen({
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={edges}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={edges}>
       {inner}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1 },
   flex: { flex: 1 },
 });
 

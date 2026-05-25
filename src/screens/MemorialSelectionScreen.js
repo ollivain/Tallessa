@@ -26,7 +26,14 @@ export default function MemorialSelectionScreen() {
           {/* PWA: .selector-hero { padding: 0 4px 42px } */}
           <View style={styles.hero}>
             {/* PWA: .selector-hero h1 { font-size:~74px; line-height:0.82; color:mossDark } */}
-            <Text style={styles.heroTitle}>{t('brand')}</Text>
+            <Text
+              style={styles.heroTitle}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              numberOfLines={1}
+            >
+              {t('brand')}
+            </Text>
             {/* PWA: .selector-hero p { font-size:~18px; font-weight:500; color:rgba(80,86,76,.88) } */}
             <Text style={styles.heroTagline}>{t('tagline')}</Text>
           </View>
@@ -55,7 +62,7 @@ export default function MemorialSelectionScreen() {
             style={({ pressed }) => [styles.selectorAdd, pressed && styles.selectorAddPressed]}
             accessibilityRole="button"
           >
-            <Text style={styles.selectorAddLabel}>{t('selection.create')}</Text>
+            <Text style={styles.selectorAddLabel}>{t('selection.addPlace')}</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -109,6 +116,8 @@ const styles = StyleSheet.create({
     paddingBottom: 42,
   },
   // PWA: .selector-hero h1 { font-size:clamp(4.6rem,20vw,6.7rem)≈74px; line-height:0.82; color:mossDark; text-shadow:0 1px 0 rgba(255,255,255,.62) }
+  // adjustsFontSizeToFit ensures long Finnish brand names ("Tallessa") stay on
+  // one line on narrow screens like iPhone SE (320pt content width).
   heroTitle: {
     fontFamily: typography.serif,
     fontSize: 74,

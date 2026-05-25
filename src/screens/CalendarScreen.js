@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Alert,
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -25,6 +26,7 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
+import { useTheme } from '../state/ThemeContext';
 
 const SCREEN_BG = require('../../assets/bg-kalenteri.png');
 
@@ -62,6 +64,7 @@ function sameMonthDay(date, refDate) {
 export default function CalendarScreen() {
   const { t, language } = useI18n();
   const { activeMemorial, addEvent, updateEvent, deleteEvent } = useMemorials();
+  const { themeColors } = useTheme();
 
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const d = new Date();
@@ -80,6 +83,10 @@ export default function CalendarScreen() {
 
   const deathDate = parseAnyDate(activeMemorial?.death);
   const gridCells = buildGridCells(visibleMonth, events, deathDate);
+
+  // Monthly cover image — index 0=Jan … 11=Dec
+  const calendarImages = activeMemorial?.calendarImages ?? [];
+  const coverImageUri = calendarImages[visibleMonth.getMonth()] ?? null;
 
   const goPrev = () =>
     setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
@@ -148,30 +155,39 @@ export default function CalendarScreen() {
 
         {/* PWA: transparent h2 header */}
         <View style={styles.wallHeader}>
-          <Text style={styles.wallTitle}>{t('calendar.title')}</Text>
+          <Text style={[styles.wallTitle, { color: themeColors.textPrimary }]}>{t('calendar.title')}</Text>
         </View>
 
         {/* PWA: .calendar-card.card — padding:14, gap:14 */}
         <View style={styles.calCardShadow}>
-          <View style={styles.calCard}>
+          <View style={[styles.calCard, { backgroundColor: themeColors.card }]}>
+
+            {/* Monthly cover image — set via Settings → Calendar images */}
+            {coverImageUri ? (
+              <Image
+                source={{ uri: coverImageUri }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : null}
 
             {/* PWA: .calendar-controls — 52px nav + center (eyebrow+h3) + 52px nav */}
             <View style={styles.monthNav}>
               <Pressable
                 onPress={goPrev}
                 hitSlop={8}
-                style={({ pressed }) => [styles.navBtn, pressed && styles.navBtnPressed]}
+                style={({ pressed }) => [styles.navBtn, { backgroundColor: themeColors.moss }, pressed && styles.navBtnPressed]}
               >
                 <Text style={styles.navArrow}>{t('calendar.prev')}</Text>
               </Pressable>
               <View style={styles.monthCenter}>
-                <Text style={styles.monthEyebrow}>{t('calendar.eyebrow')}</Text>
-                <Text style={styles.monthLabel}>{capitalize(monthLabel)}</Text>
+                <Text style={[styles.monthEyebrow, { color: themeColors.brown }]}>{t('calendar.eyebrow')}</Text>
+                <Text style={[styles.monthLabel, { color: themeColors.textPrimary }]}>{capitalize(monthLabel)}</Text>
               </View>
               <Pressable
                 onPress={goNext}
                 hitSlop={8}
-                style={({ pressed }) => [styles.navBtn, pressed && styles.navBtnPressed]}
+                style={({ pressed }) => [styles.navBtn, { backgroundColor: themeColors.moss }, pressed && styles.navBtnPressed]}
               >
                 <Text style={styles.navArrow}>{t('calendar.next')}</Text>
               </Pressable>
@@ -198,13 +214,13 @@ export default function CalendarScreen() {
         {/* PWA: .add-card-toggle after calendar card */}
         <Pressable
           onPress={openAdd}
-          style={({ pressed }) => [styles.addToggle, pressed && styles.addTogglePressed]}
+          style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
           accessibilityRole="button"
         >
-          <View style={styles.addIcon}>
+          <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
             <Text style={styles.addPlus}>+</Text>
           </View>
-          <Text style={styles.addLabel}>{t('calendar.add')}</Text>
+          <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('calendar.add')}</Text>
         </Pressable>
 
         {/* PWA: .day-list — grid gap:12 */}
@@ -226,21 +242,21 @@ export default function CalendarScreen() {
       </ScrollView>
 
       <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
           <KeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.modalBar}>
               <Pressable onPress={close} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={colors.textPrimary} />
+                <Feather name="x" size={22} color={themeColors.textPrimary} />
               </Pressable>
             </View>
             <ScrollView
               contentContainerStyle={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
                 {editingId ? t('calendar.edit') : t('calendar.add')}
               </Text>
               <AppInput
@@ -295,12 +311,13 @@ function buildGridCells(visibleMonth, events, deathDate) {
 
 // PWA: .day-cell { min-height:44px; border-radius:13px; bg:rgba(255,250,240,0.82) }
 function DayCell({ cell }) {
+  const { themeColors } = useTheme();
   const { day, inMonth, isToday, isMemorial, hasEvent } = cell;
   return (
     <View style={[
       styles.cell,
-      isToday && styles.cellToday,
-      isMemorial && styles.cellMemorial,
+      isToday && [styles.cellToday, { borderColor: `${themeColors.moss}55` }],
+      isMemorial && [styles.cellMemorial, { backgroundColor: themeColors.moss }],
       !inMonth && styles.cellMuted,
     ]}>
       <Text style={[
@@ -311,7 +328,7 @@ function DayCell({ cell }) {
       </Text>
       {/* PWA: .has-note::after — event dot indicator */}
       {hasEvent && !isMemorial ? (
-        <View style={styles.eventDot} />
+        <View style={[styles.eventDot, { backgroundColor: themeColors.brown }]} />
       ) : null}
     </View>
   );
@@ -319,17 +336,18 @@ function DayCell({ cell }) {
 
 // PWA: .day-card.card — grid auto 1fr gap:12, padding:16, .day-symbol 38px circle
 function EventCard({ event, language, onEdit, onDelete }) {
+  const { themeColors } = useTheme();
   const day = formatDay(event.date);
   const month = formatMonth(event.date, language);
   const dateLabel = day !== '·' ? `${day}${month ? '. ' + month : ''}` : null;
 
   return (
     <View style={styles.eventCardShadow}>
-      <View style={styles.eventCard}>
+      <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
         {/* PWA: .delete-action absolute top:12 right:12 */}
         <View style={styles.cardActions}>
           <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
-            <Feather name="edit-2" size={12} color={colors.moss} />
+            <Feather name="edit-2" size={12} color={themeColors.moss} />
           </Pressable>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
@@ -339,16 +357,16 @@ function EventCard({ event, language, onEdit, onDelete }) {
         {/* PWA: .day-card grid: auto 1fr, gap:12 */}
         <View style={styles.eventRow}>
           {/* PWA: .day-symbol { width:38; height:38; border-radius:50%; bg:var(--moss) } */}
-          <View style={styles.daySymbol}>
+          <View style={[styles.daySymbol, { backgroundColor: themeColors.moss }]}>
             <Text style={styles.daySymbolText}>♡</Text>
           </View>
           <View style={styles.eventBody}>
             {/* PWA: .date-line { brown serif italic } */}
             {dateLabel ? (
-              <Text style={styles.dateLine}>{dateLabel}</Text>
+              <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
             ) : null}
             {/* PWA: h3 { font-size:1.35rem; color:var(--moss-dark) } */}
-            <Text style={styles.eventName} numberOfLines={2}>{event.name}</Text>
+            <Text style={[styles.eventName, { color: themeColors.textPrimary }]} numberOfLines={2}>{event.name}</Text>
           </View>
         </View>
       </View>
@@ -398,6 +416,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.textPrimary,
     letterSpacing: 0.2,
+  },
+
+  // Monthly cover image at top of calendar card
+  coverImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 14,
   },
 
   // PWA: .calendar-card.card { padding:14; gap:14; border-radius:24 }

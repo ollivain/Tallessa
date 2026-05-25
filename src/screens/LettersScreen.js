@@ -25,6 +25,7 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
+import { useTheme } from '../state/ThemeContext';
 
 const SCREEN_BG = require('../../assets/bg-kirjeet.png');
 
@@ -34,6 +35,7 @@ const MODE_EDIT = 'edit';
 export default function LettersScreen() {
   const { t } = useI18n();
   const { activeMemorial, addLetter, updateLetter, deleteLetter } = useMemorials();
+  const { themeColors } = useTheme();
 
   const [modalMode, setModalMode] = useState(MODE_ADD);
   const [editingId, setEditingId] = useState(null);
@@ -105,19 +107,19 @@ export default function LettersScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* PWA: transparent h2 header, no divider */}
         <View style={styles.wallHeader}>
-          <Text style={styles.wallTitle}>{t('letters.title')}</Text>
+          <Text style={[styles.wallTitle, { color: themeColors.textPrimary }]}>{t('letters.title')}</Text>
         </View>
 
         {/* PWA: .add-card-toggle — same pattern as wall screen */}
         <Pressable
           onPress={openAdd}
-          style={({ pressed }) => [styles.addToggle, pressed && styles.addTogglePressed]}
+          style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
           accessibilityRole="button"
         >
-          <View style={styles.addIcon}>
+          <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
             <Text style={styles.addPlus}>+</Text>
           </View>
-          <Text style={styles.addLabel}>{t('letters.add')}</Text>
+          <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('letters.add')}</Text>
         </Pressable>
 
         {/* Letter list */}
@@ -138,21 +140,21 @@ export default function LettersScreen() {
       </ScrollView>
 
       <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
           <KeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.modalBar}>
               <Pressable onPress={close} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={colors.textPrimary} />
+                <Feather name="x" size={22} color={themeColors.textPrimary} />
               </Pressable>
             </View>
             <ScrollView
               contentContainerStyle={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
                 {modalMode === MODE_EDIT ? t('letters.edit') : t('letters.add')}
               </Text>
               <AppInput
@@ -183,14 +185,15 @@ export default function LettersScreen() {
 
 // PWA: .letter-card.card — padding 16px, date-line → h3 → p
 function LetterCard({ letter, onEdit, onDelete }) {
+  const { themeColors } = useTheme();
   return (
     // Shadow wrapper separate from overflow:hidden
     <View style={styles.letterCardShadow}>
-      <View style={styles.letterCard}>
+      <View style={[styles.letterCard, { backgroundColor: themeColors.card }]}>
         {/* PWA: .delete-action — absolute pill buttons top:12 right:12 */}
         <View style={styles.cardActions}>
           <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
-            <Feather name="edit-2" size={12} color={colors.moss} />
+            <Feather name="edit-2" size={12} color={themeColors.moss} />
           </Pressable>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
@@ -200,9 +203,9 @@ function LetterCard({ letter, onEdit, onDelete }) {
         {/* PWA: .date-line → h3 → p */}
         <View style={styles.letterBody}>
           {letter.date ? (
-            <Text style={styles.dateLine}>{letter.date}</Text>
+            <Text style={[styles.dateLine, { color: themeColors.brown }]}>{letter.date}</Text>
           ) : null}
-          <Text style={styles.letterTitle} numberOfLines={2}>{letter.title}</Text>
+          <Text style={[styles.letterTitle, { color: themeColors.textPrimary }]} numberOfLines={2}>{letter.title}</Text>
           {letter.body ? (
             <Text style={styles.letterBodyText} numberOfLines={5}>{letter.body}</Text>
           ) : null}

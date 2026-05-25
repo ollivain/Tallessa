@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { colors, radii, shadows } from '../theme/designSystem';
+import { useTheme } from '../state/ThemeContext';
 import HomeScreen from '../screens/HomeScreen';
 import MemoryWallScreen from '../screens/MemoryWallScreen';
 import LettersScreen from '../screens/LettersScreen';
@@ -43,6 +44,7 @@ export default function MainTabs() {
 // Fully custom tab bar with warm-cream paper container and rounded active tab.
 function PaperTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
+  const { themeColors } = useTheme();
   return (
     <View style={[styles.outer, { paddingBottom: Math.max(insets.bottom, 7) }]}>
       <View style={styles.row}>
@@ -70,7 +72,7 @@ function PaperTabBar({ state, descriptors, navigation }) {
           };
 
           const iconName = ICONS[route.name] ?? 'circle';
-          const color = focused ? colors.tabActiveText : colors.tabInactiveText;
+          const color = focused ? themeColors.tabActiveText : colors.tabInactiveText;
 
           return (
             <Pressable
@@ -83,7 +85,7 @@ function PaperTabBar({ state, descriptors, navigation }) {
               onLongPress={onLongPress}
               style={({ pressed }) => [
                 styles.item,
-                focused && styles.itemActive,
+                focused && [styles.itemActive, { backgroundColor: themeColors.tabActiveBg }],
                 pressed && styles.itemPressed,
               ]}
             >
@@ -94,7 +96,7 @@ function PaperTabBar({ state, descriptors, navigation }) {
                 style={focused ? styles.iconActive : null}
               />
               <Text
-                style={[styles.label, focused && styles.labelActive]}
+                style={[styles.label, focused && [styles.labelActive, { color: themeColors.tabActiveText }]]}
                 numberOfLines={1}
               >
                 {label}

@@ -597,7 +597,7 @@ body.is-selector-active .bottom-nav {
     linear-gradient(180deg, rgba(245, 221, 184, 0.18), rgba(102, 86, 63, 0.32)),
     radial-gradient(ellipse at 18% 23%, rgba(255, 214, 129, 0.95), transparent 18%),
     radial-gradient(ellipse at 28% 29%, rgba(255, 170, 139, 0.5), transparent 28%),
-    url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=75"),
+    url("assets/memorial-bg-morning.jpg"),
     linear-gradient(180deg, #f7c88d 0%, #f8d8aa 18%, #ecd9c0 47%, #b8ad95 100%);
 }
 
@@ -613,7 +613,7 @@ body.is-selector-active .bottom-nav {
     linear-gradient(180deg, rgba(255, 251, 232, 0.08), rgba(96, 117, 65, 0.2)),
     radial-gradient(ellipse at 24% 18%, rgba(255, 248, 205, 0.92), transparent 22%),
     radial-gradient(ellipse at 78% 24%, rgba(255, 255, 238, 0.6), transparent 24%),
-    url("assets/memorial-day-sunny-field.jpg"),
+    url("assets/memorial-bg-day.jpg"),
     linear-gradient(180deg, #d9e8bb 0%, #eef0c5 38%, #d6c79a 100%);
 }
 
@@ -630,7 +630,7 @@ body.is-selector-active .bottom-nav {
     radial-gradient(ellipse at 72% 23%, rgba(243, 139, 68, 0.95), transparent 20%),
     radial-gradient(ellipse at 68% 34%, rgba(255, 193, 113, 0.52), transparent 28%),
     radial-gradient(ellipse at 18% 44%, rgba(89, 102, 70, 0.34), transparent 36%),
-    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=65"),
+    url("assets/memorial-bg-evening.jpg"),
     linear-gradient(180deg, #a97962 0%, #d19261 26%, #9b8462 60%, #5b523d 100%);
 }
 
@@ -650,7 +650,7 @@ body.is-selector-active .bottom-nav {
     radial-gradient(circle at 35% 42%, rgba(255, 246, 208, 0.46) 0 1px, transparent 2px),
     radial-gradient(circle at 52% 27%, rgba(255, 246, 208, 0.42) 0 1px, transparent 2px),
     radial-gradient(ellipse at 50% 20%, rgba(104, 83, 61, 0.44), transparent 38%),
-    url("https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&w=1200&q=70"),
+    url("assets/memorial-bg-night.jpg"),
     linear-gradient(180deg, #201d1d 0%, #342b27 42%, #594838 100%);
 }
 

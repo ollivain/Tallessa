@@ -53,21 +53,22 @@ export default function MemoryHeroCard({
   );
 }
 
-// 5 vertical bands going from very faint to fairly dark.
-// Each band is 20% of the card height; stacked, they approximate the
-// CSS `linear-gradient(180deg, rgba(37,42,31,.08) 24%, rgba(37,42,31,.72) 100%)`.
+// Vertical bands approximating the CSS linear-gradient. Each band's percentage
+// size is derived from the array length so adding/removing bands just works.
 function GradientStack() {
+  const bands = colors.heroOverlayBands;
+  const pct = 100 / bands.length;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {colors.heroOverlayBands.map((bg, i) => (
+      {bands.map((bg, i) => (
         <View
           key={i}
           style={{
             position: 'absolute',
             left: 0,
             right: 0,
-            top: `${i * 20}%`,
-            height: '20%',
+            top: `${i * pct}%`,
+            height: `${pct}%`,
             backgroundColor: bg,
           }}
         />
@@ -86,11 +87,13 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     zIndex: 1,
   },
+  // PWA: .hero { min-height: clamp(330px, 74vw, 382px) } — 330 min, 382 max
   card: {
     borderRadius: radii.xxl,
     overflow: 'hidden',
     backgroundColor: colors.moss,
     minHeight: 330,
+    maxHeight: 382,
   },
   image: {
     flex: 1,

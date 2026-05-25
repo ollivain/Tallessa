@@ -128,6 +128,42 @@ export async function pickVideoFromLibrary(t, { maxDurationSeconds = DEFAULT_VID
 }
 
 /**
+ * Opens the OS image picker with multi-selection (up to `limit` images).
+ * Returns an array of { uri } objects in selection order, or null on cancel.
+ * Used for calendar monthly cover images: pick 12 in Jan → Dec order.
+ *
+ * Note: allowsEditing cannot be combined with allowsMultipleSelection on iOS.
+ */
+export async function pickMultipleImagesFromLibrary(t, limit = 12) {
+  const ok = await ensureLibraryPermission(t);
+  if (!ok) return null;
+
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: limit,
+      quality: 0.80,
+      exif: false,
+    });
+    if (result.canceled || !result.assets?.length) return null;
+
+    // Persist each selected asset to the app's document directory
+    const persisted = await Promise.all(
+      result.assets.slice(0, limit).map(async (asset) => {
+        const uri = await persistAssetToAppStorage(asset, 'image');
+        return { uri };
+      }),
+    );
+    return persisted;
+  } catch (e) {
+    console.warn('[media] pickMultipleImagesFromLibrary failed:', e);
+    Alert.alert(t('media.errorTitle'), t('media.errorBody'));
+    return null;
+  }
+}
+
+/**
  * Best-effort delete of a previously persisted media file. Safe to call
  * with any uri — non-app paths are ignored.
  */

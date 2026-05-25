@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { loadAppState } from './storage/storage';
 import { I18nProvider } from './i18n';
 import { MemorialProvider } from './state/MemorialContext';
+import { ThemeProvider } from './state/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
 import LoadingScreen from './components/LoadingScreen';
 import { colors } from './theme/colors';
@@ -54,14 +55,16 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <I18nProvider initialLanguage={appState.settings?.language}>
-        <MemorialProvider
-          initialMemorials={appState.memorials}
-          initialActiveId={appState.activeId}
-        >
-          <NavigationContainer theme={navTheme}>
-            <RootNavigator />
-          </NavigationContainer>
-        </MemorialProvider>
+        <ThemeProvider initialTheme={appState.settings?.theme}>
+          <MemorialProvider
+            initialMemorials={appState.memorials}
+            initialActiveId={appState.activeId}
+          >
+            <NavigationContainer theme={navTheme}>
+              <RootNavigator />
+            </NavigationContainer>
+          </MemorialProvider>
+        </ThemeProvider>
       </I18nProvider>
     </SafeAreaProvider>
   );

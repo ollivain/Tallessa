@@ -84,7 +84,15 @@ export async function getActiveMemorialSpaceId()    { return readJSON(K.ACTIVE_I
 export async function saveActiveMemorialSpaceId(id) { return writeJSON(K.ACTIVE_ID, id); }
 
 export async function getSettings()                 { return readJSON(K.SETTINGS, {}); }
-export async function saveSettings(settings)        { return writeJSON(K.SETTINGS, settings); }
+/**
+ * Merges `partial` into the stored settings rather than overwriting them.
+ * This ensures that changing the language does not wipe the stored theme and
+ * vice-versa — all settings keys coexist in the same AsyncStorage entry.
+ */
+export async function saveSettings(partial) {
+  const current = await readJSON(K.SETTINGS, {});
+  return writeJSON(K.SETTINGS, { ...current, ...partial });
+}
 
 /** Wipes everything — use only from the developer debug menu. */
 export async function clearAllData() {

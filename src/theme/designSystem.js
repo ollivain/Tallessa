@@ -39,12 +39,19 @@ export const colors = {
 
   // Hero gradient (stacked overlays — RN has no native gradient without an
   // extra dep; we approximate the CSS `linear-gradient(180deg, rgba(37,42,31,
-  // .08) 24%, rgba(37,42,31,.72) 100%)` with five stepped bands).
+  // .08) 24%, rgba(37,42,31,.72) 100%)` with ten stepped bands.
+  // Values calculated from the CSS gradient: 0–24% is constant 0.08, then
+  // linear from 0.08 to 0.72 over 24%–100%. Ten bands, center at each 10% step.
   heroOverlayBands: [
-    'rgba(37, 42, 31, 0.04)',
-    'rgba(37, 42, 31, 0.12)',
-    'rgba(37, 42, 31, 0.28)',
-    'rgba(37, 42, 31, 0.48)',
+    'rgba(37, 42, 31, 0.08)',
+    'rgba(37, 42, 31, 0.08)',
+    'rgba(37, 42, 31, 0.09)',
+    'rgba(37, 42, 31, 0.17)',
+    'rgba(37, 42, 31, 0.26)',
+    'rgba(37, 42, 31, 0.34)',
+    'rgba(37, 42, 31, 0.43)',
+    'rgba(37, 42, 31, 0.51)',
+    'rgba(37, 42, 31, 0.59)',
     'rgba(37, 42, 31, 0.68)',
   ],
 

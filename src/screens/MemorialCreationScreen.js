@@ -28,6 +28,8 @@ import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 
 const SCREEN_BG = require('../../assets/selector-background.png');
 
+const PET_TYPE_KEYS = ['human', 'horse', 'dog', 'cat', 'rabbit', 'bird', 'guineaPig', 'hamster', 'ferret', 'turtle', 'other'];
+
 export default function MemorialCreationScreen() {
   const { t } = useI18n();
   const { createMemorial } = useMemorials();
@@ -37,6 +39,9 @@ export default function MemorialCreationScreen() {
   const [birth, setBirth] = useState('');
   const [death, setDeath] = useState('');
   const [description, setDescription] = useState('');
+  const [petType, setPetType] = useState('');
+  const [petTypeCustom, setPetTypeCustom] = useState('');
+  const [memorialName, setMemorialName] = useState('');
   const [portraitUri, setPortraitUri] = useState(null);
   const [error, setError] = useState('');
   const [savedPortrait, setSavedPortrait] = useState(false);
@@ -69,6 +74,9 @@ export default function MemorialCreationScreen() {
       birth: birth.trim(),
       death: death.trim(),
       description: description.trim(),
+      petType: petType || null,
+      petTypeCustom: petTypeCustom.trim(),
+      memorialName: memorialName.trim(),
       portraitUri: portraitUri ?? null,
     });
   };
@@ -175,6 +183,48 @@ export default function MemorialCreationScreen() {
                   multiline
                 />
 
+                {/* Pet type — PWA: <select name="petType"> */}
+                <View>
+                  <Text style={styles.fieldLabel}>{t('settings.petType')}</Text>
+                  <View style={styles.petTypeGrid}>
+                    {PET_TYPE_KEYS.map((key) => {
+                      const active = petType === key;
+                      return (
+                        <Pressable
+                          key={key}
+                          onPress={() => setPetType(active ? '' : key)}
+                          style={({ pressed }) => [
+                            styles.petTypePill,
+                            active && styles.petTypePillActive,
+                            pressed && styles.pressed,
+                          ]}
+                          accessibilityRole="button"
+                        >
+                          <Text style={[styles.petTypePillLabel, active && styles.petTypePillLabelActive]}>
+                            {t(`settings.petTypeOptions.${key}`)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Add details if you wish — PWA: always visible */}
+                <AppInput
+                  label={t('settings.petTypeCustom')}
+                  value={petTypeCustom}
+                  onChangeText={setPetTypeCustom}
+                  placeholder={t('settings.petTypeCustomPlaceholder')}
+                />
+
+                {/* Memorial day name */}
+                <AppInput
+                  label={t('settings.memorialName')}
+                  value={memorialName}
+                  onChangeText={setMemorialName}
+                  placeholder={t('settings.memorialNamePlaceholder')}
+                />
+
                 {error ? <Text style={styles.error}>{error}</Text> : null}
 
                 {/* PWA: .primary-action { min-height:52px; border-radius:17px; bg:moss } */}
@@ -209,25 +259,34 @@ const styles = StyleSheet.create({
   iconBtn: { padding: spacing.xs },
   pressed: { opacity: 0.6 },
 
+  // PWA .selector-screen: padding-left/right max(28px, safe-area+20px)
+  //   padding-top: calc(safe-area-top + 96px) — SafeAreaView handles safe-area,
+  //   so paddingTop here is the extra breathing room under the close button.
   scroll: {
-    paddingHorizontal: 24,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xxxl,
+    paddingHorizontal: 28,
+    paddingTop: 52,
+    paddingBottom: 52,
   },
 
+  // PWA .selector-hero h1: font-size clamp(4.6rem, 20vw, 6.7rem) → ~78px at 390px
+  //   font-weight: 700; line-height: 0.82; letter-spacing: 0; color: var(--color-primary)
   title: {
     fontFamily: typography.serif,
-    fontSize: typography.sizes.titleLarge,
-    fontWeight: typography.weights.regular,
+    fontSize: 60,
+    lineHeight: 57,
+    fontWeight: '700',
     color: colors.textPrimary,
-    letterSpacing: 0.4,
-    marginBottom: 6,
+    letterSpacing: 0,
+    marginBottom: 14,
   },
+  // PWA .selector-hero p: font-size clamp(1.1rem, 4.7vw, 1.42rem) → ~18px at 390px
+  //   font-weight: 500; color: rgba(80,86,76,0.88)
   subtitle: {
-    fontSize: typography.sizes.label,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-    marginBottom: spacing.md,
+    fontSize: 18,
+    fontWeight: '500',
+    color: 'rgba(80, 86, 76, 0.88)',
+    lineHeight: 27,
+    marginBottom: 42,
   },
 
   // PWA: .form-card.card { padding:16px; gap:14px; border-radius:24px; bg:rgba(255,250,240,.98); overflow:hidden }
@@ -300,6 +359,37 @@ const styles = StyleSheet.create({
     color: colors.moss,
     letterSpacing: 0.3,
   },
+
+  // PWA: form-card label span { font-size:13px; font-weight:700; color:var(--text) }
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textBody,
+    marginBottom: 8,
+  },
+
+  petTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  petTypePill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: 'transparent',
+  },
+  petTypePillActive: { backgroundColor: colors.moss, borderColor: colors.moss },
+  pressed: { opacity: 0.72 },
+  petTypePillLabel: {
+    fontSize: 13,
+    color: colors.moss,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  petTypePillLabelActive: { color: colors.textOnPrimary },
 
   error: {
     color: colors.danger,

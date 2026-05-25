@@ -37,6 +37,7 @@ import {
 } from '../lib/media';
 import { uploadMedia, UploadError } from '../lib/uploadMedia';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { useTheme } from '../state/ThemeContext';
 
 const MODE_ADD  = 'add';
 const MODE_EDIT = 'edit';
@@ -44,6 +45,7 @@ const MODE_EDIT = 'edit';
 export default function MemoryWallScreen() {
   const { t } = useI18n();
   const { activeMemorial, addMemory, updateMemory, deleteMemory } = useMemorials();
+  const { themeColors } = useTheme();
 
   const [modalMode, setModalMode] = useState(MODE_ADD);
   const [editingId, setEditingId] = useState(null);
@@ -179,19 +181,19 @@ export default function MemoryWallScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* PWA: <h2> wall.title — transparent, no divider */}
         <View style={styles.wallHeader}>
-          <Text style={styles.wallTitle}>{t('wall.title')}</Text>
+          <Text style={[styles.wallTitle, { color: themeColors.textPrimary }]}>{t('wall.title')}</Text>
         </View>
 
         {/* PWA: .add-card-toggle — card button with + circle and label */}
         <Pressable
           onPress={openAdd}
-          style={({ pressed }) => [styles.addToggle, pressed && styles.addTogglePressed]}
+          style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
           accessibilityRole="button"
         >
-          <View style={styles.addIcon}>
+          <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
             <Text style={styles.addPlus}>+</Text>
           </View>
-          <Text style={styles.addLabel}>{t('wall.add')}</Text>
+          <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('wall.add')}</Text>
         </Pressable>
 
         {/* Memory grid */}
@@ -216,21 +218,21 @@ export default function MemoryWallScreen() {
 
       {/* Add / Edit Modal */}
       <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
           <KeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.modalBar}>
               <Pressable onPress={close} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={colors.textPrimary} />
+                <Feather name="x" size={22} color={themeColors.textPrimary} />
               </Pressable>
             </View>
             <ScrollView
               contentContainerStyle={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
                 {modalMode === MODE_EDIT ? t('wall.edit') : t('wall.add')}
               </Text>
 
@@ -242,7 +244,7 @@ export default function MemoryWallScreen() {
                   <VideoClip uri={media.uri} style={styles.mediaPreview} />
                 ) : (
                   <View style={styles.mediaPlaceholder}>
-                    <Feather name="image" size={32} color={colors.brown} />
+                    <Feather name="image" size={32} color={themeColors.brown} />
                   </View>
                 )}
               </View>
@@ -250,14 +252,14 @@ export default function MemoryWallScreen() {
               {/* Media actions */}
               <View style={styles.mediaActions}>
                 <Pressable onPress={onPickImage} style={styles.mediaBtn}>
-                  <Feather name="image" size={15} color={colors.moss} />
-                  <Text style={styles.mediaBtnLabel}>
+                  <Feather name="image" size={15} color={themeColors.moss} />
+                  <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
                     {media?.type === 'image' ? t('wall.changeImage') : t('wall.pickImage')}
                   </Text>
                 </Pressable>
                 <Pressable onPress={onPickVideo} style={styles.mediaBtn}>
-                  <Feather name="video" size={15} color={colors.moss} />
-                  <Text style={styles.mediaBtnLabel}>
+                  <Feather name="video" size={15} color={themeColors.moss} />
+                  <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
                     {media?.type === 'video' ? t('wall.changeVideo') : t('wall.pickVideo')}
                   </Text>
                 </Pressable>
@@ -295,7 +297,7 @@ export default function MemoryWallScreen() {
               />
               {uploading ? (
                 <View style={styles.uploadingRow}>
-                  <ActivityIndicator color={colors.moss} />
+                  <ActivityIndicator color={themeColors.moss} />
                   <Text style={styles.uploadingText}>{t('media.uploading')}</Text>
                 </View>
               ) : null}
@@ -309,10 +311,11 @@ export default function MemoryWallScreen() {
 
 // PWA: .memory-card.card — overflow:hidden card, full-bleed media, body padding
 function MemoryCard({ memory, t, onEdit, onDelete }) {
+  const { themeColors } = useTheme();
   return (
     // Shadow wrapper separate from overflow:hidden (RN clips shadow if overflow:hidden)
     <View style={styles.memCardShadow}>
-      <View style={styles.memCard}>
+      <View style={[styles.memCard, { backgroundColor: themeColors.card }]}>
         {/* Full-bleed media — PWA: .memory-card .media-preview { min-height: 230px } */}
         {memory.mediaUri && memory.mediaType === 'image' ? (
           <Image source={{ uri: memory.mediaUri }} style={styles.memMedia} resizeMode="cover" />
@@ -325,7 +328,7 @@ function MemoryCard({ memory, t, onEdit, onDelete }) {
         {/* PWA: .delete-action — absolute pill buttons over media */}
         <View style={styles.memActions}>
           <Pressable onPress={onEdit} hitSlop={8} style={styles.memActionPill}>
-            <Feather name="edit-2" size={12} color={colors.moss} />
+            <Feather name="edit-2" size={12} color={themeColors.moss} />
           </Pressable>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.memActionPill, styles.memDeletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
@@ -336,10 +339,10 @@ function MemoryCard({ memory, t, onEdit, onDelete }) {
         <View style={styles.memBody}>
           {/* PWA: .date-line — brown, serif, italic */}
           {memory.date ? (
-            <Text style={styles.dateLine}>{memory.date}</Text>
+            <Text style={[styles.dateLine, { color: themeColors.brown }]}>{memory.date}</Text>
           ) : null}
           {memory.title ? (
-            <Text style={styles.memTitle}>{memory.title}</Text>
+            <Text style={[styles.memTitle, { color: themeColors.textPrimary }]}>{memory.title}</Text>
           ) : null}
           {memory.body ? (
             <Text style={styles.memBodyText} numberOfLines={5}>{memory.body}</Text>

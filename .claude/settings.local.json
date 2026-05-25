@@ -28,7 +28,9 @@
       "Bash(grep -v \"^$\")",
       "Bash(node --input-type=module --eval ' *)",
       "Bash(node -e \"var fs=require\\('fs'\\); var s=fs.readFileSync\\('src/screens/HomeScreen.js','utf8'\\); var o=0; for\\(var i=0;i<s.length;i++\\){if\\(s[i]=='{'\\)o++;else if\\(s[i]=='}'\\)o--;} console.log\\('HomeScreen brace balance:',o\\);\")",
-      "Bash(node -e \"var fs=require\\('fs'\\); var s=fs.readFileSync\\('src/components/MemoryHeroCard.js','utf8'\\); var o=0; for\\(var i=0;i<s.length;i++\\){if\\(s[i]=='{'\\)o++;else if\\(s[i]=='}'\\)o--;} console.log\\('MemoryHeroCard brace balance:',o\\);\")"
+      "Bash(node -e \"var fs=require\\('fs'\\); var s=fs.readFileSync\\('src/components/MemoryHeroCard.js','utf8'\\); var o=0; for\\(var i=0;i<s.length;i++\\){if\\(s[i]=='{'\\)o++;else if\\(s[i]=='}'\\)o--;} console.log\\('MemoryHeroCard brace balance:',o\\);\")",
+      "Bash(node --input-type=module)",
+      "Bash(for f *)"
     ]
   }
 }
