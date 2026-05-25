@@ -38,6 +38,22 @@ import {
 
 const SCREEN_BG = require('../../assets/bg-asetukset.png');
 
+// Returns the full month name for a given 0-based index in the current language.
+// Mirrors CalendarScreen's toLocaleString approach so month names are consistent.
+function getMonthName(monthIndex, language) {
+  try {
+    const name = new Date(2024, monthIndex, 1).toLocaleString(
+      language === 'fi' ? 'fi-FI' : 'en-US',
+      { month: 'long' },
+    );
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  } catch {
+    const EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const FI = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
+    return (language === 'fi' ? FI : EN)[monthIndex] ?? String(monthIndex + 1);
+  }
+}
+
 const PET_TYPE_KEYS = [
   'human', 'horse', 'dog', 'cat', 'rabbit', 'bird',
   'guineaPig', 'hamster', 'ferret', 'turtle', 'other',
@@ -368,6 +384,7 @@ export default function SettingsScreen() {
                               ) : (
                                 <View style={styles.thumbEmpty}>
                                   <Text style={styles.thumbNum}>{idx + 1}</Text>
+                                  <Text style={styles.thumbMon}>{getMonthName(idx, language).slice(0, 3)}</Text>
                                 </View>
                               )}
                             </View>
@@ -378,7 +395,7 @@ export default function SettingsScreen() {
                         <View style={styles.monthPositionList}>
                           {calendarImages.map((uri, idx) => uri ? (
                             <View key={idx} style={styles.monthPositionItem}>
-                              <Text style={styles.monthPositionLabel}>{`${idx + 1}. ${t('settings.calendarImages')}`}</Text>
+                              <Text style={styles.monthPositionLabel}>{`${getMonthName(idx, language)}`}</Text>
                               <ImagePositionControls
                                 value={calendarImagePositions[idx]}
                                 onChange={(nextPosition) => {
@@ -601,7 +618,7 @@ const styles = StyleSheet.create({
   wallTitle: {
     fontFamily: typography.serif,
     fontSize: 36,
-    lineHeight: 37,
+    lineHeight: 42,
     fontWeight: '400',
     color: colors.textPrimary,
     letterSpacing: 0.2,
@@ -852,11 +869,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   thumbImg: { width: '100%', height: '100%' },
-  thumbEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  thumbEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
   thumbNum: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textSoft,
+  },
+  thumbMon: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.textSoft,
+    letterSpacing: 0.2,
   },
   monthPositionList: {
     gap: 12,
