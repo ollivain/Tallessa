@@ -73,6 +73,14 @@ export const strings = {
       },
     },
 
+    imagePosition: {
+      cover: 'Täytä',
+      contain: 'Sovita',
+      top: 'Ylös',
+      center: 'Keskelle',
+      bottom: 'Alas',
+    },
+
     letters: {
       title: 'Kirjeet',
       subtitle: 'Kirjeitä, joita ei tarvitse lähettää minnekään.',
@@ -320,6 +328,14 @@ export const strings = {
         textPlaceholder: 'E.g. The last summer pasture, when everything was still here.',
         calendarDate: 'Date in the calendar (optional)',
       },
+    },
+
+    imagePosition: {
+      cover: 'Fill',
+      contain: 'Fit',
+      top: 'Top',
+      center: 'Center',
+      bottom: 'Bottom',
     },
 
     letters: {

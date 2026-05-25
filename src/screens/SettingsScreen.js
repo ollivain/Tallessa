@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -24,6 +23,8 @@ import AppScreen from '../components/AppScreen';
 import AppCard from '../components/AppCard';
 import AppInput from '../components/AppInput';
 import AppButton from '../components/AppButton';
+import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import PositionedImage from '../components/PositionedImage';
 import { clearAllData } from '../storage/storage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
@@ -56,7 +57,11 @@ export default function SettingsScreen() {
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName]   = useState('');
   const [portraitUri, setPortraitUri]     = useState(null);
+  const [memorialImagePosition, setMemorialImagePosition] = useState(DEFAULT_IMAGE_POSITION);
   const [calendarImages, setCalendarImages] = useState(() => Array(12).fill(null));
+  const [calendarImagePositions, setCalendarImagePositions] = useState(() =>
+    Array.from({ length: 12 }, () => DEFAULT_IMAGE_POSITION),
+  );
 
   // UI state
   const [calExpanded, setCalExpanded]     = useState(false);
@@ -75,7 +80,13 @@ export default function SettingsScreen() {
     setPetTypeCustom(activeMemorial?.petTypeCustom ?? '');
     setMemorialName(activeMemorial?.memorialName ?? '');
     setPortraitUri(getMemorialImage(activeMemorial) || null);
+    setMemorialImagePosition(activeMemorial?.memorialImagePosition ?? DEFAULT_IMAGE_POSITION);
     setCalendarImages(getMonthPhotosArray(activeMemorial));
+    setCalendarImagePositions(Array.from({ length: 12 }, (_, index) =>
+      activeMemorial?.monthPhotoPositions?.[String(index + 1).padStart(2, '0')] ??
+      activeMemorial?.monthPhotoPositions?.[String(index + 1)] ??
+      DEFAULT_IMAGE_POSITION,
+    ));
   }, [activeMemorial?.id]);
 
   // Clear timer on unmount
@@ -90,8 +101,13 @@ export default function SettingsScreen() {
       memorialDate:  death.trim(),
       memorialImage: portraitUri ?? '',
       heroImage:     portraitUri ?? '',
+      memorialImagePosition,
       monthPhotos:   calendarImages.reduce((acc, uri, index) => {
-        if (uri) acc[String(index + 1)] = uri;
+        if (uri) acc[String(index + 1).padStart(2, '0')] = uri;
+        return acc;
+      }, {}),
+      monthPhotoPositions: calendarImages.reduce((acc, uri, index) => {
+        if (uri) acc[String(index + 1).padStart(2, '0')] = calendarImagePositions[index] ?? DEFAULT_IMAGE_POSITION;
         return acc;
       }, {}),
       theme:         themeKey,
@@ -116,16 +132,27 @@ export default function SettingsScreen() {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
     setPortraitUri(result.uri);
+    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
-  const onRemovePortrait = () => setPortraitUri(null);
+  const onRemovePortrait = () => {
+    setPortraitUri(null);
+    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
+  };
 
   const onPickCalendarImages = async () => {
     const results = await pickMultipleImagesFromLibrary(t, 12);
     if (!results?.length) return;
     const next = [...calendarImages];
-    results.forEach((r, i) => { if (i < 12) next[i] = r.uri; });
+    const nextPositions = [...calendarImagePositions];
+    results.forEach((r, i) => {
+      if (i < 12) {
+        next[i] = r.uri;
+        nextPositions[i] = DEFAULT_IMAGE_POSITION;
+      }
+    });
     setCalendarImages(next);
+    setCalendarImagePositions(nextPositions);
   };
 
   const onClearAll = () => {
@@ -261,7 +288,7 @@ export default function SettingsScreen() {
                       accessibilityRole="button"
                     >
                       {portraitUri ? (
-                        <Image source={{ uri: portraitUri }} style={styles.portraitImage} resizeMode="cover" />
+                        <PositionedImage uri={portraitUri} position={memorialImagePosition} style={styles.portraitImage} />
                       ) : (
                         <View style={styles.portraitPlaceholder}>
                           <Feather name="user" size={28} color={themeColors.brown} />
@@ -284,6 +311,13 @@ export default function SettingsScreen() {
                         </Pressable>
                       ) : null}
                     </View>
+                    {portraitUri ? (
+                      <ImagePositionControls
+                        value={memorialImagePosition}
+                        onChange={setMemorialImagePosition}
+                        t={t}
+                      />
+                    ) : null}
                   </View>
 
                   {/* A few words — description */}
@@ -330,7 +364,7 @@ export default function SettingsScreen() {
                           {calendarImages.map((uri, idx) => (
                             <View key={idx} style={styles.thumb}>
                               {uri ? (
-                                <Image source={{ uri }} style={styles.thumbImg} resizeMode="cover" />
+                                <PositionedImage uri={uri} position={calendarImagePositions[idx]} style={styles.thumbImg} />
                               ) : (
                                 <View style={styles.thumbEmpty}>
                                   <Text style={styles.thumbNum}>{idx + 1}</Text>
@@ -338,6 +372,24 @@ export default function SettingsScreen() {
                               )}
                             </View>
                           ))}
+                        </View>
+                      ) : null}
+                      {calendarImages.some(Boolean) ? (
+                        <View style={styles.monthPositionList}>
+                          {calendarImages.map((uri, idx) => uri ? (
+                            <View key={idx} style={styles.monthPositionItem}>
+                              <Text style={styles.monthPositionLabel}>{`${idx + 1}. ${t('settings.calendarImages')}`}</Text>
+                              <ImagePositionControls
+                                value={calendarImagePositions[idx]}
+                                onChange={(nextPosition) => {
+                                  const next = [...calendarImagePositions];
+                                  next[idx] = nextPosition;
+                                  setCalendarImagePositions(next);
+                                }}
+                                t={t}
+                              />
+                            </View>
+                          ) : null)}
                         </View>
                       ) : null}
                     </View>
@@ -805,6 +857,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.textSoft,
+  },
+  monthPositionList: {
+    gap: 12,
+  },
+  monthPositionItem: {
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    paddingTop: 10,
+  },
+  monthPositionLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
   },
 
   // Theme picker cards

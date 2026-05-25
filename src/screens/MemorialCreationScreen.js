@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Image,
   ImageBackground,
   KeyboardAvoidingView,
   Modal,
@@ -25,6 +24,8 @@ import {
 } from '../theme/designSystem';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
+import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import PositionedImage from '../components/PositionedImage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import { themes, THEME_KEYS } from '../theme/themes';
@@ -38,7 +39,14 @@ const PET_TYPE_KEYS = [
 
 function toMonthPhotos(calendarImages) {
   return calendarImages.reduce((acc, uri, index) => {
-    if (uri) acc[String(index + 1)] = uri;
+    if (uri) acc[String(index + 1).padStart(2, '0')] = uri;
+    return acc;
+  }, {});
+}
+
+function toMonthPhotoPositions(calendarImages, positions) {
+  return calendarImages.reduce((acc, uri, index) => {
+    if (uri) acc[String(index + 1).padStart(2, '0')] = positions[index] ?? DEFAULT_IMAGE_POSITION;
     return acc;
   }, {});
 }
@@ -58,7 +66,12 @@ export default function MemorialCreationScreen() {
   const [memorialName, setMemorialName] = useState('');
   const [heroImageUri, setHeroImageUri] = useState(null);
   const [memorialImageUri, setMemorialImageUri] = useState(null);
+  const [heroImagePosition, setHeroImagePosition] = useState(DEFAULT_IMAGE_POSITION);
+  const [memorialImagePosition, setMemorialImagePosition] = useState(DEFAULT_IMAGE_POSITION);
   const [calendarImages, setCalendarImages] = useState(() => Array(12).fill(null));
+  const [calendarImagePositions, setCalendarImagePositions] = useState(() =>
+    Array.from({ length: 12 }, () => DEFAULT_IMAGE_POSITION),
+  );
   const [error, setError] = useState('');
   const savedMediaRef = useRef(false);
   const [petTypeOpen, setPetTypeOpen] = useState(false);
@@ -77,11 +90,13 @@ export default function MemorialCreationScreen() {
     if (!result) return;
     if (heroImageUri && heroImageUri !== result.uri) removePersistedMedia(heroImageUri);
     setHeroImageUri(result.uri);
+    setHeroImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const removeHeroImage = () => {
     if (heroImageUri) removePersistedMedia(heroImageUri);
     setHeroImageUri(null);
+    setHeroImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const pickMemorialImage = async () => {
@@ -89,24 +104,29 @@ export default function MemorialCreationScreen() {
     if (!result) return;
     if (memorialImageUri && memorialImageUri !== result.uri) removePersistedMedia(memorialImageUri);
     setMemorialImageUri(result.uri);
+    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const removeMemorialImage = () => {
     if (memorialImageUri) removePersistedMedia(memorialImageUri);
     setMemorialImageUri(null);
+    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const pickCalendarImages = async () => {
     const results = await pickMultipleImagesFromLibrary(t, 12);
     if (!results?.length) return;
     const next = [...calendarImages];
+    const nextPositions = [...calendarImagePositions];
     results.forEach((result, index) => {
       if (index < 12) {
         if (next[index] && next[index] !== result.uri) removePersistedMedia(next[index]);
         next[index] = result.uri;
+        nextPositions[index] = DEFAULT_IMAGE_POSITION;
       }
     });
     setCalendarImages(next);
+    setCalendarImagePositions(nextPositions);
   };
 
   const onSave = () => {
@@ -122,7 +142,10 @@ export default function MemorialCreationScreen() {
       memorialDate: death.trim(),
       memorialImage: memorialImageUri ?? '',
       heroImage: heroImageUri ?? '',
+      heroImagePosition,
+      memorialImagePosition,
       monthPhotos: toMonthPhotos(calendarImages),
+      monthPhotoPositions: toMonthPhotoPositions(calendarImages, calendarImagePositions),
       importantDays: [],
       theme: themeKey,
       language,
@@ -251,6 +274,8 @@ export default function MemorialCreationScreen() {
                 <ImagePickerBlock
                   label={t('creation.portrait')}
                   uri={heroImageUri}
+                  position={heroImagePosition}
+                  onPositionChange={setHeroImagePosition}
                   icon="image"
                   onPick={pickHeroImage}
                   onRemove={removeHeroImage}
@@ -262,6 +287,8 @@ export default function MemorialCreationScreen() {
                 <ImagePickerBlock
                   label={t('settings.memorialImage')}
                   uri={memorialImageUri}
+                  position={memorialImagePosition}
+                  onPositionChange={setMemorialImagePosition}
                   icon="heart"
                   onPick={pickMemorialImage}
                   onRemove={removeMemorialImage}
@@ -300,7 +327,7 @@ export default function MemorialCreationScreen() {
                         {calendarImages.map((uri, index) => (
                           <View key={index} style={styles.thumb}>
                             {uri ? (
-                              <Image source={{ uri }} style={styles.thumbImg} resizeMode="cover" />
+                              <PositionedImage uri={uri} position={calendarImagePositions[index]} style={styles.thumbImg} />
                             ) : (
                               <View style={styles.thumbEmpty}>
                                 <Text style={styles.thumbNum}>{index + 1}</Text>
@@ -308,6 +335,24 @@ export default function MemorialCreationScreen() {
                             )}
                           </View>
                         ))}
+                      </View>
+                    ) : null}
+                    {calendarImages.some(Boolean) ? (
+                      <View style={styles.monthPositionList}>
+                        {calendarImages.map((uri, index) => uri ? (
+                          <View key={index} style={styles.monthPositionItem}>
+                            <Text style={styles.monthPositionLabel}>{`${index + 1}. ${t('settings.calendarImages')}`}</Text>
+                            <ImagePositionControls
+                              value={calendarImagePositions[index]}
+                              onChange={(nextPosition) => {
+                                const next = [...calendarImagePositions];
+                                next[index] = nextPosition;
+                                setCalendarImagePositions(next);
+                              }}
+                              t={t}
+                            />
+                          </View>
+                        ) : null)}
                       </View>
                     ) : null}
                   </View>
@@ -421,7 +466,19 @@ export default function MemorialCreationScreen() {
   );
 }
 
-function ImagePickerBlock({ label, uri, icon, onPick, onRemove, pickLabel, removeLabel, tint }) {
+function ImagePickerBlock({
+  label,
+  uri,
+  position,
+  onPositionChange,
+  icon,
+  onPick,
+  onRemove,
+  pickLabel,
+  removeLabel,
+  tint,
+}) {
+  const { t } = useI18n();
   return (
     <View>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -431,7 +488,7 @@ function ImagePickerBlock({ label, uri, icon, onPick, onRemove, pickLabel, remov
         style={({ pressed }) => [styles.imageFrame, pressed && styles.pressed]}
       >
         {uri ? (
-          <Image source={{ uri }} style={styles.imageFill} resizeMode="cover" />
+          <PositionedImage uri={uri} position={position} style={styles.imageFill} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Feather name={icon} size={30} color={tint} />
@@ -450,6 +507,9 @@ function ImagePickerBlock({ label, uri, icon, onPick, onRemove, pickLabel, remov
           </Pressable>
         ) : null}
       </View>
+      {uri ? (
+        <ImagePositionControls value={position} onChange={onPositionChange} t={t} />
+      ) : null}
     </View>
   );
 }
@@ -686,6 +746,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.textSoft,
+  },
+  monthPositionList: {
+    gap: 12,
+  },
+  monthPositionItem: {
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    paddingTop: 10,
+  },
+  monthPositionLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
   },
 
   themeList: { gap: 10 },

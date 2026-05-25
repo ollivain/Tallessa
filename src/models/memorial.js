@@ -1,4 +1,4 @@
-const DEFAULT_POSITION = { x: 50, y: 50, zoom: 1 };
+const DEFAULT_POSITION = { x: 50, y: 50, zoom: 1, fit: 'cover' };
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -45,12 +45,21 @@ function normalizePosition(value) {
     x: Number.isFinite(x) ? x : DEFAULT_POSITION.x,
     y: Number.isFinite(y) ? y : DEFAULT_POSITION.y,
     zoom: Number.isFinite(zoom) && zoom > 0 ? zoom : DEFAULT_POSITION.zoom,
+    fit: position.fit === 'contain' ? 'contain' : 'cover',
   };
+}
+
+function normalizePositionMap(value) {
+  const source = asObject(value);
+  return Object.keys(source).reduce((acc, key) => {
+    acc[key] = normalizePosition(source[key]);
+    return acc;
+  }, {});
 }
 
 function calendarImagesToMonthPhotos(calendarImages) {
   return asArray(calendarImages).reduce((acc, uri, index) => {
-    if (uri) acc[String(index + 1)] = uri;
+    if (uri) acc[String(index + 1).padStart(2, '0')] = uri;
     return acc;
   }, {});
 }
@@ -60,7 +69,8 @@ function monthPhotosToCalendarImages(monthPhotos, calendarImages) {
   const fallback = asArray(calendarImages);
   return Array.from({ length: 12 }, (_, index) => {
     const monthKey = String(index + 1);
-    return source[monthKey] || fallback[index] || null;
+    const paddedMonthKey = monthKey.padStart(2, '0');
+    return source[paddedMonthKey] || source[monthKey] || fallback[index] || null;
   });
 }
 
@@ -137,7 +147,7 @@ export function normalizeMemorial(memorial) {
     heroImage,
     importantDays,
     monthPhotos,
-    monthPhotoPositions: asObject(value.monthPhotoPositions),
+    monthPhotoPositions: normalizePositionMap(value.monthPhotoPositions),
     memories: asArray(value.memories),
     letters: asArray(value.letters),
     memorialDayName,

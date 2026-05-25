@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Alert,
   Dimensions,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -26,6 +25,7 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
+import PositionedImage from '../components/PositionedImage';
 import { useTheme } from '../state/ThemeContext';
 import { getImportantDays, getMemorialDate, getMonthPhotosArray } from '../models/memorial';
 
@@ -100,6 +100,11 @@ export default function CalendarScreen() {
   // Monthly cover image — index 0=Jan … 11=Dec
   const calendarImages = getMonthPhotosArray(activeMemorial);
   const coverImageUri = calendarImages[visibleMonth.getMonth()] ?? null;
+  const monthKey = String(visibleMonth.getMonth() + 1);
+  const paddedMonthKey = monthKey.padStart(2, '0');
+  const coverImagePosition =
+    activeMemorial?.monthPhotoPositions?.[monthKey] ??
+    activeMemorial?.monthPhotoPositions?.[paddedMonthKey];
 
   const goPrev = () =>
     setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
@@ -197,10 +202,10 @@ export default function CalendarScreen() {
 
             {/* Monthly cover image — set via Settings → Calendar images */}
             {coverImageUri ? (
-              <Image
-                source={{ uri: coverImageUri }}
+              <PositionedImage
+                uri={coverImageUri}
+                position={coverImagePosition}
                 style={styles.coverImage}
-                resizeMode="cover"
               />
             ) : null}
 

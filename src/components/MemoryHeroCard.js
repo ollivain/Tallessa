@@ -1,5 +1,6 @@
-import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, shadows, typography } from '../theme/designSystem';
+import PositionedImage from './PositionedImage';
 
 // Hero card shown at the top of HomeScreen. Mirrors the web `.hero` block:
 //   - Big rounded corners (28)
@@ -17,6 +18,7 @@ export default function MemoryHeroCard({
   fallbackSource,
   eyebrow,
   memoryLine,
+  imagePosition,
 }) {
   const source = imageSource ?? fallbackSource;
 
@@ -24,7 +26,12 @@ export default function MemoryHeroCard({
     <View style={styles.shadow}>
       <View style={styles.card}>
         {source ? (
-          <ImageBackground source={source} style={styles.image} resizeMode="cover">
+          <View style={styles.image}>
+            <PositionedImage
+              source={source}
+              position={imageSource ? imagePosition : undefined}
+              style={StyleSheet.absoluteFill}
+            />
             <GradientStack />
             <View style={styles.copyBlock}>
               {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
@@ -34,7 +41,7 @@ export default function MemoryHeroCard({
                 </Text>
               ) : null}
             </View>
-          </ImageBackground>
+          </View>
         ) : (
           <View style={[styles.image, styles.placeholder]}>
             <GradientStack />

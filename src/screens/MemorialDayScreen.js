@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   ImageBackground,
   KeyboardAvoidingView,
   Modal,
@@ -27,6 +26,8 @@ import {
 import AppCard from '../components/AppCard';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
+import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import PositionedImage from '../components/PositionedImage';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import { getMemorialDate, getMemorialDayName, getMemorialImage, getMemorialName } from '../models/memorial';
@@ -230,6 +231,7 @@ export default function MemorialDayScreen() {
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName] = useState('');
   const [portraitUri, setPortraitUri] = useState(null);
+  const [memorialImagePosition, setMemorialImagePosition] = useState(DEFAULT_IMAGE_POSITION);
 
   // Time-of-day sky — computed once per render (re-mounts on navigation return)
   const timeOfDay = getTimeOfDay();
@@ -245,6 +247,7 @@ export default function MemorialDayScreen() {
       setPetTypeCustom(activeMemorial.petTypeCustom ?? '');
       setMemorialName(getMemorialDayName(activeMemorial));
       setPortraitUri(getMemorialImage(activeMemorial) || null);
+      setMemorialImagePosition(activeMemorial.memorialImagePosition ?? DEFAULT_IMAGE_POSITION);
     }
   }, [editOpen, activeMemorial]);
 
@@ -253,6 +256,7 @@ export default function MemorialDayScreen() {
   const closeEdit = () => {
     setEditOpen(false);
     setPortraitUri(getMemorialImage(activeMemorial) || null);
+    setMemorialImagePosition(activeMemorial?.memorialImagePosition ?? DEFAULT_IMAGE_POSITION);
   };
 
   const onPickPortrait = async () => {
@@ -262,6 +266,7 @@ export default function MemorialDayScreen() {
       removePersistedMedia(portraitUri);
     }
     setPortraitUri(result.uri);
+    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const onRemovePortrait = () => {
@@ -269,6 +274,7 @@ export default function MemorialDayScreen() {
       removePersistedMedia(portraitUri);
     }
     setPortraitUri(null);
+    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const saveEdit = () => {
@@ -279,6 +285,7 @@ export default function MemorialDayScreen() {
       horseName: trimmed,
       memorialDate: death.trim(),
       memorialImage: portraitUri ?? '',
+      memorialImagePosition,
       theme: themeKey,
       language,
       name: trimmed,
@@ -428,10 +435,10 @@ export default function MemorialDayScreen() {
 
               {/* Portrait image — PWA: .memorial-image { min-height:280px; border-radius:22px } */}
               {displayImage ? (
-                <Image
-                  source={{ uri: displayImage }}
+                <PositionedImage
+                  uri={displayImage}
+                  position={activeMemorial.memorialImagePosition}
                   style={styles.memorialImage}
-                  resizeMode="cover"
                 />
               ) : (
                 <View style={[styles.memorialImage, styles.memorialImagePlaceholder]}>
@@ -513,7 +520,7 @@ export default function MemorialDayScreen() {
                         style={({ pressed }) => [styles.portraitFrame, pressed && { opacity: 0.8 }]}
                       >
                         {portraitUri ? (
-                          <Image source={{ uri: portraitUri }} style={styles.portraitFrameImg} resizeMode="cover" />
+                          <PositionedImage uri={portraitUri} position={memorialImagePosition} style={styles.portraitFrameImg} />
                         ) : (
                           <View style={styles.portraitFramePlaceholder}>
                             <Feather name="user" size={28} color={themeColors.brown} />
@@ -536,6 +543,13 @@ export default function MemorialDayScreen() {
                           </Pressable>
                         ) : null}
                       </View>
+                      {portraitUri ? (
+                        <ImagePositionControls
+                          value={memorialImagePosition}
+                          onChange={setMemorialImagePosition}
+                          t={t}
+                        />
+                      ) : null}
                     </View>
 
                     <AppInput

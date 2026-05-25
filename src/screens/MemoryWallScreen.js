@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -28,6 +27,8 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
+import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import PositionedImage from '../components/PositionedImage';
 
 const SCREEN_BG = require('../../assets/bg-muistot.png');
 import {
@@ -55,6 +56,7 @@ export default function MemoryWallScreen({ route }) {
   const [body, setBody] = useState('');
   const [calendarDate, setCalendarDate] = useState('');
   const [media, setMedia] = useState(null);
+  const [imagePosition, setImagePosition] = useState(DEFAULT_IMAGE_POSITION);
   const [uploading, setUploading] = useState(false);
 
   const memories = activeMemorial?.memories ?? [];
@@ -75,6 +77,7 @@ export default function MemoryWallScreen({ route }) {
     setBody('');
     setCalendarDate('');
     setMedia(null);
+    setImagePosition(DEFAULT_IMAGE_POSITION);
     setOpen(true);
   };
 
@@ -89,6 +92,7 @@ export default function MemoryWallScreen({ route }) {
         ? { type: getMemoryMediaType(memory), uri: getMemoryMediaUri(memory), _persisted: true }
         : null,
     );
+    setImagePosition(memory.imagePosition ?? DEFAULT_IMAGE_POSITION);
     setOpen(true);
   };
 
@@ -99,6 +103,7 @@ export default function MemoryWallScreen({ route }) {
     setBody('');
     setCalendarDate('');
     setMedia(null);
+    setImagePosition(DEFAULT_IMAGE_POSITION);
     setEditingId(null);
   };
 
@@ -107,6 +112,7 @@ export default function MemoryWallScreen({ route }) {
       removePersistedMedia(media.uri);
     }
     setMedia(next);
+    if (next?.type === 'image') setImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
   const onPickImage = async () => {
@@ -156,6 +162,7 @@ export default function MemoryWallScreen({ route }) {
       type: media?.type ?? null,
       media: uploaded?.publicUrl ?? media?.uri ?? '',
       storagePath: uploaded?.path ?? (media?._persisted ? undefined : ''),
+      imagePosition: media?.type === 'image' ? imagePosition : undefined,
       // TODO: Add true native 10-second video trimming when a trimming-capable
       // dependency is available. For now the picker gets a 10s hint and we
       // store PWA-compatible clip metadata without changing the uploaded file.
@@ -176,6 +183,7 @@ export default function MemoryWallScreen({ route }) {
     setBody('');
     setCalendarDate('');
     setMedia(null);
+    setImagePosition(DEFAULT_IMAGE_POSITION);
     setEditingId(null);
   };
 
@@ -261,7 +269,7 @@ export default function MemoryWallScreen({ route }) {
               {/* Media preview — PWA: .memory-draft-preview { border-radius: 18px } */}
               <View style={styles.mediaPreviewBox}>
                 {media?.type === 'image' ? (
-                  <Image source={{ uri: media.uri }} style={styles.mediaPreview} resizeMode="cover" />
+                  <PositionedImage uri={media.uri} position={imagePosition} style={styles.mediaPreview} />
                 ) : media?.type === 'video' ? (
                   <VideoClip uri={media.uri} style={styles.mediaPreview} />
                 ) : (
@@ -270,6 +278,9 @@ export default function MemoryWallScreen({ route }) {
                   </View>
                 )}
               </View>
+              {media?.type === 'image' ? (
+                <ImagePositionControls value={imagePosition} onChange={setImagePosition} t={t} />
+              ) : null}
 
               {/* Media actions */}
               <View style={styles.mediaActions}>
@@ -355,7 +366,7 @@ function MemoryCard({ memory, t, highlighted, onEdit, onDelete }) {
       ]}>
         {/* Full-bleed media — PWA: .memory-card .media-preview { min-height: 230px } */}
         {mediaUri && mediaType === 'image' ? (
-          <Image source={{ uri: mediaUri }} style={styles.memMedia} resizeMode="cover" />
+          <PositionedImage uri={mediaUri} position={memory.imagePosition} style={styles.memMedia} />
         ) : mediaUri && mediaType === 'video' ? (
           <VideoClip uri={mediaUri} style={styles.memMedia} />
         ) : (

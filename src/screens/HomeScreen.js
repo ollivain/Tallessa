@@ -43,6 +43,7 @@ export default function HomeScreen() {
       <MemoryHeroCard
         imageSource={heroImage}
         fallbackSource={HERO_FALLBACK}
+        imagePosition={activeMemorial?.heroImagePosition}
         memoryLine={heroLine}
       />
 
