@@ -29,6 +29,7 @@ import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
+import { getMemorialDate, getMemorialImage, getMemorialName } from '../models/memorial';
 
 // ── Time-of-day sky system (matches PWA: morning / day / evening / night) ──────
 function getTimeOfDay() {
@@ -218,7 +219,7 @@ const cStyles = StyleSheet.create({
 export default function MemorialDayScreen() {
   const { t, language } = useI18n();
   const { activeMemorial, updateMemorial, setCandleLit, deleteMemorial, clearActive } = useMemorials();
-  const { themeColors } = useTheme();
+  const { themeKey, themeColors } = useTheme();
 
   const [editOpen, setEditOpen] = useState(false);
   const [name, setName] = useState('');
@@ -237,14 +238,14 @@ export default function MemorialDayScreen() {
 
   useEffect(() => {
     if (editOpen && activeMemorial) {
-      setName(activeMemorial.name ?? '');
+      setName(getMemorialName(activeMemorial));
       setBirth(activeMemorial.birth ?? '');
-      setDeath(activeMemorial.death ?? '');
+      setDeath(getMemorialDate(activeMemorial));
       setDescription(activeMemorial.description ?? '');
       setPetType(activeMemorial.petType ?? '');
       setPetTypeCustom(activeMemorial.petTypeCustom ?? '');
       setMemorialName(activeMemorial.memorialName ?? '');
-      setPortraitUri(activeMemorial.portraitUri ?? null);
+      setPortraitUri(getMemorialImage(activeMemorial) || null);
       setSavedPortrait(true);
     }
   }, [editOpen, activeMemorial]);
@@ -253,20 +254,20 @@ export default function MemorialDayScreen() {
 
   const closeEdit = () => {
     setEditOpen(false);
-    setPortraitUri(activeMemorial?.portraitUri ?? null);
+    setPortraitUri(getMemorialImage(activeMemorial) || null);
   };
 
   const onPickPortrait = async () => {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
-    if (portraitUri && portraitUri !== activeMemorial?.portraitUri && portraitUri !== result.uri) {
+    if (portraitUri && portraitUri !== getMemorialImage(activeMemorial) && portraitUri !== result.uri) {
       removePersistedMedia(portraitUri);
     }
     setPortraitUri(result.uri);
   };
 
   const onRemovePortrait = () => {
-    if (portraitUri && portraitUri !== activeMemorial?.portraitUri) {
+    if (portraitUri && portraitUri !== getMemorialImage(activeMemorial)) {
       removePersistedMedia(portraitUri);
     }
     setPortraitUri(null);
@@ -277,6 +278,12 @@ export default function MemorialDayScreen() {
     const trimmed = name.trim();
     if (!trimmed) return;
     updateMemorial(activeMemorial.id, {
+      horseName: trimmed,
+      memorialDate: death.trim(),
+      memorialImage: portraitUri ?? '',
+      heroImage: portraitUri ?? '',
+      theme: themeKey,
+      language,
       name: trimmed,
       birth: birth.trim(),
       death: death.trim(),
@@ -336,7 +343,10 @@ export default function MemorialDayScreen() {
   }
 
   // ── Derived display values ──────────────────────────────────────────────────
-  const possessiveName = toPossessive(activeMemorial.name, language);
+  const displayName = getMemorialName(activeMemorial);
+  const displayDate = getMemorialDate(activeMemorial);
+  const displayImage = getMemorialImage(activeMemorial);
+  const possessiveName = toPossessive(displayName, language);
   const pageTitle = language === 'fi'
     ? `${possessiveName} päivä`
     : `${possessiveName} day`;
@@ -346,11 +356,11 @@ export default function MemorialDayScreen() {
 
   // Card h3 heading — Finnish allative ("Pepelle"), English plain name ("Pepe")
   // Matches PWA: elements.memorialHeading.textContent = toAllative(state.horseName)
-  const cardHeading = toAllative(activeMemorial.name, language);
+  const cardHeading = toAllative(displayName, language);
 
   // Formatted memorial date: "19. May — Repeats automatically every year"
   const formattedDate = formatMemorialDate(
-    activeMemorial.death,
+    displayDate,
     language,
     t('calendar.memorialRecurring'),
   );
@@ -359,7 +369,7 @@ export default function MemorialDayScreen() {
   const petTypeKey = PET_TYPES.includes(activeMemorial.petType)
     ? activeMemorial.petType : 'horse';
   const memorialBody = t(`memorialText.${petTypeKey}`, {
-    name: activeMemorial.name || t('memorialText.fallbackName'),
+    name: displayName || t('memorialText.fallbackName'),
     animal: activeMemorial.petTypeCustom || t('memorialText.fallbackAnimal'),
   });
 
@@ -417,9 +427,9 @@ export default function MemorialDayScreen() {
             <View style={[styles.card, candle && styles.cardLit, { backgroundColor: themeColors.card }]}>
 
               {/* Portrait image — PWA: .memorial-image { min-height:280px; border-radius:22px } */}
-              {activeMemorial.portraitUri ? (
+              {displayImage ? (
                 <Image
-                  source={{ uri: activeMemorial.portraitUri }}
+                  source={{ uri: displayImage }}
                   style={styles.memorialImage}
                   resizeMode="cover"
                 />

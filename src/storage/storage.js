@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { normalizeMemorials } from '../models/memorial';
 
 // Version suffix lets us safely migrate storage format in the future by
 // changing the key prefix without old data silently breaking the app.
@@ -48,10 +49,29 @@ export async function loadAppState() {
   try {
     const results = await AsyncStorage.multiGet([K.MEMORIALS, K.ACTIVE_ID, K.SETTINGS]);
     const [memorialsStr, activeIdStr, settingsStr] = results.map(([, v]) => v);
+    const memorials = normalizeMemorials(parseJSON(memorialsStr, []));
+    const activeId = parseJSON(activeIdStr, null);
+    const normalizedActiveId = memorials.some((m) => m.id === activeId)
+      ? activeId
+      : memorials[0]?.id ?? null;
+    const settings = parseJSON(settingsStr, {});
+    const normalized = {
+      memorials,
+      activeId: normalizedActiveId,
+      settings,
+    };
+
+    if (
+      (memorialsStr && JSON.stringify(memorials) !== memorialsStr) ||
+      activeId !== normalizedActiveId
+    ) {
+      await saveAppState(normalized);
+    }
+
     return {
-      memorials: parseJSON(memorialsStr, []),
-      activeId:  parseJSON(activeIdStr,  null),
-      settings:  parseJSON(settingsStr,  {}),
+      memorials,
+      activeId: normalizedActiveId,
+      settings,
     };
   } catch (e) {
     console.error('[storage] loadAppState failed, returning defaults:', e);
@@ -65,8 +85,9 @@ export async function loadAppState() {
  */
 export async function saveAppState({ memorials, activeId, settings }) {
   try {
+    const normalizedMemorials = normalizeMemorials(memorials);
     await AsyncStorage.multiSet([
-      [K.MEMORIALS, JSON.stringify(memorials)],
+      [K.MEMORIALS, JSON.stringify(normalizedMemorials)],
       [K.ACTIVE_ID, JSON.stringify(activeId)],
       [K.SETTINGS,  JSON.stringify(settings)],
     ]);
@@ -77,8 +98,8 @@ export async function saveAppState({ memorials, activeId, settings }) {
 
 // ── Granular helpers ─────────────────────────────────────────────────────────
 
-export async function getMemorialSpaces()           { return readJSON(K.MEMORIALS, []); }
-export async function saveMemorialSpaces(spaces)    { return writeJSON(K.MEMORIALS, spaces); }
+export async function getMemorialSpaces()           { return normalizeMemorials(await readJSON(K.MEMORIALS, [])); }
+export async function saveMemorialSpaces(spaces)    { return writeJSON(K.MEMORIALS, normalizeMemorials(spaces)); }
 
 export async function getActiveMemorialSpaceId()    { return readJSON(K.ACTIVE_ID, null); }
 export async function saveActiveMemorialSpaceId(id) { return writeJSON(K.ACTIVE_ID, id); }

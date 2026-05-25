@@ -1,10 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { saveMemorialSpaces, saveActiveMemorialSpaceId } from '../storage/storage';
+import { normalizeMemorial, normalizeMemorials } from '../models/memorial';
 
 let idCounter = 1;
 const nextId = () => `id-${Date.now().toString(36)}-${idCounter++}`;
 
 const MemorialContext = createContext(null);
+
+function updateImportantDays(memorial, importantDays) {
+  return normalizeMemorial({
+    ...memorial,
+    importantDays,
+    events: importantDays,
+  });
+}
 
 /**
  * initialMemorials and initialActiveId come from the top-level loadAppState()
@@ -12,7 +21,7 @@ const MemorialContext = createContext(null);
  * it only writes back when data changes.
  */
 export function MemorialProvider({ initialMemorials, initialActiveId, children }) {
-  const [memorials, setMemorials] = useState(() => initialMemorials ?? []);
+  const [memorials, setMemorials] = useState(() => normalizeMemorials(initialMemorials));
   const [activeId, setActiveId] = useState(() => initialActiveId ?? null);
 
   // Skip the first render so we don't immediately write the loaded data
@@ -40,14 +49,14 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
   // ── Create ─────────────────────────────────────────────────────────────────
 
   const createMemorial = useCallback((draft) => {
-    const memorial = {
+    const memorial = normalizeMemorial({
       id: nextId(),
       memories: [],
       letters: [],
-      events: [],
+      importantDays: [],
       candleLit: false,
       ...draft,
-    };
+    });
     setMemorials((prev) => [...prev, memorial]);
     setActiveId(memorial.id);
     return memorial;
@@ -57,7 +66,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
 
   const updateMemorial = useCallback((memorialId, changes) => {
     setMemorials((prev) =>
-      prev.map((m) => m.id === memorialId ? { ...m, ...changes } : m),
+      prev.map((m) => m.id === memorialId ? normalizeMemorial({ ...m, ...changes }) : m),
     );
   }, []);
 
@@ -76,7 +85,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
 
   const setCandleLit = useCallback((memorialId, lit) => {
     setMemorials((prev) =>
-      prev.map((m) => m.id === memorialId ? { ...m, candleLit: lit } : m),
+      prev.map((m) => m.id === memorialId ? normalizeMemorial({ ...m, candleLit: lit }) : m),
     );
   }, []);
 
@@ -86,7 +95,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? { ...m, memories: [{ id: nextId(), ...memory }, ...m.memories] }
+          ? normalizeMemorial({ ...m, memories: [{ id: nextId(), ...memory }, ...(m.memories ?? [])] })
           : m,
       ),
     );
@@ -96,12 +105,12 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? {
+          ? normalizeMemorial({
               ...m,
-              memories: m.memories.map((mem) =>
+              memories: (m.memories ?? []).map((mem) =>
                 mem.id === memoryId ? { ...mem, ...changes } : mem,
               ),
-            }
+            })
           : m,
       ),
     );
@@ -111,7 +120,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? { ...m, memories: m.memories.filter((mem) => mem.id !== memoryId) }
+          ? normalizeMemorial({ ...m, memories: (m.memories ?? []).filter((mem) => mem.id !== memoryId) })
           : m,
       ),
     );
@@ -123,7 +132,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? { ...m, letters: [{ id: nextId(), ...letter }, ...m.letters] }
+          ? normalizeMemorial({ ...m, letters: [{ id: nextId(), ...letter }, ...(m.letters ?? [])] })
           : m,
       ),
     );
@@ -133,12 +142,12 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? {
+          ? normalizeMemorial({
               ...m,
-              letters: m.letters.map((l) =>
+              letters: (m.letters ?? []).map((l) =>
                 l.id === letterId ? { ...l, ...changes } : l,
               ),
-            }
+            })
           : m,
       ),
     );
@@ -148,7 +157,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? { ...m, letters: m.letters.filter((l) => l.id !== letterId) }
+          ? normalizeMemorial({ ...m, letters: (m.letters ?? []).filter((l) => l.id !== letterId) })
           : m,
       ),
     );
@@ -159,9 +168,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
   const addEvent = useCallback((memorialId, event) => {
     setMemorials((prev) =>
       prev.map((m) =>
-        m.id === memorialId
-          ? { ...m, events: [...m.events, { id: nextId(), ...event }] }
-          : m,
+        m.id === memorialId ? updateImportantDays(m, [...(m.importantDays ?? []), { id: nextId(), ...event }]) : m,
       ),
     );
   }, []);
@@ -170,12 +177,10 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? {
-              ...m,
-              events: m.events.map((ev) =>
-                ev.id === eventId ? { ...ev, ...changes } : ev,
-              ),
-            }
+          ? updateImportantDays(
+              m,
+              (m.importantDays ?? []).map((ev) => ev.id === eventId ? { ...ev, ...changes } : ev),
+            )
           : m,
       ),
     );
@@ -185,7 +190,7 @@ export function MemorialProvider({ initialMemorials, initialActiveId, children }
     setMemorials((prev) =>
       prev.map((m) =>
         m.id === memorialId
-          ? { ...m, events: m.events.filter((ev) => ev.id !== eventId) }
+          ? updateImportantDays(m, (m.importantDays ?? []).filter((ev) => ev.id !== eventId))
           : m,
       ),
     );

@@ -28,6 +28,12 @@ import { clearAllData } from '../storage/storage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import { themes, THEME_KEYS } from '../theme/themes';
+import {
+  getMemorialDate,
+  getMemorialImage,
+  getMemorialName,
+  getMonthPhotosArray,
+} from '../models/memorial';
 
 const SCREEN_BG = require('../../assets/bg-asetukset.png');
 
@@ -61,15 +67,15 @@ export default function SettingsScreen() {
 
   // Re-initialise when active memorial changes
   useEffect(() => {
-    setName(activeMemorial?.name ?? '');
+    setName(getMemorialName(activeMemorial));
     setBirth(activeMemorial?.birth ?? '');
-    setDeath(activeMemorial?.death ?? '');
+    setDeath(getMemorialDate(activeMemorial));
     setDescription(activeMemorial?.description ?? '');
     setPetType(activeMemorial?.petType ?? '');
     setPetTypeCustom(activeMemorial?.petTypeCustom ?? '');
     setMemorialName(activeMemorial?.memorialName ?? '');
-    setPortraitUri(activeMemorial?.portraitUri ?? null);
-    setCalendarImages(activeMemorial?.calendarImages ?? Array(12).fill(null));
+    setPortraitUri(getMemorialImage(activeMemorial) || null);
+    setCalendarImages(getMonthPhotosArray(activeMemorial));
   }, [activeMemorial?.id]);
 
   // Clear timer on unmount
@@ -80,6 +86,16 @@ export default function SettingsScreen() {
   const onSave = () => {
     if (!activeMemorial) return;
     updateMemorial(activeMemorial.id, {
+      horseName:     name.trim(),
+      memorialDate:  death.trim(),
+      memorialImage: portraitUri ?? '',
+      heroImage:     portraitUri ?? '',
+      monthPhotos:   calendarImages.reduce((acc, uri, index) => {
+        if (uri) acc[String(index + 1)] = uri;
+        return acc;
+      }, {}),
+      theme:         themeKey,
+      language,
       name:          name.trim(),
       birth:         birth.trim(),
       death:         death.trim(),

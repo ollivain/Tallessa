@@ -8,6 +8,7 @@ import {
   colors,
   typography,
 } from '../theme/designSystem';
+import { getMemorialImage, getMemorialName } from '../models/memorial';
 
 const SCREEN_BG = require('../../assets/selector-background.png');
 
@@ -72,6 +73,9 @@ export default function MemorialSelectionScreen() {
 
 // PWA: .memorial-place-card { grid: 78px 1fr 26px; min-height:122px; border-radius:30px; gap:14px }
 function MemorialPlaceCard({ memorial, onPress }) {
+  const imageUri = getMemorialImage(memorial);
+  const name = getMemorialName(memorial);
+
   return (
     <Pressable
       onPress={onPress}
@@ -80,8 +84,8 @@ function MemorialPlaceCard({ memorial, onPress }) {
     >
       {/* PWA: .memorial-place-image { width:78px; aspect-ratio:1; border-radius:24px } */}
       <View style={styles.placeImage}>
-        {memorial.portraitUri ? (
-          <Image source={{ uri: memorial.portraitUri }} style={styles.placeImageFill} resizeMode="cover" />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.placeImageFill} resizeMode="cover" />
         ) : (
           <Feather name="user" size={28} color="rgba(80, 95, 62, 0.5)" />
         )}
@@ -89,7 +93,7 @@ function MemorialPlaceCard({ memorial, onPress }) {
 
       {/* PWA: .memorial-place-copy strong { font-family:serif; font-size:~20px; color:mossDark } */}
       <View style={styles.placeCopy}>
-        <Text style={styles.placeName} numberOfLines={2}>{memorial.name}</Text>
+        <Text style={styles.placeName} numberOfLines={2}>{name}</Text>
       </View>
 
       {/* PWA: .memorial-place-arrow { font-size:2.25rem≈36px; color:rgba(81,87,75,.82) } */}

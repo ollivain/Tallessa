@@ -14,6 +14,7 @@ import {
   typography,
 } from '../theme/designSystem';
 import { useTheme } from '../state/ThemeContext';
+import { getHeroImage, getMemorialName } from '../models/memorial';
 
 // Default soft watercolour shipped with the app — used when the active
 // memorial has no portrait of its own. Keeps the hero card feeling finished.
@@ -25,12 +26,12 @@ export default function HomeScreen() {
   const { activeMemorial } = useMemorials();
   const navigation = useNavigation();
 
-  const name = activeMemorial?.name ?? '';
+  const name = getMemorialName(activeMemorial);
   const heroLine = name
     ? t('home.heroMemoryLine', { name })
     : t('tagline');
 
-  const portraitUri = activeMemorial?.portraitUri;
+  const portraitUri = getHeroImage(activeMemorial);
   const heroImage = portraitUri ? { uri: portraitUri } : null;
 
   const latestMemory = activeMemorial?.memories?.[0] ?? null;

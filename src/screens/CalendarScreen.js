@@ -27,6 +27,7 @@ import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
 import { useTheme } from '../state/ThemeContext';
+import { getImportantDays, getMemorialDate, getMonthPhotosArray } from '../models/memorial';
 
 const SCREEN_BG = require('../../assets/bg-kalenteri.png');
 
@@ -76,16 +77,16 @@ export default function CalendarScreen() {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
 
-  const events = activeMemorial?.events ?? [];
+  const events = getImportantDays(activeMemorial);
   const sortedEvents = events.slice().sort((a, b) =>
     String(a.date).localeCompare(String(b.date)),
   );
 
-  const deathDate = parseAnyDate(activeMemorial?.death);
+  const deathDate = parseAnyDate(getMemorialDate(activeMemorial));
   const gridCells = buildGridCells(visibleMonth, events, deathDate);
 
   // Monthly cover image — index 0=Jan … 11=Dec
-  const calendarImages = activeMemorial?.calendarImages ?? [];
+  const calendarImages = getMonthPhotosArray(activeMemorial);
   const coverImageUri = calendarImages[visibleMonth.getMonth()] ?? null;
 
   const goPrev = () =>

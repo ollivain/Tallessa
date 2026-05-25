@@ -25,14 +25,16 @@ import {
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
+import { useTheme } from '../state/ThemeContext';
 
 const SCREEN_BG = require('../../assets/selector-background.png');
 
 const PET_TYPE_KEYS = ['human', 'horse', 'dog', 'cat', 'rabbit', 'bird', 'guineaPig', 'hamster', 'ferret', 'turtle', 'other'];
 
 export default function MemorialCreationScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { createMemorial } = useMemorials();
+  const { themeKey } = useTheme();
   const navigation = useNavigation();
 
   const [name, setName] = useState('');
@@ -70,6 +72,12 @@ export default function MemorialCreationScreen() {
     }
     setSavedPortrait(true);
     createMemorial({
+      horseName: trimmed,
+      memorialDate: death.trim(),
+      memorialImage: portraitUri ?? '',
+      heroImage: portraitUri ?? '',
+      theme: themeKey,
+      language,
       name: trimmed,
       birth: birth.trim(),
       death: death.trim(),
