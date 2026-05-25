@@ -185,7 +185,7 @@ export const strings = {
       create: 'Create a new memorial space',
       open: 'Open',
       placeSuffix: 'memorial space',
-      empty: 'You don't have any memorial spaces yet. Begin by creating one.',
+      empty: "You don't have any memorial spaces yet. Begin by creating one.",
     },
 
     creation: {
@@ -212,7 +212,7 @@ export const strings = {
       memoryOfDay: 'Memory of the day',
       memoryEmpty: 'Add your first memory when the moment feels right.',
       openMemory: 'Open memory',
-      dailyQuote: 'Today's words',
+      dailyQuote: "Today's words",
       quickActions: 'Quick links',
       heroMemoryLine: '{name}\'s memories that stay with you.',
     },
@@ -233,7 +233,7 @@ export const strings = {
 
     letters: {
       title: 'Letters',
-      subtitle: 'Letters that don't need to be sent anywhere.',
+      subtitle: "Letters that don't need to be sent anywhere.",
       add: 'Write a letter',
       edit: 'Edit letter',
       empty: 'Letters are a quiet place for words.',
@@ -303,20 +303,20 @@ export const strings = {
     media: {
       permissionTitle: 'Photo library access',
       permissionBody:
-        'Withen needs permission to your photo library to attach pictures and videos. You can enable it in your phone's settings.',
+        "Withen needs permission to your photo library to attach pictures and videos. You can enable it in your phone's settings.",
       permissionOpenSettings: 'Open settings',
       permissionCancel: 'Not now',
       errorTitle: 'Something went sideways',
       errorBody:
-        'Picking media didn't work just now. Please try again in a moment.',
+        "Picking media didn't work just now. Please try again in a moment.",
       uploading: 'Uploading media…',
       uploadErrorTitle: 'Upload failed',
       uploadErrorNotConfigured:
-        'Cloud storage isn't configured. Add your Supabase credentials to .env and try again.',
+        "Cloud storage isn't configured. Add your Supabase credentials to .env and try again.",
       uploadErrorNetwork:
         'The connection dropped while uploading. Check your network and try again.',
       uploadErrorGeneric:
-        'Uploading the media to the cloud didn't work. The memory is saved on this device only.',
+        "Uploading the media to the cloud didn't work. The memory is saved on this device only.",
     },
 
     quote:
@@ -328,7 +328,7 @@ export const strings = {
       memoryBody: 'Sunflowers were in bloom, and laughter drifted through the kitchen window.',
       letterTitle: 'Good morning',
       letterBody:
-        'This morning I made coffee for two. I set the second cup on the table even though I know you won't drink it — it still felt right.',
+        "This morning I made coffee for two. I set the second cup on the table even though I know you won't drink it — it still felt right.",
       eventName: 'Birthday',
     },
   },
