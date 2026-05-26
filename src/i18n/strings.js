@@ -87,6 +87,13 @@ export const strings = {
       add: 'Kirjoita kirje',
       edit: 'Muokkaa kirjettä',
       empty: 'Kirjeet ovat hiljainen paikka sanoille.',
+      form: {
+        title: 'Otsikko',
+        titlePlaceholder: 'Rakas Pepe',
+        body: 'Kirje',
+        bodyPlaceholder: 'Kirjoita rauhassa. Tätä ei julkaista eikä jaeta.',
+        save: 'Tallenna kirje',
+      },
     },
 
     calendar: {
@@ -215,11 +222,11 @@ export const strings = {
       themeSection: 'Teema',
       themePick: 'Valitse teema',
       themes: {
-        classic: 'Classic',
-        timeless: 'Timeless',
-        soft: 'Soft',
-        modern: 'Modern',
-        romantic: 'Romantic',
+        classic: 'Klassinen',
+        timeless: 'Ajaton',
+        soft: 'Pehmeä',
+        modern: 'Moderni',
+        romantic: 'Romanttinen',
       },
     },
 
@@ -344,6 +351,13 @@ export const strings = {
       add: 'Write a letter',
       edit: 'Edit letter',
       empty: 'Letters are a quiet place for words.',
+      form: {
+        title: 'Title',
+        titlePlaceholder: 'Dear friend',
+        body: 'Letter',
+        bodyPlaceholder: "Write at your own pace. This isn't published or shared.",
+        save: 'Save letter',
+      },
     },
 
     calendar: {

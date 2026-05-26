@@ -73,12 +73,12 @@ export default function LettersScreen() {
 
     if (modalMode === MODE_EDIT && editingId) {
       updateLetter(activeMemorial.id, editingId, {
-        title: title.trim() || t('mock.letterTitle'),
+        title: title.trim() || t('letters.form.titlePlaceholder'),
         body: body.trim(),
       });
     } else {
       addLetter(activeMemorial.id, {
-        title: title.trim() || t('mock.letterTitle'),
+        title: title.trim() || t('letters.form.titlePlaceholder'),
         body: body.trim(),
         date: new Date().toISOString().slice(0, 10),
       });
@@ -158,23 +158,23 @@ export default function LettersScreen() {
                 {modalMode === MODE_EDIT ? t('letters.edit') : t('letters.add')}
               </Text>
               <AppInput
-                label={t('mock.letterTitle')}
+                label={t('letters.form.title')}
                 value={title}
                 onChangeText={setTitle}
-                placeholder={t('mock.letterTitle')}
+                placeholder={t('letters.form.titlePlaceholder')}
                 style={styles.inputWrap}
               />
               {/* PWA: .letter-editor textarea { min-height: 190px } */}
               <AppInput
-                label={t('mock.letterBody')}
+                label={t('letters.form.body')}
                 value={body}
                 onChangeText={setBody}
-                placeholder={t('mock.letterBody')}
+                placeholder={t('letters.form.bodyPlaceholder')}
                 multiline
                 inputStyle={styles.letterTextarea}
                 style={styles.inputWrap}
               />
-              <AppButton label={t('creation.save')} onPress={save} />
+              <AppButton label={t('letters.form.save')} onPress={save} />
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>

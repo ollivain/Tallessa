@@ -37,6 +37,20 @@ const PET_TYPE_KEYS = [
   'guineaPig', 'hamster', 'ferret', 'turtle', 'other',
 ];
 
+function getMonthName(monthIndex, language) {
+  try {
+    const name = new Date(2024, monthIndex, 1).toLocaleString(
+      language === 'fi' ? 'fi-FI' : 'en-US',
+      { month: 'long' },
+    );
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  } catch {
+    const EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const FI = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
+    return (language === 'fi' ? FI : EN)[monthIndex] ?? String(monthIndex + 1);
+  }
+}
+
 function toMonthPhotos(calendarImages) {
   return calendarImages.reduce((acc, uri, index) => {
     if (uri) acc[String(index + 1).padStart(2, '0')] = uri;
@@ -341,7 +355,7 @@ export default function MemorialCreationScreen() {
                       <View style={styles.monthPositionList}>
                         {calendarImages.map((uri, index) => uri ? (
                           <View key={index} style={styles.monthPositionItem}>
-                            <Text style={styles.monthPositionLabel}>{`${index + 1}. ${t('settings.calendarImages')}`}</Text>
+                            <Text style={styles.monthPositionLabel}>{getMonthName(index, language)}</Text>
                             <ImagePositionControls
                               value={calendarImagePositions[index]}
                               onChange={(nextPosition) => {
