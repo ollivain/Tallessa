@@ -24,11 +24,15 @@ import {
 } from '../theme/designSystem';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
-import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
 import PositionedImage from '../components/PositionedImage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import { themes, THEME_KEYS } from '../theme/themes';
+
+// All image pickers share the same default metadata so the saved value is
+// the same shape no matter which slot was tapped.
+const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
 
 const SCREEN_BG = require('../../assets/selector-background.png');
 
@@ -91,6 +95,8 @@ export default function MemorialCreationScreen() {
   const [petTypeOpen, setPetTypeOpen] = useState(false);
   const [calExpanded, setCalExpanded] = useState(false);
   const [themeExpanded, setThemeExpanded] = useState(false);
+  // cropTarget routes the ImageCropAspectPicker modal: { uri, current, apply, replace }
+  const [cropTarget, setCropTarget] = useState(null);
 
   useEffect(() => () => {
     if (savedMediaRef.current) return;
@@ -99,12 +105,36 @@ export default function MemorialCreationScreen() {
     calendarImages.forEach((uri) => { if (uri) removePersistedMedia(uri); });
   }, [calendarImages, heroImageUri, memorialImageUri]);
 
+  // Open the crop picker for the freshly chosen URI. The picker carries the
+  // image's URI + the previous crop metadata; on Apply we commit the result.
+  const openCropPicker = ({ uri, current, apply }) => {
+    setCropTarget({
+      uri,
+      current,
+      apply,
+      replace: async () => {
+        const replaced = await pickImageFromLibrary(t);
+        if (replaced) {
+          setCropTarget((c) => c ? { ...c, uri: replaced.uri } : null);
+        }
+      },
+    });
+  };
+
   const pickHeroImage = async () => {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
-    if (heroImageUri && heroImageUri !== result.uri) removePersistedMedia(heroImageUri);
-    setHeroImageUri(result.uri);
-    setHeroImagePosition(DEFAULT_IMAGE_POSITION);
+    const previousUri = heroImageUri;
+    openCropPicker({
+      uri: result.uri,
+      current: previousUri === result.uri ? heroImagePosition : DEFAULT_IMAGE_POSITION,
+      apply: (value) => {
+        if (previousUri && previousUri !== result.uri) removePersistedMedia(previousUri);
+        setHeroImageUri(result.uri);
+        setHeroImagePosition(value);
+        setCropTarget(null);
+      },
+    });
   };
 
   const removeHeroImage = () => {
@@ -113,12 +143,32 @@ export default function MemorialCreationScreen() {
     setHeroImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
+  const editHeroCrop = () => {
+    if (!heroImageUri) return;
+    openCropPicker({
+      uri: heroImageUri,
+      current: heroImagePosition,
+      apply: (value) => {
+        setHeroImagePosition(value);
+        setCropTarget(null);
+      },
+    });
+  };
+
   const pickMemorialImage = async () => {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
-    if (memorialImageUri && memorialImageUri !== result.uri) removePersistedMedia(memorialImageUri);
-    setMemorialImageUri(result.uri);
-    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
+    const previousUri = memorialImageUri;
+    openCropPicker({
+      uri: result.uri,
+      current: previousUri === result.uri ? memorialImagePosition : DEFAULT_IMAGE_POSITION,
+      apply: (value) => {
+        if (previousUri && previousUri !== result.uri) removePersistedMedia(previousUri);
+        setMemorialImageUri(result.uri);
+        setMemorialImagePosition(value);
+        setCropTarget(null);
+      },
+    });
   };
 
   const removeMemorialImage = () => {
@@ -127,6 +177,22 @@ export default function MemorialCreationScreen() {
     setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
+  const editMemorialCrop = () => {
+    if (!memorialImageUri) return;
+    openCropPicker({
+      uri: memorialImageUri,
+      current: memorialImagePosition,
+      apply: (value) => {
+        setMemorialImagePosition(value);
+        setCropTarget(null);
+      },
+    });
+  };
+
+  // PWA parity approximation: PWA picks 12 images in one go and the user
+  // crops each later. We keep the same picker behaviour but the per-month
+  // ImagePositionControls have been replaced by the crop picker accessible
+  // via the "Edit crop" button on each picked month thumbnail.
   const pickCalendarImages = async () => {
     const results = await pickMultipleImagesFromLibrary(t, 12);
     if (!results?.length) return;
@@ -141,6 +207,21 @@ export default function MemorialCreationScreen() {
     });
     setCalendarImages(next);
     setCalendarImagePositions(nextPositions);
+  };
+
+  const editCalendarCrop = (index) => {
+    const uri = calendarImages[index];
+    if (!uri) return;
+    openCropPicker({
+      uri,
+      current: calendarImagePositions[index] ?? DEFAULT_IMAGE_POSITION,
+      apply: (value) => {
+        const next = [...calendarImagePositions];
+        next[index] = value;
+        setCalendarImagePositions(next);
+        setCropTarget(null);
+      },
+    });
   };
 
   const onSave = () => {
@@ -273,10 +354,10 @@ export default function MemorialCreationScreen() {
                   label={t('settings.memorialImage')}
                   uri={memorialImageUri}
                   position={memorialImagePosition}
-                  onPositionChange={setMemorialImagePosition}
                   icon="heart"
                   onPick={pickMemorialImage}
                   onRemove={removeMemorialImage}
+                  onEditCrop={editMemorialCrop}
                   pickLabel={memorialImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
                   removeLabel={t('creation.removePortrait')}
                   tint={themeColors.brown}
@@ -286,10 +367,10 @@ export default function MemorialCreationScreen() {
                   label={t('creation.portrait')}
                   uri={heroImageUri}
                   position={heroImagePosition}
-                  onPositionChange={setHeroImagePosition}
                   icon="image"
                   onPick={pickHeroImage}
                   onRemove={removeHeroImage}
+                  onEditCrop={editHeroCrop}
                   pickLabel={heroImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
                   removeLabel={t('creation.removePortrait')}
                   tint={themeColors.brown}
@@ -352,15 +433,16 @@ export default function MemorialCreationScreen() {
                         {calendarImages.map((uri, index) => uri ? (
                           <View key={index} style={styles.monthPositionItem}>
                             <Text style={styles.monthPositionLabel}>{getMonthName(index, language)}</Text>
-                            <ImagePositionControls
-                              value={calendarImagePositions[index]}
-                              onChange={(nextPosition) => {
-                                const next = [...calendarImagePositions];
-                                next[index] = nextPosition;
-                                setCalendarImagePositions(next);
-                              }}
-                              t={t}
-                            />
+                            <Pressable
+                              onPress={() => editCalendarCrop(index)}
+                              style={({ pressed }) => [styles.editCropBtn, pressed && styles.pressed]}
+                              accessibilityRole="button"
+                            >
+                              <Feather name="crop" size={14} color={themeColors.moss} />
+                              <Text style={[styles.editCropBtnLabel, { color: themeColors.moss }]}>
+                                {t('imageCrop.edit')}
+                              </Text>
+                            </Pressable>
                           </View>
                         ) : null)}
                       </View>
@@ -448,6 +530,19 @@ export default function MemorialCreationScreen() {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
+      {/* PWA parity approximation: PWA crops via free drag-and-zoom directly
+          on the image. RN uses a dedicated modal where the same metadata
+          (aspectRatio, fitMode, x, y, zoom) is set, then rendered by the
+          identical PositionedImage component in both preview and final card. */}
+      <ImageCropAspectPicker
+        visible={!!cropTarget}
+        uri={cropTarget?.uri}
+        initialValue={cropTarget?.current}
+        onApply={cropTarget?.apply}
+        onCancel={() => setCropTarget(null)}
+        onReplace={cropTarget?.replace}
+      />
+
       <Modal
         visible={petTypeOpen}
         transparent
@@ -491,10 +586,10 @@ function ImagePickerBlock({
   label,
   uri,
   position,
-  onPositionChange,
   icon,
   onPick,
   onRemove,
+  onEditCrop,
   pickLabel,
   removeLabel,
   tint,
@@ -503,8 +598,10 @@ function ImagePickerBlock({
   return (
     <View>
       <Text style={styles.fieldLabel}>{label}</Text>
+      {/* Frame uses the same PositionedImage as the picker preview and the
+          final card render — guaranteeing visual parity across all three. */}
       <Pressable
-        onPress={onPick}
+        onPress={uri ? onEditCrop : onPick}
         accessibilityRole="button"
         style={({ pressed }) => [styles.imageFrame, pressed && styles.pressed]}
       >
@@ -522,15 +619,18 @@ function ImagePickerBlock({
           <Text style={styles.smallButtonLabel}>{pickLabel}</Text>
         </Pressable>
         {uri ? (
+          <Pressable onPress={onEditCrop} style={styles.smallButton}>
+            <Feather name="crop" size={14} color={colors.moss} />
+            <Text style={styles.smallButtonLabel}>{t('imageCrop.edit')}</Text>
+          </Pressable>
+        ) : null}
+        {uri ? (
           <Pressable onPress={onRemove} style={styles.smallButton}>
             <Feather name="trash-2" size={14} color={colors.danger} />
             <Text style={[styles.smallButtonLabel, { color: colors.danger }]}>{removeLabel}</Text>
           </Pressable>
         ) : null}
       </View>
-      {uri ? (
-        <ImagePositionControls value={position} onChange={onPositionChange} t={t} />
-      ) : null}
     </View>
   );
 }
@@ -790,6 +890,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
+  },
+  // "Edit crop" button used inside the per-month list + everywhere
+  // ImagePickerBlock needs a re-crop affordance.
+  editCropBtn: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             6,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    borderRadius:    radii.pill,
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    backgroundColor: colors.card,
+    alignSelf:       'flex-start',
+  },
+  editCropBtnLabel: {
+    fontSize:      typography.sizes.label,
+    color:         colors.moss,
+    fontWeight:    typography.weights.bold,
+    letterSpacing: 0.3,
   },
 
   themeList: { gap: 10 },

@@ -23,8 +23,11 @@ import AppScreen from '../components/AppScreen';
 import AppCard from '../components/AppCard';
 import AppInput from '../components/AppInput';
 import AppButton from '../components/AppButton';
-import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
 import PositionedImage from '../components/PositionedImage';
+
+// Shared default so saved metadata has a consistent shape everywhere.
+const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
 import { clearAllData } from '../storage/storage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
@@ -85,6 +88,8 @@ export default function SettingsScreen() {
   const [petTypeOpen, setPetTypeOpen]     = useState(false);
   const [saved, setSaved]                 = useState(false);
   const savedTimer = useRef(null);
+  // cropTarget routes the ImageCropAspectPicker modal — see usage below
+  const [cropTarget, setCropTarget] = useState(null);
 
   // Re-initialise when active memorial changes
   useEffect(() => {
@@ -144,11 +149,43 @@ export default function SettingsScreen() {
     savedTimer.current = setTimeout(() => setSaved(false), 2200);
   };
 
+  const openCropPicker = ({ uri, current, apply }) => {
+    setCropTarget({
+      uri,
+      current,
+      apply,
+      replace: async () => {
+        const replaced = await pickImageFromLibrary(t);
+        if (replaced) setCropTarget((c) => c ? { ...c, uri: replaced.uri } : null);
+      },
+    });
+  };
+
   const onPickPortrait = async () => {
     const result = await pickImageFromLibrary(t);
     if (!result) return;
-    setPortraitUri(result.uri);
-    setMemorialImagePosition(DEFAULT_IMAGE_POSITION);
+    const previousUri = portraitUri;
+    openCropPicker({
+      uri: result.uri,
+      current: previousUri === result.uri ? memorialImagePosition : DEFAULT_IMAGE_POSITION,
+      apply: (value) => {
+        setPortraitUri(result.uri);
+        setMemorialImagePosition(value);
+        setCropTarget(null);
+      },
+    });
+  };
+
+  const onEditPortraitCrop = () => {
+    if (!portraitUri) return;
+    openCropPicker({
+      uri: portraitUri,
+      current: memorialImagePosition,
+      apply: (value) => {
+        setMemorialImagePosition(value);
+        setCropTarget(null);
+      },
+    });
   };
 
   const onRemovePortrait = () => {
@@ -169,6 +206,21 @@ export default function SettingsScreen() {
     });
     setCalendarImages(next);
     setCalendarImagePositions(nextPositions);
+  };
+
+  const onEditCalendarCrop = (idx) => {
+    const uri = calendarImages[idx];
+    if (!uri) return;
+    openCropPicker({
+      uri,
+      current: calendarImagePositions[idx] ?? DEFAULT_IMAGE_POSITION,
+      apply: (value) => {
+        const next = [...calendarImagePositions];
+        next[idx] = value;
+        setCalendarImagePositions(next);
+        setCropTarget(null);
+      },
+    });
   };
 
   const onClearAll = () => {
@@ -295,11 +347,12 @@ export default function SettingsScreen() {
                     placeholder={t('creation.datePlaceholder')}
                   />
 
-                  {/* Memorial day image — portrait picker */}
+                  {/* Memorial day image — portrait picker. Tapping the frame
+                      opens the crop modal so preview == final card. */}
                   <View>
                     <Text style={styles.fieldLabel}>{t('settings.memorialImage')}</Text>
                     <Pressable
-                      onPress={onPickPortrait}
+                      onPress={portraitUri ? onEditPortraitCrop : onPickPortrait}
                       style={({ pressed }) => [styles.portraitFrame, pressed && { opacity: 0.8 }]}
                       accessibilityRole="button"
                     >
@@ -319,6 +372,14 @@ export default function SettingsScreen() {
                         </Text>
                       </Pressable>
                       {portraitUri ? (
+                        <Pressable onPress={onEditPortraitCrop} style={styles.portraitBtn}>
+                          <Feather name="crop" size={13} color={themeColors.moss} />
+                          <Text style={[styles.portraitBtnLabel, { color: themeColors.moss }]}>
+                            {t('imageCrop.edit')}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                      {portraitUri ? (
                         <Pressable onPress={onRemovePortrait} style={styles.portraitBtn}>
                           <Feather name="trash-2" size={13} color={colors.danger} />
                           <Text style={[styles.portraitBtnLabel, { color: colors.danger }]}>
@@ -327,13 +388,6 @@ export default function SettingsScreen() {
                         </Pressable>
                       ) : null}
                     </View>
-                    {portraitUri ? (
-                      <ImagePositionControls
-                        value={memorialImagePosition}
-                        onChange={setMemorialImagePosition}
-                        t={t}
-                      />
-                    ) : null}
                   </View>
 
                   {/* A few words — description */}
@@ -396,15 +450,16 @@ export default function SettingsScreen() {
                           {calendarImages.map((uri, idx) => uri ? (
                             <View key={idx} style={styles.monthPositionItem}>
                               <Text style={styles.monthPositionLabel}>{`${getMonthName(idx, language)}`}</Text>
-                              <ImagePositionControls
-                                value={calendarImagePositions[idx]}
-                                onChange={(nextPosition) => {
-                                  const next = [...calendarImagePositions];
-                                  next[idx] = nextPosition;
-                                  setCalendarImagePositions(next);
-                                }}
-                                t={t}
-                              />
+                              <Pressable
+                                onPress={() => onEditCalendarCrop(idx)}
+                                style={({ pressed }) => [styles.editCropBtn, pressed && styles.pressed]}
+                                accessibilityRole="button"
+                              >
+                                <Feather name="crop" size={14} color={themeColors.moss} />
+                                <Text style={[styles.editCropBtnLabel, { color: themeColors.moss }]}>
+                                  {t('imageCrop.edit')}
+                                </Text>
+                              </Pressable>
                             </View>
                           ) : null)}
                         </View>
@@ -542,6 +597,17 @@ export default function SettingsScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Crop / aspect-ratio picker — same modal used everywhere images are
+          chosen. The preview shares its rendering with the final card. */}
+      <ImageCropAspectPicker
+        visible={!!cropTarget}
+        uri={cropTarget?.uri}
+        initialValue={cropTarget?.current}
+        onApply={cropTarget?.apply}
+        onCancel={() => setCropTarget(null)}
+        onReplace={cropTarget?.replace}
+      />
 
       {/* ── Pet type picker modal ───────────────────────────────────────── */}
       <Modal
@@ -896,6 +962,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
+  },
+  editCropBtn: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             6,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    borderRadius:    999,
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    backgroundColor: colors.card,
+    alignSelf:       'flex-start',
+  },
+  editCropBtnLabel: {
+    fontSize:      13,
+    color:         colors.moss,
+    fontWeight:    '700',
+    letterSpacing: 0.3,
   },
 
   // Theme picker cards

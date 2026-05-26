@@ -23,8 +23,11 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
-import ImagePositionControls, { DEFAULT_IMAGE_POSITION } from '../components/ImagePositionControls';
+import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
 import PositionedImage from '../components/PositionedImage';
+
+// Shared default so saved metadata has a consistent shape everywhere.
+const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
 
 const SCREEN_BG = require('../../assets/bg-muistot.png');
 import {
@@ -59,6 +62,7 @@ export default function MemoryWallScreen({ route }) {
   const [media, setMedia] = useState(null);
   const [imagePosition, setImagePosition] = useState(DEFAULT_IMAGE_POSITION);
   const [uploading, setUploading] = useState(false);
+  const [cropTarget, setCropTarget] = useState(null);
 
   const memories = activeMemorial?.memories ?? [];
   const highlightedMemoryId = route?.params?.highlightMemoryId ?? null;
@@ -116,9 +120,45 @@ export default function MemoryWallScreen({ route }) {
     if (next?.type === 'image') setImagePosition(DEFAULT_IMAGE_POSITION);
   };
 
+  // Open the crop modal for the freshly chosen image. Only commits after
+  // the user presses "Use this picture" — guaranteeing the preview matches
+  // the final memory card render.
+  const openCropPicker = ({ uri, mimeType, current }) => {
+    setCropTarget({
+      uri,
+      mimeType,
+      current,
+      apply: (value) => {
+        swapMedia({ type: 'image', uri, mimeType });
+        setImagePosition(value);
+        setCropTarget(null);
+      },
+      replace: async () => {
+        const replaced = await pickImageFromLibrary(t);
+        if (replaced) {
+          setCropTarget((c) => c ? { ...c, uri: replaced.uri, mimeType: replaced.mimeType } : null);
+        }
+      },
+    });
+  };
+
   const onPickImage = async () => {
     const result = await pickImageFromLibrary(t);
-    if (result) swapMedia({ type: 'image', uri: result.uri, mimeType: result.mimeType });
+    if (!result) return;
+    openCropPicker({
+      uri:      result.uri,
+      mimeType: result.mimeType,
+      current:  media?.type === 'image' && media?.uri === result.uri ? imagePosition : DEFAULT_IMAGE_POSITION,
+    });
+  };
+
+  const onEditCrop = () => {
+    if (media?.type !== 'image') return;
+    openCropPicker({
+      uri:      media.uri,
+      mimeType: media.mimeType,
+      current:  imagePosition,
+    });
   };
 
   const onPickVideo = async () => {
@@ -233,10 +273,10 @@ export default function MemoryWallScreen({ route }) {
             setCalendarDate={setCalendarDate}
             media={media}
             imagePosition={imagePosition}
-            setImagePosition={setImagePosition}
             onPickImage={onPickImage}
             onPickVideo={onPickVideo}
             onRemoveMedia={() => swapMedia(null)}
+            onEditCrop={onEditCrop}
             uploading={uploading}
             onSave={save}
             onClose={close}
@@ -263,6 +303,16 @@ export default function MemoryWallScreen({ route }) {
           </View>
         )}
       </ScrollView>
+
+      {/* Crop / aspect-ratio picker — same modal used everywhere. */}
+      <ImageCropAspectPicker
+        visible={!!cropTarget}
+        uri={cropTarget?.uri}
+        initialValue={cropTarget?.current}
+        onApply={cropTarget?.apply}
+        onCancel={() => setCropTarget(null)}
+        onReplace={cropTarget?.replace}
+      />
     </AppScreen>
   );
 }
@@ -278,8 +328,8 @@ function InlineMemoryForm({
   body, setBody,
   calendarDate, setCalendarDate,
   media,
-  imagePosition, setImagePosition,
-  onPickImage, onPickVideo, onRemoveMedia,
+  imagePosition,
+  onPickImage, onPickVideo, onRemoveMedia, onEditCrop,
   uploading,
   onSave, onClose,
 }) {
@@ -306,18 +356,19 @@ function InlineMemoryForm({
           />
         </View>
 
-        {/* Media preview when set */}
+        {/* Media preview — tapping an image re-opens the crop modal so the
+            preview here always reflects the saved crop metadata. */}
         {media ? (
-          <View style={styles.mediaPreviewBox}>
+          <Pressable
+            onPress={media.type === 'image' ? onEditCrop : undefined}
+            style={styles.mediaPreviewBox}
+          >
             {media.type === 'image' ? (
               <PositionedImage uri={media.uri} position={imagePosition} style={styles.mediaPreview} />
             ) : (
               <VideoClip uri={media.uri} style={styles.mediaPreview} />
             )}
-          </View>
-        ) : null}
-        {media?.type === 'image' ? (
-          <ImagePositionControls value={imagePosition} onChange={setImagePosition} t={t} />
+          </Pressable>
         ) : null}
 
         {/* Media picker buttons */}
@@ -328,6 +379,14 @@ function InlineMemoryForm({
               {media?.type === 'image' ? t('wall.changeImage') : t('wall.pickImage')}
             </Text>
           </Pressable>
+          {media?.type === 'image' ? (
+            <Pressable onPress={onEditCrop} style={styles.mediaBtn}>
+              <Feather name="crop" size={15} color={themeColors.moss} />
+              <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
+                {t('imageCrop.edit')}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={onPickVideo} style={styles.mediaBtn}>
             <Feather name="video" size={15} color={themeColors.moss} />
             <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
