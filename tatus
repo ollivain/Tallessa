@@ -1,0 +1,162 @@
+warning: in the working copy of 'src/components/EmptyStateCard.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/i18n/index.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/i18n/strings.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/screens/CalendarScreen.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/screens/HomeScreen.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/screens/LettersScreen.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/screens/MemorialCreationScreen.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/screens/MemoryWallScreen.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/screens/SettingsScreen.js', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/components/EmptyStateCard.js b/src/components/EmptyStateCard.js[m
+[1mindex 56691a2..1bcb252 100644[m
+[1m--- a/src/components/EmptyStateCard.js[m
+[1m+++ b/src/components/EmptyStateCard.js[m
+[36m@@ -1,25 +1,36 @@[m
+[31m-import { StyleSheet, Text } from 'react-native';[m
+[31m-import AppCard from './AppCard';[m
+[31m-import SectionLabel from './SectionLabel';[m
+[31m-import { colors, spacing, typography } from '../theme/designSystem';[m
+[32m+[m[32mimport { StyleSheet, Text, View } from 'react-native';[m
+[32m+[m[32mimport { colors, typography } from '../theme/designSystem';[m
+ [m
+[31m-// Soft empty-state card used when there is no content yet (e.g. no memories,[m
+[31m-// no letters). Visuals mirror styles.css `.card` + `.empty-state` styling:[m
+[31m-// ivory background, h3 serif title, muted body copy, optional eyebrow pill.[m
+[32m+[m[32m// Plain empty-state text used when there is no content yet. PWA list screens[m
+[32m+[m[32m// render `.empty-state` paragraphs directly, without wrapping them in cards.[m
+ export default function EmptyStateCard({ eyebrow, title, body }) {[m
+[32m+[m[32m  if (!title) {[m
+[32m+[m[32m    return ([m
+[32m+[m[32m      <View style={styles.plainWrap}>[m
+[32m+[m[32m        {body ? <Text style={styles.body}>{body}</Text> : null}[m
+[32m+[m[32m      </View>[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m
+   return ([m
+[31m-    <AppCard variant="soft">[m
+[31m-      {eyebrow ? ([m
+[31m-        <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>[m
+[31m-      ) : null}[m
+[31m-      {title ? <Text style={styles.title}>{title}</Text> : null}[m
+[32m+[m[32m    <View style={styles.plainWrap}>[m
+[32m+[m[32m      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}[m
+[32m+[m[32m      <Text style={styles.title}>{title}</Text>[m
+       {body ? <Text style={styles.body}>{body}</Text> : null}[m
+[31m-    </AppCard>[m
+[32m+[m[32m    </View>[m
+   );[m
+ }[m
+ [m
+ const styles = StyleSheet.create({[m
+[31m-  eyebrow: { marginBottom: spacing.xs },[m
+[32m+[m[32m  plainWrap: { paddingHorizontal: 4, paddingVertical: 10 },[m
+[32m+[m[32m  eyebrow: {[m
+[32m+[m[32m    color: colors.textMuted,[m
+[32m+[m[32m    fontSize: typography.sizes.eyebrow,[m
+[32m+[m[32m    fontWeight: typography.weights.bold,[m
+[32m+[m[32m    letterSpacing: typography.letterSpacing.eyebrow,[m
+[32m+[m[32m    textTransform: 'uppercase',[m
+[32m+[m[32m    marginBottom: 8,[m
+[32m+[m[32m  },[m
+   // PWA h3: 1.35rem ≈ 22px, color var(--moss-dark), line-height 1.12[m
+   title: {[m
+     fontFamily: typography.serif,[m
+[1mdiff --git a/src/i18n/index.js b/src/i18n/index.js[m
+[1mindex 4dc08b8..a9615f2 100644[m
+[1m--- a/src/i18n/index.js[m
+[1m+++ b/src/i18n/index.js[m
+[36m@@ -2,6 +2,7 @@[m [mimport { getLocales } from 'expo-localization';[m
+ import { createContext, useCallback, useContext, useMemo, useState } from 'react';[m
+ import { saveSettings } from '../storage/storage';[m
+ import { strings } from './strings';[m
+[32m+[m[32mimport { quotePools } from '../../translations';[m
+ [m
+ const SUPPORTED = ['fi', 'en'];[m
+ const DEFAULT_LANGUAGE = 'en';[m
+[36m@@ -63,9 +64,21 @@[m [mexport function I18nProvider({ initialLanguage, children }) {[m
+     [language],[m
+   );[m
+ [m
+[32m+[m[32m  const getDailyQuote = useCallback([m
+[32m+[m[32m    (date = new Date()) => {[m
+[32m+[m[32m      const pool = quotePools[language] || quotePools[DEFAULT_LANGUAGE];[m
+[32m+[m[32m      if (!pool?.length) return '';[m
+[32m+[m[32m      const dayIndex = Math.floor([m
+[32m+[m[32m        new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 86400000,[m
+[32m+[m[32m      );[m
+[32m+[m[32m      return pool[((dayIndex % pool.length) + pool.length) % pool.length];[m
+[32m+[m[32m    },[m
+[32m+[m[32m    [language],[m
+[32m+[m[32m  );[m
+[32m+[m
+   const value = useMemo([m
+[31m-    () => ({ language, setLanguage, t }),[m
+[31m-    [language, setLanguage, t],[m
+[32m+[m[32m    () => ({ language, setLanguage, t, getDailyQuote }),[m
+[32m+[m[32m    [language, setLanguage, t, getDailyQuote],[m
+   );[m
+ [m
+   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;[m
+[1mdiff --git a/src/i18n/strings.js b/src/i18n/strings.js[m
+[1mindex 462c64a..0bd20a3 100644[m
+[1m--- a/src/i18n/strings.js[m
+[1m+++ b/src/i18n/strings.js[m
+[36m@@ -45,11 +45,17 @@[m [mexport const strings = {[m
+       welcome: 'Tervetuloa kotiin',[m
+       memoryOfDay: 'Päivän muisto',[m
+       memoryOfDayTitle: '{name} päivän muisto',[m
+[31m-      memoryEmpty: 'Hetki, jonka lämpö jäi sydämeen kulkemaan.',[m
+[32m+[m[32m      memoryEmpty: 'Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.',[m
+       openMemory: 'Avaa muisto',[m
+       dailyQuote: 'Päivän sanat',[m
+       quickActions: 'Pikavalinnat',[m
+       heroMemoryLine: '{name}n muistot, jotka pysyvät mukana.',[m
+[32m+[m[32m      action: {[m
+[32m+[m[32m        wall: 'Muistoseinä',[m
+[32m+[m[32m        letters: 'Kirjeet',[m
+[32m+[m[32m        calendar: 'Kalenteri',[m
+[32m+[m[32m        memorial: '{name} päivä',[m
+[32m+[m[32m      },[m
+     },[m
+ [m
+     wall: {[m
+[36m@@ -66,11 +72,13 @@[m [mexport const strings = {[m
+       noMemorial: 'Luo ensin muistopaikka, johon voit liittää muistoja.',[m
+       memoryNoWords: 'Muisto ilman sanoja.',[m
+       form: {[m
+[32m+[m[32m        media: 'Kuva tai video',[m
+         title: 'Muiston otsikko',[m
+         titlePlaceholder: 'Esim. Kesäilta puutarhassa',[m
+         text: 'Pieni teksti muistolle',[m
+         textPlaceholder: 'Esim. Viimeinen kesälaidun, kun kaikki oli vielä tässä.',[m
+         calendarDate: 'Päivä kalenterissa (valinnainen)',[m
+[32m+[m[32m        save: 'Tallenna muisto',[m
+       },[m
+     },[m
+ [m
+[36m@@ -146,6 +154,7 @@[m [mexport const strings = {[m
+         text: 'Teksti',[m
+         textPlaceholder: 'Mitä haluat muistaa juuri tästä päivästä?',[m
+         required: 'Lisää ainakin nimi ja päivämäärä.',[m
+[32m+[m[32m        save: 'Lisää päivä',[m
+       },[m
+     },[m
+ [m
+[36m@@ -153,7 +162,7 @@[m [mexport const strings = {[m
+       dayTitle: '{name} päivä',[m
+       dayTitleEn: '{name} päivä',[m
+       eyebrow: 'Muistopäivä',[m
+[31m-      dateFallback: 'Valitse muistopäivä asetuksista.',[m
+[32m+[m[32m      dateFallback: 'Muistopäivä',[m
+       born: 'Syntyi',[m
+       died: 'Poismeni',[m
+       note: 'Muutama sana',[m
+[36m@@ -338,11 +347,17 @@[m [mexport const strings = {[m
+       welcome: 'Welcome home',[m
+       memoryOfDay: 'Memory of the day',[m
+       memoryOfDayTitle: '{name} memory of the day',[m
+[31m-      memoryEmpty: 'A moment whose warmth stayed with the heart.',[m
+[32m+[m[32m      memoryEmpty: 'Add your first memory when the moment feels right.',[m
+       openMemory: 'Open memory',[m
+       d

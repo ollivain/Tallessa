@@ -26,19 +26,14 @@ import { useTheme } from '../state/ThemeContext';
 
 const SCREEN_BG = require('../../assets/bg-kirjeet.png');
 
-const MODE_ADD  = 'add';
-const MODE_EDIT = 'edit';
-
 // PWA Letters mirrors styles.css `.screen[data-screen="letters"]`:
 //   transparent topbar (h2) → .add-card-toggle → .form-card.is-collapsed → list
 // The form card is inline — see comments in MemoryWallScreen.
 export default function LettersScreen() {
   const { t, language } = useI18n();
-  const { activeMemorial, addLetter, updateLetter, deleteLetter } = useMemorials();
+  const { activeMemorial, addLetter, deleteLetter } = useMemorials();
   const { themeColors } = useTheme();
 
-  const [modalMode, setModalMode] = useState(MODE_ADD);
-  const [editingId, setEditingId] = useState(null);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -46,18 +41,8 @@ export default function LettersScreen() {
   const letters = activeMemorial?.letters ?? [];
 
   const openAdd = () => {
-    setModalMode(MODE_ADD);
-    setEditingId(null);
     setTitle('');
     setBody('');
-    setOpen(true);
-  };
-
-  const openEdit = (letter) => {
-    setModalMode(MODE_EDIT);
-    setEditingId(letter.id);
-    setTitle(letter.title ?? '');
-    setBody(letter.body ?? '');
     setOpen(true);
   };
 
@@ -65,24 +50,16 @@ export default function LettersScreen() {
     setOpen(false);
     setTitle('');
     setBody('');
-    setEditingId(null);
   };
 
   const save = () => {
     if (!title.trim() && !body.trim()) { close(); return; }
 
-    if (modalMode === MODE_EDIT && editingId) {
-      updateLetter(activeMemorial.id, editingId, {
-        title: title.trim() || `Kirje ${toAllative(getMemorialName(activeMemorial), language)}`,
-        body:  body.trim(),
-      });
-    } else {
-      addLetter(activeMemorial.id, {
-        title: title.trim() || `Kirje ${toAllative(getMemorialName(activeMemorial), language)}`,
-        body:  body.trim(),
-        createdAt: new Date().toISOString(),
-      });
-    }
+    addLetter(activeMemorial.id, {
+      title: title.trim() || `Kirje ${toAllative(getMemorialName(activeMemorial), language)}`,
+      body:  body.trim(),
+      createdAt: new Date().toISOString(),
+    });
     close();
   };
 
@@ -167,7 +144,6 @@ export default function LettersScreen() {
                 key={l.id}
                 letter={l}
                 language={language}
-                onEdit={() => openEdit(l)}
                 onDelete={() => confirmDelete(l)}
               />
             ))}
@@ -179,15 +155,12 @@ export default function LettersScreen() {
 }
 
 // PWA `.letter-card.card { padding: 16; bg: rgba(251,247,239,0.92) }`
-function LetterCard({ letter, language, onEdit, onDelete }) {
+function LetterCard({ letter, language, onDelete }) {
   const { themeColors } = useTheme();
   return (
     <View style={styles.letterCardShadow}>
       <View style={[styles.letterCard, { backgroundColor: themeColors.card }]}>
         <View style={styles.cardActions}>
-          <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
-            <Feather name="edit-2" size={12} color={themeColors.moss} />
-          </Pressable>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
           </Pressable>

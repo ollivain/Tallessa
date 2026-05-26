@@ -2,6 +2,7 @@ import { getLocales } from 'expo-localization';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { saveSettings } from '../storage/storage';
 import { strings } from './strings';
+import { quotePools } from '../../translations';
 
 const SUPPORTED = ['fi', 'en'];
 const DEFAULT_LANGUAGE = 'en';
@@ -63,9 +64,21 @@ export function I18nProvider({ initialLanguage, children }) {
     [language],
   );
 
+  const getDailyQuote = useCallback(
+    (date = new Date()) => {
+      const pool = quotePools[language] || quotePools[DEFAULT_LANGUAGE];
+      if (!pool?.length) return '';
+      const dayIndex = Math.floor(
+        new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 86400000,
+      );
+      return pool[((dayIndex % pool.length) + pool.length) % pool.length];
+    },
+    [language],
+  );
+
   const value = useMemo(
-    () => ({ language, setLanguage, t }),
-    [language, setLanguage, t],
+    () => ({ language, setLanguage, t, getDailyQuote }),
+    [language, setLanguage, t, getDailyQuote],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

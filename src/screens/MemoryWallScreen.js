@@ -41,9 +41,6 @@ import { deleteUploadedMedia, uploadMedia, UploadError } from '../lib/uploadMedi
 import { isSupabaseConfigured } from '../lib/supabase';
 import { useTheme } from '../state/ThemeContext';
 
-const MODE_ADD  = 'add';
-const MODE_EDIT = 'edit';
-
 // PWA Memory wall mirrors styles.css `.screen[data-screen="wall"]`:
 //   transparent topbar (h2) → .add-card-toggle → .form-card.is-collapsed → grid.
 // The form card is inline (not a modal); tapping `data-open-card="memory"`
@@ -51,13 +48,10 @@ const MODE_EDIT = 'edit';
 // We mirror that behaviour with a local `open` state.
 export default function MemoryWallScreen({ route }) {
   const { t, language } = useI18n();
-  const { activeMemorial, addMemory, updateMemory, deleteMemory } = useMemorials();
+  const { activeMemorial, addMemory, deleteMemory } = useMemorials();
   const { themeColors } = useTheme();
 
-  const [modalMode, setModalMode] = useState(MODE_ADD);
-  const [editingId, setEditingId] = useState(null);
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [calendarDate, setCalendarDate] = useState('');
   const [media, setMedia] = useState(null);
@@ -77,40 +71,20 @@ export default function MemoryWallScreen({ route }) {
   }, []);
 
   const openAdd = () => {
-    setModalMode(MODE_ADD);
-    setEditingId(null);
-    setTitle('');
     setBody('');
     setCalendarDate('');
     setMedia(null);
     setImagePosition(DEFAULT_IMAGE_POSITION);
-    setOpen(true);
-  };
-
-  const openEdit = (memory) => {
-    setModalMode(MODE_EDIT);
-    setEditingId(memory.id);
-    setTitle(memory.title ?? '');
-    setBody(memory.body ?? memory.text ?? '');
-    setCalendarDate(memory.calendarDate ?? memory.date ?? '');
-    setMedia(
-      getMemoryMediaUri(memory)
-        ? { type: getMemoryMediaType(memory), uri: getMemoryMediaUri(memory), _persisted: true }
-        : null,
-    );
-    setImagePosition(memory.imagePosition ?? DEFAULT_IMAGE_POSITION);
     setOpen(true);
   };
 
   const close = () => {
     if (media?.uri && !media._persisted) removePersistedMedia(media.uri);
     setOpen(false);
-    setTitle('');
     setBody('');
     setCalendarDate('');
     setMedia(null);
     setImagePosition(DEFAULT_IMAGE_POSITION);
-    setEditingId(null);
   };
 
   const swapMedia = (next) => {
@@ -215,12 +189,11 @@ export default function MemoryWallScreen({ route }) {
       fallbackText: t('wall.memoryNoWords'),
     });
     Object.assign(payload, {
-      title: title.trim(),
       body: body.trim(),
       text: body.trim(),
       date: memoryDate,
       calendarDate: memoryDate,
-      createdAt: modalMode === MODE_ADD ? new Date().toISOString() : undefined,
+      createdAt: new Date().toISOString(),
       mediaType: media?.type ?? 'image',
       mediaUri: media?.uri ?? null,
       mediaRemoteUrl: uploaded?.publicUrl ?? (media?._persisted ? undefined : null),
@@ -236,11 +209,7 @@ export default function MemoryWallScreen({ route }) {
     });
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
-    if (modalMode === MODE_EDIT && editingId) {
-      updateMemory(activeMemorial.id, editingId, payload);
-    } else {
-      addMemory(activeMemorial.id, payload);
-    }
+    addMemory(activeMemorial.id, payload);
 
     close();
   };
@@ -289,9 +258,6 @@ export default function MemoryWallScreen({ route }) {
           <InlineMemoryForm
             t={t}
             themeColors={themeColors}
-            mode={modalMode}
-            title={title}
-            setTitle={setTitle}
             body={body}
             setBody={setBody}
             calendarDate={calendarDate}
@@ -322,7 +288,6 @@ export default function MemoryWallScreen({ route }) {
                 t={t}
                 language={language}
                 highlighted={m.id === highlightedMemoryId}
-                onEdit={() => openEdit(m)}
                 onDelete={() => confirmDelete(m)}
               />
             ))}
@@ -349,8 +314,6 @@ export default function MemoryWallScreen({ route }) {
 function InlineMemoryForm({
   t,
   themeColors,
-  mode,
-  title, setTitle,
   body, setBody,
   calendarDate, setCalendarDate,
   media,
@@ -373,17 +336,11 @@ function InlineMemoryForm({
         </Pressable>
 
         {/* PWA: media preview inside `.memory-draft-preview` */}
-        <View style={styles.formField}>
-          <Text style={styles.fieldLabel}>{t('wall.form.title')}</Text>
-          <AppInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('wall.form.titlePlaceholder')}
-          />
-        </View>
-
         {/* Media preview — tapping an image re-opens the crop modal so the
             preview here always reflects the saved crop metadata. */}
+        <View style={styles.formField}>
+          <Text style={styles.fieldLabel}>{t('wall.form.media')}</Text>
+        </View>
         {media ? (
           <Pressable
             onPress={media.type === 'image' ? onEditCrop : undefined}
@@ -449,7 +406,7 @@ function InlineMemoryForm({
         </View>
 
         <AppButton
-          label={uploading ? t('media.uploading') : (mode === MODE_EDIT ? t('creation.save') : t('wall.add'))}
+          label={uploading ? t('media.uploading') : t('wall.form.save')}
           onPress={onSave}
           disabled={uploading}
         />
@@ -465,10 +422,9 @@ function InlineMemoryForm({
 }
 
 // PWA `.memory-card.card`: overflow-hidden, border-radius 24, full-bleed media
-// at 230px, body padding 16, date-line (brown italic serif) → optional title
-// → muted body p. Delete action: single red pill at top-right; we add a
-// matching edit pill so users can re-open the inline form.
-function MemoryCard({ memory, t, language, highlighted, onEdit, onDelete }) {
+// at 230px, body padding 16, date-line (brown italic serif) → muted body p.
+// Delete action: single red pill at top-right.
+function MemoryCard({ memory, t, language, highlighted, onDelete }) {
   const { themeColors } = useTheme();
   const dateLabel = formatDate(memory.calendarDate || memory.createdAt, language);
   const text = memory.body || memory.text;
@@ -488,9 +444,6 @@ function MemoryCard({ memory, t, language, highlighted, onEdit, onDelete }) {
         ) : null}
 
         <View style={styles.memActions}>
-          <Pressable onPress={onEdit} hitSlop={8} style={styles.memActionPill}>
-            <Feather name="edit-2" size={12} color={themeColors.moss} />
-          </Pressable>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.memActionPill, styles.memDeletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
           </Pressable>
@@ -499,9 +452,6 @@ function MemoryCard({ memory, t, language, highlighted, onEdit, onDelete }) {
         <View style={styles.memBody}>
           {dateLabel ? (
             <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
-          ) : null}
-          {memory.title ? (
-            <Text style={[styles.memTitle, { color: themeColors.textPrimary }]}>{memory.title}</Text>
           ) : null}
           {text ? (
             <Text style={styles.memBodyText} numberOfLines={5}>{text}</Text>
@@ -682,14 +632,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   // PWA `h3 { font-size: 1.35rem; color: var(--moss-dark) }`
-  memTitle: {
-    fontFamily:   typography.serif,
-    fontSize:     typography.sizes.title,
-    fontWeight:   typography.weights.semibold,
-    color:        colors.textPrimary,
-    lineHeight:   typography.lineHeights.title,
-    marginBottom: 4,
-  },
   // PWA `.memory-body p { color: var(--muted); line-height: 1.6 }`
   memBodyText: {
     color:      colors.textMuted,

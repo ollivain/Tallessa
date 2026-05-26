@@ -1,25 +1,36 @@
-import { StyleSheet, Text } from 'react-native';
-import AppCard from './AppCard';
-import SectionLabel from './SectionLabel';
-import { colors, spacing, typography } from '../theme/designSystem';
+import { StyleSheet, Text, View } from 'react-native';
+import { colors, typography } from '../theme/designSystem';
 
-// Soft empty-state card used when there is no content yet (e.g. no memories,
-// no letters). Visuals mirror styles.css `.card` + `.empty-state` styling:
-// ivory background, h3 serif title, muted body copy, optional eyebrow pill.
+// Plain empty-state text used when there is no content yet. PWA list screens
+// render `.empty-state` paragraphs directly, without wrapping them in cards.
 export default function EmptyStateCard({ eyebrow, title, body }) {
+  if (!title) {
+    return (
+      <View style={styles.plainWrap}>
+        {body ? <Text style={styles.body}>{body}</Text> : null}
+      </View>
+    );
+  }
+
   return (
-    <AppCard variant="soft">
-      {eyebrow ? (
-        <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>
-      ) : null}
-      {title ? <Text style={styles.title}>{title}</Text> : null}
+    <View style={styles.plainWrap}>
+      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+      <Text style={styles.title}>{title}</Text>
       {body ? <Text style={styles.body}>{body}</Text> : null}
-    </AppCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  eyebrow: { marginBottom: spacing.xs },
+  plainWrap: { paddingHorizontal: 4, paddingVertical: 10 },
+  eyebrow: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.eyebrow,
+    fontWeight: typography.weights.bold,
+    letterSpacing: typography.letterSpacing.eyebrow,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
   // PWA h3: 1.35rem ≈ 22px, color var(--moss-dark), line-height 1.12
   title: {
     fontFamily: typography.serif,

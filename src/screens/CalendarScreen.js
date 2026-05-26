@@ -64,7 +64,7 @@ function sameMonthDay(date, refDate) {
 //   → .day-list  (sorted: visible month first, then everything else)
 export default function CalendarScreen() {
   const { t, language } = useI18n();
-  const { activeMemorial, addEvent, updateEvent, deleteEvent } = useMemorials();
+  const { activeMemorial, addEvent, deleteEvent } = useMemorials();
   const { themeColors } = useTheme();
 
   const [visibleMonth, setVisibleMonth] = useState(() => {
@@ -73,7 +73,6 @@ export default function CalendarScreen() {
   });
 
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
@@ -104,19 +103,10 @@ export default function CalendarScreen() {
   const goNext = () => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
 
   const openAdd = () => {
-    setEditingId(null);
     setName('');
     setDate('');
     setSymbol(DEFAULT_SYMBOL);
     setNote('');
-    setOpen(true);
-  };
-  const openEdit = (ev) => {
-    setEditingId(ev.id);
-    setName(ev.name ?? '');
-    setDate(ev.date ?? '');
-    setSymbol(ev.symbol || DEFAULT_SYMBOL);
-    setNote(ev.note ?? ev.description ?? ev.text ?? '');
     setOpen(true);
   };
   const close = () => {
@@ -125,7 +115,6 @@ export default function CalendarScreen() {
     setDate('');
     setSymbol(DEFAULT_SYMBOL);
     setNote('');
-    setEditingId(null);
   };
 
   const save = () => {
@@ -136,8 +125,7 @@ export default function CalendarScreen() {
       return;
     }
     const payload = { name: trimmedName, date: trimmedDate, note: note.trim(), symbol: symbol || DEFAULT_SYMBOL };
-    if (editingId) updateEvent(activeMemorial.id, editingId, payload);
-    else addEvent(activeMemorial.id, payload);
+    addEvent(activeMemorial.id, payload);
     close();
   };
 
@@ -261,7 +249,7 @@ export default function CalendarScreen() {
                 <AppInput value={note} onChangeText={setNote} placeholder={t('calendar.form.textPlaceholder')} multiline />
               </View>
 
-              <AppButton label={t('creation.save')} onPress={save} />
+              <AppButton label={t('calendar.form.save')} onPress={save} />
             </View>
           </View>
         )}
@@ -276,7 +264,6 @@ export default function CalendarScreen() {
                 key={ev.id}
                 event={ev}
                 language={language}
-                onEdit={ev.type === 'memorial-day' ? null : () => openEdit(ev)}
                 onDelete={ev.type === 'memorial-day' ? null : () => confirmDelete(ev)}
               />
             ))}
@@ -349,7 +336,7 @@ function DayCell({ cell }) {
 }
 
 // PWA `.day-card.card { grid: auto 1fr; gap: 12; padding: 16 }`
-function EventCard({ event, language, onEdit, onDelete }) {
+function EventCard({ event, language, onDelete }) {
   const { themeColors } = useTheme();
   const day = formatDay(event.date);
   const month = formatMonth(event.date, language);
@@ -359,18 +346,11 @@ function EventCard({ event, language, onEdit, onDelete }) {
   return (
     <View style={styles.eventCardShadow}>
       <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
-        {onEdit || onDelete ? (
+        {onDelete ? (
           <View style={styles.cardActions}>
-            {onEdit ? (
-              <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
-                <Feather name="edit-2" size={12} color={themeColors.moss} />
-              </Pressable>
-            ) : null}
-            {onDelete ? (
-              <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
-                <Feather name="trash-2" size={12} color="#fffaf0" />
-              </Pressable>
-            ) : null}
+            <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
+              <Feather name="trash-2" size={12} color="#fffaf0" />
+            </Pressable>
           </View>
         ) : null}
 

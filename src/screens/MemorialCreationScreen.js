@@ -35,7 +35,7 @@ import { parseDateInput } from '../models/memorial';
 // the same shape no matter which slot was tapped.
 const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
 
-const SCREEN_BG = require('../../assets/selector-background.png');
+const SCREEN_BG = require('../../assets/bg-asetukset.png');
 
 const PET_TYPE_KEYS = [
   'human', 'horse', 'dog', 'cat', 'rabbit', 'bird',
@@ -77,9 +77,7 @@ export default function MemorialCreationScreen() {
   const navigation = useNavigation();
 
   const [name, setName] = useState('');
-  const [birth, setBirth] = useState('');
   const [death, setDeath] = useState('');
-  const [description, setDescription] = useState('');
   const [petType, setPetType] = useState('horse');
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName] = useState('');
@@ -242,9 +240,7 @@ export default function MemorialCreationScreen() {
       theme: themeKey,
       language,
       name: trimmed,
-      birth: birth.trim(),
       death: parseDateInput(death),
-      description: description.trim(),
       petType: petType || 'horse',
       petTypeCustom: petTypeCustom.trim(),
       memorialName: memorialName.trim(),
@@ -256,6 +252,8 @@ export default function MemorialCreationScreen() {
 
   const calCount = calendarImages.filter(Boolean).length;
 
+  // PWA parity approximation: PWA opens this from the settings view, while RN
+  // keeps it as a stack screen; the fields and payload mirror PWA creation mode.
   return (
     <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -263,32 +261,16 @@ export default function MemorialCreationScreen() {
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.topBar}>
-            <Pressable
-              onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              hitSlop={12}
-              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-            >
-              <Feather name="x" size={22} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-
           <ScrollView
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.title}>{t('creation.title')}</Text>
-            <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
-
             {/* PWA settings/creation form is one big card, not multiple.
                 Field order mirrors index.html lines 336–450 exactly:
                 horseName → petType → petTypeCustom → memorialName → memorialDate
                 → memorialImage → calendar-photos-disclosure → theme-disclosure
-                → language → save. The RN-only birth + description fields are
-                placed where they group naturally (next to memorialDate and
-                memorialImage respectively) without disturbing PWA order. */}
+                → language → save. */}
             <View style={styles.formCardShadow}>
               <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
                 <Text style={styles.createNote}>{t('settings.createNote')}</Text>
@@ -336,15 +318,6 @@ export default function MemorialCreationScreen() {
                   placeholder={t('creation.datePlaceholder')}
                 />
 
-                {/* RN extra: birth date. Kept here (not in PWA) but grouped next to
-                    memorialDate so PWA visitors won't notice an out-of-place field. */}
-                <AppInput
-                  label={t('creation.birth')}
-                  value={birth}
-                  onChangeText={setBirth}
-                  placeholder={t('creation.datePlaceholder')}
-                />
-
                 {/* PWA `<input name="memorialImage" type="file">` — single picker.
                     RN exposes both the hero image and memorial image since both
                     can be set independently on the settings page in PWA app.js. */}
@@ -372,17 +345,6 @@ export default function MemorialCreationScreen() {
                   pickLabel={heroImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
                   removeLabel={t('creation.removePortrait')}
                   tint={themeColors.brown}
-                />
-
-                {/* RN extra: "a few words" description (not in PWA settings form,
-                    but stored on the memorial model). Placed after the images so
-                    the PWA fields stay in their canonical order. */}
-                <AppInput
-                  label={t('creation.description')}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder={t('creation.descriptionPlaceholder')}
-                  multiline
                 />
 
                 {/* PWA `.calendar-photos-disclosure` — <details> accordion */}
@@ -655,37 +617,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
 
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  iconBtn: { padding: spacing.xs },
   pressed: { opacity: 0.72 },
 
   scroll: {
-    paddingHorizontal: 28,
-    paddingTop: 52,
-    paddingBottom: 80,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: 150,
     gap: 14,
-  },
-
-  title: {
-    fontFamily: typography.serif,
-    fontSize: 60,
-    lineHeight: 57,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    letterSpacing: 0,
-    marginBottom: 0,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: 'rgba(80, 86, 76, 0.88)',
-    lineHeight: 27,
-    marginBottom: 28,
   },
 
   formCardShadow: {

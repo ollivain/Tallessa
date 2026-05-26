@@ -45,11 +45,17 @@ export const strings = {
       welcome: 'Tervetuloa kotiin',
       memoryOfDay: 'Päivän muisto',
       memoryOfDayTitle: '{name} päivän muisto',
-      memoryEmpty: 'Hetki, jonka lämpö jäi sydämeen kulkemaan.',
+      memoryEmpty: 'Lisää ensimmäinen muisto, kun hetki tuntuu oikealta.',
       openMemory: 'Avaa muisto',
       dailyQuote: 'Päivän sanat',
       quickActions: 'Pikavalinnat',
       heroMemoryLine: '{name}n muistot, jotka pysyvät mukana.',
+      action: {
+        wall: 'Muistoseinä',
+        letters: 'Kirjeet',
+        calendar: 'Kalenteri',
+        memorial: '{name} päivä',
+      },
     },
 
     wall: {
@@ -66,11 +72,13 @@ export const strings = {
       noMemorial: 'Luo ensin muistopaikka, johon voit liittää muistoja.',
       memoryNoWords: 'Muisto ilman sanoja.',
       form: {
+        media: 'Kuva tai video',
         title: 'Muiston otsikko',
         titlePlaceholder: 'Esim. Kesäilta puutarhassa',
         text: 'Pieni teksti muistolle',
         textPlaceholder: 'Esim. Viimeinen kesälaidun, kun kaikki oli vielä tässä.',
         calendarDate: 'Päivä kalenterissa (valinnainen)',
+        save: 'Tallenna muisto',
       },
     },
 
@@ -146,6 +154,7 @@ export const strings = {
         text: 'Teksti',
         textPlaceholder: 'Mitä haluat muistaa juuri tästä päivästä?',
         required: 'Lisää ainakin nimi ja päivämäärä.',
+        save: 'Lisää päivä',
       },
     },
 
@@ -153,7 +162,7 @@ export const strings = {
       dayTitle: '{name} päivä',
       dayTitleEn: '{name} päivä',
       eyebrow: 'Muistopäivä',
-      dateFallback: 'Valitse muistopäivä asetuksista.',
+      dateFallback: 'Muistopäivä',
       born: 'Syntyi',
       died: 'Poismeni',
       note: 'Muutama sana',
@@ -338,11 +347,17 @@ export const strings = {
       welcome: 'Welcome home',
       memoryOfDay: 'Memory of the day',
       memoryOfDayTitle: '{name} memory of the day',
-      memoryEmpty: 'A moment whose warmth stayed with the heart.',
+      memoryEmpty: 'Add your first memory when the moment feels right.',
       openMemory: 'Open memory',
       dailyQuote: "Today's words",
       quickActions: 'Quick links',
       heroMemoryLine: '{name}\'s memories that stay with you.',
+      action: {
+        wall: 'Memory wall',
+        letters: 'Letters',
+        calendar: 'Calendar',
+        memorial: '{name} day',
+      },
     },
 
     wall: {
@@ -359,11 +374,13 @@ export const strings = {
       noMemorial: 'Create a memorial space first so you can add memories to it.',
       memoryNoWords: 'A memory without words.',
       form: {
+        media: 'Picture or video',
         title: 'Memory title',
         titlePlaceholder: 'E.g. Summer evening in the garden',
         text: 'A short note for the memory',
         textPlaceholder: 'E.g. The last summer pasture, when everything was still here.',
         calendarDate: 'Date in the calendar (optional)',
+        save: 'Save memory',
       },
     },
 
@@ -439,6 +456,7 @@ export const strings = {
         text: 'Text',
         textPlaceholder: 'What do you want to remember about this day?',
         required: 'Add at least a name and date.',
+        save: 'Add day',
       },
     },
 
@@ -446,7 +464,7 @@ export const strings = {
       dayTitle: '{name} day',
       dayTitleEn: '{name} day',
       eyebrow: 'Memorial day',
-      dateFallback: 'Choose a memorial day in settings.',
+      dateFallback: 'Memorial day',
       born: 'Born',
       died: 'Passed',
       note: 'A few words',

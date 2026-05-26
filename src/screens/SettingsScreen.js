@@ -72,9 +72,7 @@ export default function SettingsScreen() {
 
   // Memorial fields
   const [name, setName]               = useState('');
-  const [birth, setBirth]             = useState('');
   const [death, setDeath]             = useState('');
-  const [description, setDescription] = useState('');
   const [petType, setPetType]         = useState('');
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName]   = useState('');
@@ -97,9 +95,7 @@ export default function SettingsScreen() {
   // Re-initialise when active memorial changes
   useEffect(() => {
     setName(getMemorialName(activeMemorial));
-    setBirth(activeMemorial?.birth ?? '');
     setDeath(getMemorialDate(activeMemorial));
-    setDescription(activeMemorial?.description ?? '');
     setPetType(activeMemorial?.petType ?? '');
     setPetTypeCustom(activeMemorial?.petTypeCustom ?? '');
     setMemorialName(activeMemorial?.memorialName ?? '');
@@ -137,9 +133,7 @@ export default function SettingsScreen() {
       theme:         themeKey,
       language,
       name:          name.trim(),
-      birth:         birth.trim(),
       death:         parseDateInput(death),
-      description:   description.trim(),
       petType:       petType || null,
       petTypeCustom: petTypeCustom.trim(),
       memorialName:  memorialName.trim(),
@@ -350,14 +344,6 @@ export default function SettingsScreen() {
                     placeholder={t('creation.datePlaceholder')}
                   />
 
-                  {/* Date of birth */}
-                  <AppInput
-                    label={t('creation.birth')}
-                    value={birth}
-                    onChangeText={setBirth}
-                    placeholder={t('creation.datePlaceholder')}
-                  />
-
                   {/* Memorial day image — portrait picker. Tapping the frame
                       opens the crop modal so preview == final card. */}
                   <View>
@@ -400,15 +386,6 @@ export default function SettingsScreen() {
                       ) : null}
                     </View>
                   </View>
-
-                  {/* A few words — description */}
-                  <AppInput
-                    label={t('creation.description')}
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholder={t('creation.descriptionPlaceholder')}
-                    multiline
-                  />
 
                   {/* ── Calendar images accordion ──────────────────────────── */}
                   <Pressable

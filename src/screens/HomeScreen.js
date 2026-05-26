@@ -24,7 +24,7 @@ const SCREEN_BG = require('../../assets/bg-koti.png');
 //   .hero (memory hero card) overlaps the .memory-of-day card by 34px.
 // Then comes .daily-quote, then a 2×2 .quick-actions grid.
 export default function HomeScreen() {
-  const { t, language } = useI18n();
+  const { t, language, getDailyQuote } = useI18n();
   const { activeMemorial } = useMemorials();
   const navigation = useNavigation();
 
@@ -60,28 +60,28 @@ export default function HomeScreen() {
 
       <DailyQuoteCard
         eyebrow={t('home.dailyQuote')}
-        quote={t('quote')}
+        quote={getDailyQuote()}
       />
 
       <View style={styles.actions}>
         <ActionTile
           icon="image"
-          label={t('tab.wall')}
+          label={t('home.action.wall')}
           onPress={() => navigation.navigate('Wall')}
         />
         <ActionTile
           icon="mail"
-          label={t('tab.letters')}
+          label={t('home.action.letters')}
           onPress={() => navigation.navigate('Letters')}
         />
         <ActionTile
           icon="calendar"
-          label={t('tab.calendar')}
+          label={t('home.action.calendar')}
           onPress={() => navigation.navigate('Calendar')}
         />
         <ActionTile
           icon="heart"
-          label={t('tab.memorial')}
+          label={t('home.action.memorial', { name: possessiveName })}
           onPress={() => navigation.navigate('Memorial')}
         />
       </View>
