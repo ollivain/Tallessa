@@ -15,7 +15,13 @@ const navTheme = {
   colors: {
     primary:      colors.accentDark,
     background:   colors.background,
-    card:         colors.surface,
+    // PWA parity: in the PWA every screen sits on --cream (background).
+    // React Navigation's `card` colour is the per-screen base layer that
+    // shows through wherever a screen doesn't paint its own background. If
+    // we leave it at `surface` (a darker beige) it bleeds in at the edges
+    // and behind safe-area insets, making the whole app look framed by a
+    // tinted card. Aligning `card` to `background` removes that frame.
+    card:         colors.background,
     text:         colors.textPrimary,
     border:       colors.divider,
     notification: colors.accent,

@@ -5,11 +5,16 @@ import { useTheme } from '../state/ThemeContext';
 
 // Paper-style screen wrapper. The optional `background` prop accepts a require
 // (e.g. require('../../assets/bg-koti.png')) so each screen can use its own
-// watercolour image like the web version. Falling back to the active theme's
+// watercolour image like the PWA. Falling back to the active theme's
 // background colour when no image is supplied keeps the screen safe.
 //
+// PWA parity: the PWA's `body::before` paints the watercolour full-viewport
+// and is fixed behind the safe area. Here the `ImageBackground` wraps the
+// SafeAreaView, so the watercolour fills the status-bar area too — exactly
+// like the PWA. SafeAreaView only insets the *content*, not the background.
+//
 // edges defaults to `['top', 'left', 'right']` because the tab bar already
-// handles bottom inset.
+// handles the bottom inset.
 export default function AppScreen({
   children,
   scroll = true,
@@ -35,8 +40,11 @@ export default function AppScreen({
 
   if (background) {
     return (
+      // `style.flex: 1` + no border-radius anywhere on this wrapper keeps the
+      // watercolour edge-to-edge. Any rounded card belongs to the *content*,
+      // not to the screen container.
       <ImageBackground source={background} resizeMode="cover" style={styles.flex}>
-        <SafeAreaView style={styles.flex} edges={edges}>
+        <SafeAreaView style={styles.transparentSafe} edges={edges}>
           {inner}
         </SafeAreaView>
       </ImageBackground>
@@ -52,6 +60,9 @@ export default function AppScreen({
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  // Transparent so the ImageBackground watercolour shows through behind the
+  // safe-area inset (PWA `body::before` parity).
+  transparentSafe: { flex: 1, backgroundColor: 'transparent' },
   flex: { flex: 1 },
 });
 

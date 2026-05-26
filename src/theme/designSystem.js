@@ -66,10 +66,14 @@ export const colors = {
   pillText: 'rgba(48, 56, 45, 0.78)',
 
   // Tab bar — PWA .bottom-nav
-  // PWA parity approximation: backdrop-filter blur(22px) saturate(1.12) is not
-  // available without expo-blur; the semi-opaque cream gives a close result.
-  tabBg:            'rgba(255, 250, 240, 0.78)',
-  tabBgInactive:    'rgba(255, 250, 240, 0.78)',
+  // PWA parity approximation: the PWA layers a 22px backdrop-filter blur on
+  // top of `rgba(255,250,240,0.78)` so the cream stays *opaque-looking* in
+  // practice. RN has no native blur, so a translucent fill leaks content
+  // through the bar and makes scroll text appear behind the icons.
+  // Using a fully-opaque cream matches the visual result while keeping the
+  // PWA palette.
+  tabBg:            '#fffaf0',
+  tabBgInactive:    '#fffaf0',
   tabActiveBg:      'rgba(88, 98, 68, 0.10)',   // .bottom-nav button.is-active
   tabActiveText:    '#26352a',
   tabInactiveText:  'rgba(101, 105, 93, 0.72)', // color-mix(muted 72%, cream 28%)

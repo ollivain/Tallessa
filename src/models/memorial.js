@@ -129,11 +129,25 @@ export function normalizePosition(value) {
   const x = Number(position.x);
   const y = Number(position.y);
   const zoom = Number(position.zoom);
+  const naturalAspect = Number(position.naturalAspect);
+  // PWA parity: every image's saved metadata carries the full crop spec
+  // (aspectRatio + fitMode + naturalAspect) so the rendered card looks the
+  // same as the preview. The older `{ x, y, zoom, fit }` shape is still
+  // accepted and gets transparently upgraded.
+  const fitMode = position.fitMode
+    ?? (position.fit === 'contain' ? 'contain' : 'cover');
+  // aspectRatio can be 'fill' (default), 'original', or a numeric ratio.
+  const aspectRatio = position.aspectRatio ?? 'fill';
   return {
-    x: Number.isFinite(x) ? x : DEFAULT_POSITION.x,
-    y: Number.isFinite(y) ? y : DEFAULT_POSITION.y,
+    x:    Number.isFinite(x) ? x : DEFAULT_POSITION.x,
+    y:    Number.isFinite(y) ? y : DEFAULT_POSITION.y,
     zoom: Number.isFinite(zoom) && zoom > 0 ? zoom : DEFAULT_POSITION.zoom,
-    fit: position.fit === 'contain' ? 'contain' : 'cover',
+    fit:  fitMode,        // legacy field kept for forward/back compatibility
+    fitMode,
+    aspectRatio,
+    naturalAspect: Number.isFinite(naturalAspect) && naturalAspect > 0
+      ? naturalAspect
+      : 1,
   };
 }
 
