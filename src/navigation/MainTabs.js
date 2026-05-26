@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
-import { colors, radii, shadows } from '../theme/designSystem';
+import { colors, radii, shadows, typography } from '../theme/designSystem';
 import { useTheme } from '../state/ThemeContext';
 import HomeScreen from '../screens/HomeScreen';
 import MemoryWallScreen from '../screens/MemoryWallScreen';
@@ -109,58 +109,74 @@ function PaperTabBar({ state, descriptors, navigation }) {
   );
 }
 
+// All numeric values mirror PWA .bottom-nav rules in styles.css:
+//   .bottom-nav        → padding 6 6 max(7,safe-bottom), border-radius 24 24 0 0,
+//                        background rgba(255,250,240,0.78), max-width 452,
+//                        margin 0 auto, box-shadow 0 -8px 26px rgba(55,48,35,.08)
+//   .bottom-nav button → min-height 44, border-radius 15, font-size 0.68rem,
+//                        font-weight 650 → '600' (RN parity approximation)
+//   .is-active         → background rgba(88,98,68,0.10), inset 0 0 0 1px hairline,
+//                        font-weight 800, icon scale 1.06
 const styles = StyleSheet.create({
   outer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.tabBg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 250, 240, 0.62)',
-    paddingTop: 6,
-    paddingHorizontal: 6,
+    position:            'absolute',
+    bottom:              0,
+    left:                0,
+    right:               0,
+    backgroundColor:     colors.tabBg,
+    borderTopLeftRadius:  radii.card,   // PWA 24px
+    borderTopRightRadius: radii.card,
+    borderTopWidth:      1,
+    borderTopColor:      colors.tabBorderTop,
+    paddingTop:          6,
+    paddingHorizontal:   6,
+    // PWA `.bottom-nav { max-width: 452px; margin: 0 auto }`
+    maxWidth:            452,
+    alignSelf:           'center',
+    width:               '100%',
     ...shadows.tabBar,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
+    flexDirection:  'row',
+    alignItems:     'stretch',
     justifyContent: 'space-between',
   },
   item: {
-    flex: 1,
-    minHeight: 44,
-    paddingVertical: 5,
+    flex:              1,
+    minHeight:         44,
+    paddingVertical:   5,
     paddingHorizontal: 2,
-    marginHorizontal: 1,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    backgroundColor: 'transparent',
+    marginHorizontal:  1,
+    borderRadius:      radii.navItem,   // PWA 15px
+    alignItems:        'center',
+    justifyContent:    'center',
+    gap:               2,
+    backgroundColor:   'transparent',
   },
   itemActive: {
     backgroundColor: colors.tabActiveBg,
-    borderWidth: 1,
-    borderColor: 'rgba(88, 98, 68, 0.08)',
+    // PWA `box-shadow: inset 0 0 0 1px rgba(88,98,68,0.08)` approximated
+    // with a hairline border on the active tab.
+    borderWidth:     1,
+    borderColor:     colors.hairline,
   },
   itemPressed: {
     opacity: 0.7,
   },
+  // PWA `.bottom-nav button.is-active .nav-icon { transform: translateY(-1px) scale(1.06) }`
   iconActive: {
     transform: [{ translateY: -1 }, { scale: 1.05 }],
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.tabInactiveText,
+    fontSize:      typography.sizes.navLabel,
+    // PWA font-weight 650 → '600' as RN parity approximation
+    fontWeight:    typography.weights.semibold,
+    color:         colors.tabInactiveText,
     letterSpacing: 0,
-    lineHeight: 13,
+    lineHeight:    13,
   },
   labelActive: {
-    color: colors.tabActiveText,
-    fontWeight: '800',
+    color:      colors.tabActiveText,
+    fontWeight: typography.weights.heavy,
   },
 });

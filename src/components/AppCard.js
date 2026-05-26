@@ -3,11 +3,16 @@ import { cardStyles } from '../theme/designSystem';
 import { useTheme } from '../state/ThemeContext';
 
 // Generic ivory card used for memory-of-day, daily quote, settings rows, etc.
-// Renders a Pressable when `onPress` is provided, otherwise a View — keeps
-// callsites tidy (no ternary boilerplate at the use site).
+// Visuals mirror styles.css `.card`:
+//   border 1px var(--line), border-radius 24px,
+//   background rgba(255,250,240,0.98), box-shadow var(--soft-shadow).
+// Three variants:
+//   soft   → PWA `.card` baseline (matches `.memory-card`, `.letter-card`)
+//   raised → deeper PWA `--shadow` (matches `.add-card-toggle`, hero stacks)
+//   warm   → PWA `.daily-quote` / `.memory-of-day` border-color override
 //
-// Card background automatically follows the active theme (themeColors.card),
-// matching the way the PWA applies --color-card via CSS custom properties.
+// Card background follows the active theme (themeColors.card), matching the
+// way the PWA applies --color-card via CSS custom properties.
 export default function AppCard({
   children,
   variant = 'soft',

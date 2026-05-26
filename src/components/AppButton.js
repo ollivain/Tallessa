@@ -2,10 +2,14 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { buttonStyles } from '../theme/designSystem';
 import { useTheme } from '../state/ThemeContext';
 
-// Three variants:
-//   primary  → moss-green pill, colour follows the active theme
-//   secondary → ivory pill with hairline border
-//   ghost    → tiny uppercase text button
+// Three variants that mirror the PWA button rules in styles.css:
+//   primary   → PWA .primary-action — moss pill, white label, deep shadow
+//   secondary → PWA .secondary-action — ivory pill with hairline --line border
+//   ghost     → tiny uppercase text button (no PWA equivalent, kept for menus)
+//
+// The active theme's moss tone is applied via ThemeContext so the colour
+// matches whichever theme the user picked, just like the CSS rule
+// `background: var(--moss)` does on the web.
 export default function AppButton({
   label,
   onPress,
@@ -18,7 +22,7 @@ export default function AppButton({
   const containerKey = variant in buttonStyles ? variant : 'primary';
   const labelKey = `${containerKey}Label`;
 
-  // Override primary background colour with the active theme's moss
+  // Override primary background colour with the active theme's moss tone
   const themeOverride = containerKey === 'primary'
     ? { backgroundColor: themeColors.moss }
     : null;
@@ -43,6 +47,7 @@ export default function AppButton({
 }
 
 const styles = StyleSheet.create({
-  pressed: { transform: [{ scale: 0.98 }] },
+  // PWA .primary-action:active / .section-button:active: transform scale(0.98)
+  pressed:  { transform: [{ scale: 0.98 }] },
   disabled: { opacity: 0.5 },
 });
