@@ -169,7 +169,7 @@ export default function ImageCropAspectPicker({
     >
       <SafeAreaView
         style={[styles.safe, { backgroundColor: themeColors.background ?? colors.background }]}
-        edges={['top', 'left', 'right']}
+        edges={['top', 'left', 'right', 'bottom']}
       >
         {/* Topbar — × cancel + title */}
         <View style={styles.topbar}>

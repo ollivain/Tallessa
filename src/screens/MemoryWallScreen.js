@@ -151,7 +151,8 @@ export default function MemoryWallScreen({ route }) {
   };
 
   const save = async () => {
-    if (!body.trim() && !media) { close(); return; }
+    const trimmedBody = body.trim();
+    if (!trimmedBody && !media) { close(); return; }
     const memoryDate = parseDateInput(calendarDate);
 
     const mediaChanged = media && !media._persisted;
@@ -183,14 +184,14 @@ export default function MemoryWallScreen({ route }) {
       draft: media?.type === 'video' && canClaimTenSecondClip
         ? { clipStart: 0, clipEnd: videoDurationSeconds }
         : { position: imagePosition },
-      text: body.trim() || payload.text,
+      text: trimmedBody,
       calendarDate: memoryDate,
       videoClipSeconds: canClaimTenSecondClip ? videoDurationSeconds : undefined,
       fallbackText: t('wall.memoryNoWords'),
     });
     Object.assign(payload, {
-      body: body.trim(),
-      text: body.trim(),
+      body: payload.text,
+      text: payload.text,
       date: memoryDate,
       calendarDate: memoryDate,
       createdAt: new Date().toISOString(),
