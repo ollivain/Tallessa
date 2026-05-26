@@ -25,7 +25,7 @@ import AppCard from '../components/AppCard';
 import AppInput from '../components/AppInput';
 import AppButton from '../components/AppButton';
 import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
-import PositionedImage from '../components/PositionedImage';
+import PositionedImage, { cardPosition } from '../components/PositionedImage';
 
 // Shared default so saved metadata has a consistent shape everywhere.
 const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
@@ -354,7 +354,7 @@ export default function SettingsScreen() {
                       accessibilityRole="button"
                     >
                       {portraitUri ? (
-                        <PositionedImage uri={portraitUri} position={memorialImagePosition} style={styles.portraitImage} />
+                        <PositionedImage uri={portraitUri} position={cardPosition(memorialImagePosition)} style={styles.portraitImage} />
                       ) : (
                         <View style={styles.portraitPlaceholder}>
                           <Feather name="user" size={28} color={themeColors.brown} />

@@ -19,6 +19,11 @@ import { colors, radii, shadows, spacing, typography } from '../theme/designSyst
 // "Edit crop" a first-class affordance is what closes the parity gap.
 export default function ImageControls({
   variant = 'floating',
+  // PWA parity: PWA hides the "Change image" pill until the user interacts
+  // with the image. RN mirrors that with a parent-controlled `visible` flag.
+  // Inline controls (Settings / Creation pickers) default to visible because
+  // they live *below* the image — they aren't an overlay that needs hiding.
+  visible = true,
   hasImage,
   onPick,
   onEditCrop,
@@ -32,6 +37,10 @@ export default function ImageControls({
   const { themeColors } = useTheme();
   const isFloating = variant === 'floating';
   const containerStyle = isFloating ? styles.floating : styles.inline;
+
+  // Floating controls fully unmount when hidden so they don't intercept taps
+  // intended for the image underneath. Inline controls ignore the flag.
+  if (isFloating && !visible) return null;
 
   return (
     <View style={[containerStyle, style]} pointerEvents="box-none">

@@ -90,6 +90,17 @@ export function imageResizeMode(position) {
   return normalizePosition(position).fitMode;
 }
 
+// PWA parity: PWA cards have *fixed* heights (memorial 280, hero 330-382,
+// month-cover 165, memory media 230 etc.) and use background-size:cover.
+// The aspectRatio picker is an RN-only enhancement that's only meaningful in
+// the crop modal preview. Wrapping a saved position with `cardPosition()` at
+// card render time forces aspectRatio:'fill' so the card's own height wins
+// and the image always cover-fits — preventing the "weird zoom" effect when
+// metadata's numeric aspectRatio conflicts with explicit container height.
+export function cardPosition(position) {
+  return { ...(position || {}), aspectRatio: 'fill' };
+}
+
 const styles = StyleSheet.create({
   frame: {
     overflow:        'hidden',

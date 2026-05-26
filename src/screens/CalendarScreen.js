@@ -23,7 +23,10 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
-import PositionedImage from '../components/PositionedImage';
+import PositionedImage, { cardPosition } from '../components/PositionedImage';
+import ImageControls from '../components/ImageControls';
+import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
+import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import {
   capitalize,
@@ -36,6 +39,10 @@ import {
   getMemorialDate,
   getMonthPhotosArray,
 } from '../models/memorial';
+import {
+  sortImportantDaysForVisibleMonth,
+  sortMemoriesForVisibleMonth,
+} from '../lib/calendar';
 
 const SCREEN_BG = require('../../assets/bg-kalenteri.png');
 // Fallback cover used until the user picks a month image — matches the PWA
@@ -64,7 +71,7 @@ function sameMonthDay(date, refDate) {
 //   → .day-list  (sorted: visible month first, then everything else)
 export default function CalendarScreen() {
   const { t, language } = useI18n();
-  const { activeMemorial, addEvent, deleteEvent } = useMemorials();
+  const { activeMemorial, addEvent, deleteEvent, updateMemorial } = useMemorials();
   const { themeColors } = useTheme();
 
   const [visibleMonth, setVisibleMonth] = useState(() => {
@@ -78,18 +85,24 @@ export default function CalendarScreen() {
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
   const [note, setNote] = useState('');
 
+  // PWA parity: cover-image edit pills hidden until the user taps the image.
+  const [coverControlsVisible, setCoverControlsVisible] = useState(false);
+  const [cropTarget, setCropTarget] = useState(null);
+
   const events = getImportantDays(activeMemorial);
   const memories = activeMemorial?.memories ?? [];
   const deathDate = parseDate(getMemorialDate(activeMemorial));
   const gridCells = buildGridCells(visibleMonth, events, deathDate, memories);
-  const sortedEvents = sortDaysForVisibleMonth(events, visibleMonth);
-  // PWA shows all memories in the day list (visible-month first, then the
-  // rest) — never hides the off-month ones, just orders them.
+  // PWA parity: the `.day-list` shows *every* important day all the time,
+  // with the visible month's entries bubbled to the top. The memorial day
+  // (death anniversary) is part of the same list, so we include it in the
+  // input and let the helper handle ordering — instead of hard-filtering it
+  // away when the calendar is on a different month.
+  const memorialDayCard = buildMemorialDayCard(activeMemorial, t);
+  const allImportantDays = memorialDayCard ? [memorialDayCard, ...events] : events;
+  const sortedEvents     = sortImportantDaysForVisibleMonth(allImportantDays, visibleMonth);
   const calendarMemories = sortMemoriesForVisibleMonth(memories, visibleMonth);
-  const visibleCards = [
-    ...getMemorialDayCards(activeMemorial, visibleMonth, t),
-    ...sortedEvents,
-  ];
+  const visibleCards     = sortedEvents;
 
   const calendarImages = getMonthPhotosArray(activeMemorial);
   const coverImageUri = calendarImages[visibleMonth.getMonth()] ?? null;
@@ -143,6 +156,73 @@ export default function CalendarScreen() {
   const monthLabel = visibleMonth.toLocaleString(language === 'fi' ? 'fi-FI' : 'en-GB', { month: 'long', year: 'numeric' });
   const weekdays = t('calendar.weekdays');
 
+  // ── Month cover image: change / edit crop / remove ────────────────────
+  const openCropPicker = ({ uri, current, apply }) => {
+    setCropTarget({
+      uri,
+      current,
+      apply,
+      replace: async () => {
+        const replaced = await pickImageFromLibrary(t);
+        if (replaced) setCropTarget((c) => c ? { ...c, uri: replaced.uri } : null);
+      },
+    });
+  };
+
+  const pickCover = async () => {
+    if (!activeMemorial) return;
+    const result = await pickImageFromLibrary(t);
+    if (!result) return;
+    const previousUri = coverImageUri;
+    openCropPicker({
+      uri: result.uri,
+      current: previousUri === result.uri
+        ? (coverImagePosition || DEFAULT_CROP_VALUE)
+        : DEFAULT_CROP_VALUE,
+      apply: (value) => {
+        if (previousUri && previousUri !== result.uri) removePersistedMedia(previousUri);
+        const monthPhotos = {
+          ...(activeMemorial.monthPhotos || {}),
+          [paddedMonthKey]: result.uri,
+        };
+        const monthPhotoPositions = {
+          ...(activeMemorial.monthPhotoPositions || {}),
+          [paddedMonthKey]: value,
+        };
+        updateMemorial(activeMemorial.id, { monthPhotos, monthPhotoPositions });
+        setCropTarget(null);
+      },
+    });
+  };
+
+  const editCoverCrop = () => {
+    if (!activeMemorial || !coverImageUri) return;
+    openCropPicker({
+      uri: coverImageUri,
+      current: coverImagePosition || DEFAULT_CROP_VALUE,
+      apply: (value) => {
+        const monthPhotoPositions = {
+          ...(activeMemorial.monthPhotoPositions || {}),
+          [paddedMonthKey]: value,
+        };
+        updateMemorial(activeMemorial.id, { monthPhotoPositions });
+        setCropTarget(null);
+      },
+    });
+  };
+
+  const removeCover = () => {
+    if (!activeMemorial) return;
+    if (coverImageUri) removePersistedMedia(coverImageUri);
+    const monthPhotos = { ...(activeMemorial.monthPhotos || {}) };
+    delete monthPhotos[paddedMonthKey];
+    delete monthPhotos[monthKey];
+    const monthPhotoPositions = { ...(activeMemorial.monthPhotoPositions || {}) };
+    delete monthPhotoPositions[paddedMonthKey];
+    delete monthPhotoPositions[monthKey];
+    updateMemorial(activeMemorial.id, { monthPhotos, monthPhotoPositions });
+  };
+
   return (
     <AppScreen scroll={false} background={SCREEN_BG} contentStyle={styles.noInnerPad}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -153,13 +233,33 @@ export default function CalendarScreen() {
         {/* PWA `.calendar-card.card { padding: 14; gap: 14; border-radius: 24 }` */}
         <View style={styles.calCardShadow}>
           <View style={[styles.calCard, { backgroundColor: themeColors.card }]}>
-            {/* PWA `.month-cover { min-height: 165; border-radius: 18; default photo }` */}
-            <PositionedImage
-              uri={coverImageUri || undefined}
-              source={coverImageUri ? undefined : DEFAULT_COVER}
-              position={coverImagePosition}
-              style={styles.coverImage}
-            />
+            {/* PWA `.month-cover { min-height: 165; border-radius: 18 }`.
+                Tap toggles the floating ImageControls. `cardPosition` keeps
+                the cover cover-fitted into the 165-tall slot regardless of
+                the metadata's aspectRatio choice. */}
+            <Pressable
+              onPress={() => setCoverControlsVisible((v) => !v)}
+              accessibilityRole="button"
+              style={styles.coverTap}
+            >
+              <PositionedImage
+                uri={coverImageUri || undefined}
+                source={coverImageUri ? undefined : DEFAULT_COVER}
+                position={cardPosition(coverImagePosition)}
+                style={styles.coverImage}
+              />
+              <ImageControls
+                variant="floating"
+                visible={coverControlsVisible}
+                hasImage={!!coverImageUri}
+                onPick={() => { setCoverControlsVisible(false); pickCover(); }}
+                onEditCrop={() => { setCoverControlsVisible(false); editCoverCrop(); }}
+                onRemove={() => { setCoverControlsVisible(false); removeCover(); }}
+                pickLabel={coverImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                editLabel={t('imageCrop.edit')}
+                removeLabel={t('creation.removePortrait')}
+              />
+            </Pressable>
 
             {/* PWA `.calendar-controls { grid: 52px 1fr 52px; gap: 10 }` */}
             <View style={styles.monthNav}>
@@ -273,6 +373,16 @@ export default function CalendarScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Crop modal — same one used everywhere; preview = final card. */}
+      <ImageCropAspectPicker
+        visible={!!cropTarget}
+        uri={cropTarget?.uri}
+        initialValue={cropTarget?.current}
+        onApply={cropTarget?.apply}
+        onCancel={() => setCropTarget(null)}
+        onReplace={cropTarget?.replace}
+      />
     </AppScreen>
   );
 }
@@ -413,28 +523,15 @@ function formatMonth(iso, language) {
   if (!d || Number.isNaN(d.getTime())) return '';
   return monthName(d.getMonth(), language, 'short');
 }
-function isSameVisibleMonth(dateString, visibleMonth, recurring = false) {
-  const date = parseDate(dateString);
-  return date && date.getMonth() === visibleMonth.getMonth() && (recurring || date.getFullYear() === visibleMonth.getFullYear());
-}
-function sortDaysForVisibleMonth(days, visibleMonth) {
-  return days
-    .filter((day) => isSameVisibleMonth(day.date, visibleMonth, day.recurring))
-    .slice()
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
-}
-function sortMemoriesForVisibleMonth(memories, visibleMonth) {
-  const dated = memories.filter((memory) => parseDate(memory.calendarDate));
-  return [
-    ...dated.filter((memory) => isSameVisibleMonth(memory.calendarDate, visibleMonth)),
-    ...dated.filter((memory) => !isSameVisibleMonth(memory.calendarDate, visibleMonth)),
-  ];
-}
-function getMemorialDayCards(activeMemorial, visibleMonth, t) {
+// PWA parity: the memorial day (death anniversary) is just another entry in
+// the same `.day-list` — always present, never filtered by visible month.
+// `sortImportantDaysForVisibleMonth` handles the ordering, so we return the
+// card itself unconditionally as long as a memorial date exists.
+function buildMemorialDayCard(activeMemorial, t) {
   const memorialDate = getMemorialDate(activeMemorial);
   const parsed = parseDate(memorialDate);
-  if (!parsed || parsed.getMonth() !== visibleMonth.getMonth()) return [];
-  return [{
+  if (!parsed) return null;
+  return {
     id: 'memorial-day',
     name: t('calendar.memorialDayName', {
       name: toPossessive(activeMemorial?.horseName || activeMemorial?.name || '', activeMemorial?.language),
@@ -443,7 +540,7 @@ function getMemorialDayCards(activeMemorial, visibleMonth, t) {
     note: t('calendar.memorialRecurring'),
     symbol: DEFAULT_SYMBOL,
     type: 'memorial-day',
-  }];
+  };
 }
 
 const styles = StyleSheet.create({
@@ -469,6 +566,12 @@ const styles = StyleSheet.create({
     width:        '100%',
     height:       165,
     borderRadius: radii.lg,
+  },
+  // Pressable wrapper for the month cover — hosts tap-to-toggle floating
+  // ImageControls. `relative` so the controls can be absolutely positioned.
+  coverTap: {
+    width:    '100%',
+    position: 'relative',
   },
 
   // PWA `.calendar-card.card { padding: 14; gap: 14; border-radius: 24 }`

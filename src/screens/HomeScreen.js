@@ -36,6 +36,9 @@ export default function HomeScreen() {
   const { activeMemorial, updateMemorial } = useMemorials();
   const navigation = useNavigation();
   const [cropTarget, setCropTarget] = useState(null);
+  // PWA parity: floating image-edit pills are hidden until the user taps
+  // the hero image. Tap again → hide. Tap a control pill → run the action.
+  const [heroControlsVisible, setHeroControlsVisible] = useState(false);
 
   const name = getMemorialName(activeMemorial);
   const heroLine = name
@@ -105,21 +108,25 @@ export default function HomeScreen() {
 
   return (
     <AppScreen background={SCREEN_BG}>
-      {/* Hero card with floating image controls (Change / Edit crop / Remove). */}
+      {/* Hero card with tap-to-reveal floating image controls. The controls
+          stay hidden until the user taps the hero. Tapping a pill runs the
+          action and leaves the rest of the menu visible until tapped away. */}
       <View style={styles.heroWrap}>
         <MemoryHeroCard
           imageSource={heroImage}
           fallbackSource={HERO_FALLBACK}
           imagePosition={heroImagePosition}
           memoryLine={heroLine}
+          onPress={activeMemorial ? () => setHeroControlsVisible((v) => !v) : undefined}
         />
         {activeMemorial ? (
           <ImageControls
             variant="floating"
+            visible={heroControlsVisible}
             hasImage={!!portraitUri}
-            onPick={pickHeroImage}
-            onEditCrop={editHeroCrop}
-            onRemove={removeHeroImage}
+            onPick={() => { setHeroControlsVisible(false); pickHeroImage(); }}
+            onEditCrop={() => { setHeroControlsVisible(false); editHeroCrop(); }}
+            onRemove={() => { setHeroControlsVisible(false); removeHeroImage(); }}
             pickLabel={portraitUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
             editLabel={t('imageCrop.edit')}
             removeLabel={t('creation.removePortrait')}

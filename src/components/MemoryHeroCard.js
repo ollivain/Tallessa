@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, shadows, typography } from '../theme/designSystem';
-import PositionedImage from './PositionedImage';
+import PositionedImage, { cardPosition } from './PositionedImage';
 
 // Hero card shown at the top of HomeScreen. Mirrors the web `.hero` block:
 //   - Big rounded corners (28)
@@ -19,45 +19,64 @@ export default function MemoryHeroCard({
   eyebrow,
   memoryLine,
   imagePosition,
+  // Tap handler used by HomeScreen to toggle the floating ImageControls.
+  // When omitted, the card stays purely presentational.
+  onPress,
 }) {
   const source = imageSource ?? fallbackSource;
+  // PWA parity: `.hero` has a fixed min/max height — the picker preview can
+  // honour the user's aspectRatio choice, but the saved hero card always
+  // cover-fits into that height. `cardPosition` strips numeric aspectRatio.
+  const renderPosition = imageSource ? cardPosition(imagePosition) : undefined;
 
-  return (
-    <View style={styles.shadow}>
-      <View style={styles.card}>
-        {source ? (
-          <View style={styles.image}>
-            <PositionedImage
-              source={source}
-              position={imageSource ? imagePosition : undefined}
-              style={StyleSheet.absoluteFill}
-            />
-            <GradientStack />
-            <View style={styles.copyBlock}>
-              {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-              {memoryLine ? (
-                <Text style={styles.memoryLine} numberOfLines={3}>
-                  {memoryLine}
-                </Text>
-              ) : null}
-            </View>
+  const inner = (
+    <View style={styles.card}>
+      {source ? (
+        <View style={styles.image}>
+          <PositionedImage
+            source={source}
+            position={renderPosition}
+            style={StyleSheet.absoluteFill}
+          />
+          <GradientStack />
+          <View style={styles.copyBlock}>
+            {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+            {memoryLine ? (
+              <Text style={styles.memoryLine} numberOfLines={3}>
+                {memoryLine}
+              </Text>
+            ) : null}
           </View>
-        ) : (
-          <View style={[styles.image, styles.placeholder]}>
-            <GradientStack />
-            <View style={styles.copyBlock}>
-              {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-              {memoryLine ? (
-                <Text style={styles.memoryLine} numberOfLines={3}>
-                  {memoryLine}
-                </Text>
-              ) : null}
-            </View>
+        </View>
+      ) : (
+        <View style={[styles.image, styles.placeholder]}>
+          <GradientStack />
+          <View style={styles.copyBlock}>
+            {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+            {memoryLine ? (
+              <Text style={styles.memoryLine} numberOfLines={3}>
+                {memoryLine}
+              </Text>
+            ) : null}
           </View>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.shadow, pressed && { opacity: 0.96 }]}
+      >
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.shadow}>{inner}</View>;
 }
 
 // Vertical bands approximating the CSS linear-gradient. Each band's percentage

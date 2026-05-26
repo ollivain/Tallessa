@@ -24,7 +24,8 @@ import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
 import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
-import PositionedImage from '../components/PositionedImage';
+import ImageControls from '../components/ImageControls';
+import PositionedImage, { cardPosition } from '../components/PositionedImage';
 
 // Shared default so saved metadata has a consistent shape everywhere.
 const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
@@ -48,7 +49,7 @@ import { useTheme } from '../state/ThemeContext';
 // We mirror that behaviour with a local `open` state.
 export default function MemoryWallScreen({ route }) {
   const { t, language } = useI18n();
-  const { activeMemorial, addMemory, deleteMemory } = useMemorials();
+  const { activeMemorial, addMemory, updateMemory, deleteMemory } = useMemorials();
   const { themeColors } = useTheme();
 
   const [open, setOpen] = useState(false);
@@ -58,6 +59,9 @@ export default function MemoryWallScreen({ route }) {
   const [imagePosition, setImagePosition] = useState(DEFAULT_IMAGE_POSITION);
   const [uploading, setUploading] = useState(false);
   const [cropTarget, setCropTarget] = useState(null);
+  // PWA parity: per-memory image-edit pills hidden until the user taps the
+  // card's image. Only one card's controls are revealed at a time.
+  const [revealedMemoryId, setRevealedMemoryId] = useState(null);
 
   const memories = activeMemorial?.memories ?? [];
   const highlightedMemoryId = route?.params?.highlightMemoryId ?? null;
@@ -134,6 +138,117 @@ export default function MemoryWallScreen({ route }) {
       mimeType: media.mimeType,
       current:  imagePosition,
     });
+  };
+
+  // ── Per-saved-memory image actions (change / edit crop / remove) ──────
+  // The card's pen + trash pills still edit/delete the *memory* itself.
+  // These three image-only actions are the new tap-to-reveal floating pills.
+  //
+  // PWA parity approximation: PWA stores media as a data URL embedded in the
+  // memory. RN goes through pickImageFromLibrary → optional Supabase upload
+  // (when configured) → updateMemory with the new uri + crop metadata.
+  const openMemoryCropPicker = ({ memoryId, uri, mimeType, current, isNew }) => {
+    setCropTarget({
+      uri,
+      mimeType,
+      current,
+      apply: async (value) => {
+        const memory = (activeMemorial?.memories ?? []).find((m) => m.id === memoryId);
+        if (!memory) { setCropTarget(null); return; }
+
+        // Upload to Supabase if a new image was picked (matches inline-form flow)
+        let uploaded = null;
+        if (isNew && isSupabaseConfigured()) {
+          try {
+            setUploading(true);
+            uploaded = await uploadMedia({ type: 'image', uri, mimeType });
+          } catch (e) {
+            const code = e?.message;
+            const body =
+              code === UploadError.NOT_CONFIGURED ? t('media.uploadErrorNotConfigured')
+              : code === UploadError.NETWORK       ? t('media.uploadErrorNetwork')
+                                                   : t('media.uploadErrorGeneric');
+            Alert.alert(t('media.uploadErrorTitle'), body);
+          } finally {
+            setUploading(false);
+          }
+        }
+
+        const previousRemotePath = memory.mediaRemotePath || memory.storagePath || '';
+        const patch = isNew ? {
+          mediaType:        'image',
+          mediaUri:         uri,
+          media:            uploaded?.publicUrl ?? uri,
+          mediaRemoteUrl:   uploaded?.publicUrl ?? null,
+          mediaRemotePath:  uploaded?.path ?? null,
+          storagePath:      uploaded?.path ?? '',
+          type:             'image',
+          imagePosition:    value,
+        } : {
+          imagePosition: value,
+        };
+        updateMemory(activeMemorial.id, memoryId, patch);
+
+        // Best-effort: drop the old Supabase upload if the URI just changed.
+        if (isNew && previousRemotePath && uploaded?.path && previousRemotePath !== uploaded.path) {
+          deleteUploadedMedia(previousRemotePath).catch(() => {});
+        }
+        setCropTarget(null);
+      },
+      replace: async () => {
+        const replaced = await pickImageFromLibrary(t);
+        if (replaced) {
+          setCropTarget((c) => c ? { ...c, uri: replaced.uri, mimeType: replaced.mimeType, isNew: true } : null);
+        }
+      },
+    });
+  };
+
+  const onChangeMemoryImage = async (memory) => {
+    if (!activeMemorial) return;
+    setRevealedMemoryId(null);
+    const result = await pickImageFromLibrary(t);
+    if (!result) return;
+    openMemoryCropPicker({
+      memoryId: memory.id,
+      uri:      result.uri,
+      mimeType: result.mimeType,
+      current:  DEFAULT_IMAGE_POSITION,
+      isNew:    true,
+    });
+  };
+
+  const onEditMemoryCrop = (memory) => {
+    if (!activeMemorial) return;
+    setRevealedMemoryId(null);
+    const uri = getMemoryMediaUri(memory);
+    if (!uri || getMemoryMediaType(memory) !== 'image') return;
+    openMemoryCropPicker({
+      memoryId: memory.id,
+      uri,
+      mimeType: memory.mimeType,
+      current:  memory.imagePosition || DEFAULT_IMAGE_POSITION,
+      isNew:    false,
+    });
+  };
+
+  const onRemoveMemoryImage = (memory) => {
+    if (!activeMemorial) return;
+    setRevealedMemoryId(null);
+    const previousRemotePath = memory.mediaRemotePath || memory.storagePath || '';
+    updateMemory(activeMemorial.id, memory.id, {
+      mediaType:       null,
+      mediaUri:        null,
+      media:           '',
+      mediaRemoteUrl:  null,
+      mediaRemotePath: null,
+      storagePath:     '',
+      type:            null,
+      imagePosition:   DEFAULT_IMAGE_POSITION,
+    });
+    if (previousRemotePath) {
+      deleteUploadedMedia(previousRemotePath).catch(() => {});
+    }
   };
 
   const onPickVideo = async () => {
@@ -290,6 +405,11 @@ export default function MemoryWallScreen({ route }) {
                 language={language}
                 highlighted={m.id === highlightedMemoryId}
                 onDelete={() => confirmDelete(m)}
+                controlsVisible={revealedMemoryId === m.id}
+                onToggleControls={() => setRevealedMemoryId((curr) => curr === m.id ? null : m.id)}
+                onChangeImage={() => onChangeMemoryImage(m)}
+                onEditImageCrop={() => onEditMemoryCrop(m)}
+                onRemoveImage={() => onRemoveMemoryImage(m)}
               />
             ))}
           </View>
@@ -425,12 +545,33 @@ function InlineMemoryForm({
 // PWA `.memory-card.card`: overflow-hidden, border-radius 24, full-bleed media
 // at 230px, body padding 16, date-line (brown italic serif) → muted body p.
 // Delete action: single red pill at top-right.
-function MemoryCard({ memory, t, language, highlighted, onDelete }) {
+//
+// Image controls (Change / Edit crop / Remove image) live on a separate row
+// that's only revealed when the user taps the image. The pen/trash pills on
+// the right edit/delete the *memory* itself.
+function MemoryCard({
+  memory,
+  t,
+  language,
+  highlighted,
+  onDelete,
+  controlsVisible,
+  onToggleControls,
+  onChangeImage,
+  onEditImageCrop,
+  onRemoveImage,
+}) {
   const { themeColors } = useTheme();
   const dateLabel = formatDate(memory.calendarDate || memory.createdAt, language);
   const text = memory.body || memory.text;
   const mediaUri = getMemoryMediaUri(memory);
   const mediaType = getMemoryMediaType(memory);
+  const hasImage = !!mediaUri && mediaType === 'image';
+
+  // Tap target wraps the media area only. When there is no image, the tap
+  // still reveals the "Add image" pill so the user can attach one.
+  const MediaTap = hasImage || mediaType !== 'video' ? Pressable : View;
+
   return (
     <View style={styles.memCardShadow}>
       <View style={[
@@ -438,12 +579,43 @@ function MemoryCard({ memory, t, language, highlighted, onDelete }) {
         highlighted && [styles.memCardHighlighted, { borderColor: themeColors.moss }],
         { backgroundColor: themeColors.card },
       ]}>
-        {mediaUri && mediaType === 'image' ? (
-          <PositionedImage uri={mediaUri} position={memory.imagePosition} style={styles.memMedia} />
-        ) : mediaUri && mediaType === 'video' ? (
-          <VideoClip uri={mediaUri} style={styles.memMedia} />
-        ) : null}
+        {/* Media area with tap-to-toggle. cardPosition forces the card's
+            fixed 230 height to win — prevents the "weird zoom" from a
+            mismatched aspectRatio metadata. */}
+        <MediaTap
+          onPress={mediaType !== 'video' ? onToggleControls : undefined}
+          accessibilityRole={mediaType !== 'video' ? 'button' : undefined}
+          style={styles.memMediaTap}
+        >
+          {hasImage ? (
+            <PositionedImage uri={mediaUri} position={cardPosition(memory.imagePosition)} style={styles.memMedia} />
+          ) : mediaType === 'video' ? (
+            <VideoClip uri={mediaUri} style={styles.memMedia} />
+          ) : (
+            // No image yet — show a soft placeholder so the tap target is visible.
+            <View style={[styles.memMedia, styles.memMediaEmpty]}>
+              <Feather name="image" size={28} color="rgba(154, 118, 87, 0.42)" />
+            </View>
+          )}
 
+          {/* Floating image controls — hidden until the user taps the media.
+              Videos don't get crop controls (only image crop is supported). */}
+          {mediaType !== 'video' ? (
+            <ImageControls
+              variant="floating"
+              visible={controlsVisible}
+              hasImage={hasImage}
+              onPick={onChangeImage}
+              onEditCrop={onEditImageCrop}
+              onRemove={onRemoveImage}
+              pickLabel={hasImage ? t('creation.changePortrait') : t('creation.pickPortrait')}
+              editLabel={t('imageCrop.edit')}
+              removeLabel={t('creation.removePortrait')}
+            />
+          ) : null}
+        </MediaTap>
+
+        {/* Trash pill — deletes the *memory* itself, not just the image */}
         <View style={styles.memActions}>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.memActionPill, styles.memDeletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
@@ -597,6 +769,14 @@ const styles = StyleSheet.create({
   memCardHighlighted: { borderWidth: 2 },
   // PWA `.memory-card .media-preview { min-height: 230 }`
   memMedia:            { width: '100%', height: 230 },
+  // Tap wrapper for media; hosts the floating ImageControls overlay.
+  memMediaTap:         { width: '100%', position: 'relative' },
+  // Empty placeholder shown when a memory has no image yet
+  memMediaEmpty: {
+    alignItems:      'center',
+    justifyContent:  'center',
+    backgroundColor: colors.surface,
+  },
   // PWA `.delete-action { top: 12; right: 12; border-radius: 999 }`
   memActions: {
     position:      'absolute',

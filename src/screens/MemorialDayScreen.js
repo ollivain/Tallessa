@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import {
   ImageBackground,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,7 +21,10 @@ import {
 } from '../theme/designSystem';
 import AppCard from '../components/AppCard';
 import AppButton from '../components/AppButton';
-import PositionedImage from '../components/PositionedImage';
+import PositionedImage, { cardPosition } from '../components/PositionedImage';
+import ImageControls from '../components/ImageControls';
+import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
+import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import {
   getMemorialDate,
@@ -182,15 +187,76 @@ const cStyles = StyleSheet.create({
 // happen through the Settings screen as on the web). Tab bar stays visible.
 export default function MemorialDayScreen() {
   const { t, language } = useI18n();
-  const { activeMemorial, setCandleLit } = useMemorials();
+  const { activeMemorial, setCandleLit, updateMemorial } = useMemorials();
   const { themeColors } = useTheme();
 
   const timeOfDay = getTimeOfDay();
   const isDark = SKY_DARK[timeOfDay];
 
+  // PWA parity: image-edit pills are hidden until the user taps the picture.
+  const [imageControlsVisible, setImageControlsVisible] = useState(false);
+  const [cropTarget, setCropTarget] = useState(null);
+
   const onToggleCandle = () => {
     if (!activeMemorial) return;
     setCandleLit(activeMemorial.id, !activeMemorial.candleLit);
+  };
+
+  const openCropPicker = ({ uri, current, apply }) => {
+    setCropTarget({
+      uri,
+      current,
+      apply,
+      replace: async () => {
+        const replaced = await pickImageFromLibrary(t);
+        if (replaced) setCropTarget((c) => c ? { ...c, uri: replaced.uri } : null);
+      },
+    });
+  };
+
+  const pickMemorialImage = async () => {
+    if (!activeMemorial) return;
+    const result = await pickImageFromLibrary(t);
+    if (!result) return;
+    const previousUri = getMemorialImage(activeMemorial);
+    openCropPicker({
+      uri: result.uri,
+      current: previousUri === result.uri
+        ? (activeMemorial.memorialImagePosition || DEFAULT_CROP_VALUE)
+        : DEFAULT_CROP_VALUE,
+      apply: (value) => {
+        if (previousUri && previousUri !== result.uri) removePersistedMedia(previousUri);
+        updateMemorial(activeMemorial.id, {
+          memorialImage:         result.uri,
+          memorialImagePosition: value,
+        });
+        setCropTarget(null);
+      },
+    });
+  };
+
+  const editMemorialCrop = () => {
+    if (!activeMemorial) return;
+    const uri = getMemorialImage(activeMemorial);
+    if (!uri) return;
+    openCropPicker({
+      uri,
+      current: activeMemorial.memorialImagePosition || DEFAULT_CROP_VALUE,
+      apply: (value) => {
+        updateMemorial(activeMemorial.id, { memorialImagePosition: value });
+        setCropTarget(null);
+      },
+    });
+  };
+
+  const removeMemorialImage = () => {
+    if (!activeMemorial) return;
+    const uri = getMemorialImage(activeMemorial);
+    if (uri) removePersistedMedia(uri);
+    updateMemorial(activeMemorial.id, {
+      memorialImage:         '',
+      memorialImagePosition: DEFAULT_CROP_VALUE,
+    });
   };
 
   if (!activeMemorial) {
@@ -267,18 +333,39 @@ export default function MemorialDayScreen() {
           <View style={styles.cardShadow}>
             <View style={[styles.card, candle && styles.cardLit, { backgroundColor: themeColors.card }]}>
 
-              {/* PWA `.memorial-image { min-height: 280; border-radius: 22 }` */}
-              {displayImage ? (
-                <PositionedImage
-                  uri={displayImage}
-                  position={activeMemorial.memorialImagePosition}
-                  style={styles.memorialImage}
+              {/* PWA `.memorial-image { min-height: 280; border-radius: 22 }`.
+                  `cardPosition` forces aspectRatio:'fill' so the 280-tall
+                  card always cover-fits — fixes the previous "weird zoom"
+                  where a numeric aspectRatio metadata fought the fixed
+                  height. Tap toggles the floating ImageControls. */}
+              <Pressable
+                onPress={() => setImageControlsVisible((v) => !v)}
+                accessibilityRole="button"
+                style={styles.memorialImageTap}
+              >
+                {displayImage ? (
+                  <PositionedImage
+                    uri={displayImage}
+                    position={cardPosition(activeMemorial.memorialImagePosition)}
+                    style={styles.memorialImage}
+                  />
+                ) : (
+                  <View style={[styles.memorialImage, styles.memorialImagePlaceholder]}>
+                    <Feather name="user" size={52} color="rgba(80, 95, 62, 0.35)" />
+                  </View>
+                )}
+                <ImageControls
+                  variant="floating"
+                  visible={imageControlsVisible}
+                  hasImage={!!displayImage}
+                  onPick={() => { setImageControlsVisible(false); pickMemorialImage(); }}
+                  onEditCrop={() => { setImageControlsVisible(false); editMemorialCrop(); }}
+                  onRemove={() => { setImageControlsVisible(false); removeMemorialImage(); }}
+                  pickLabel={displayImage ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                  editLabel={t('imageCrop.edit')}
+                  removeLabel={t('creation.removePortrait')}
                 />
-              ) : (
-                <View style={[styles.memorialImage, styles.memorialImagePlaceholder]}>
-                  <Feather name="user" size={52} color="rgba(80, 95, 62, 0.35)" />
-                </View>
-              )}
+              </Pressable>
 
               {/* PWA `.candle { margin: -54px auto 0 }` (overlaps image bottom) */}
               <CandleView lit={candle} />
@@ -312,6 +399,16 @@ export default function MemorialDayScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Same crop modal used everywhere — preview = final card. */}
+        <ImageCropAspectPicker
+          visible={!!cropTarget}
+          uri={cropTarget?.uri}
+          initialValue={cropTarget?.current}
+          onApply={cropTarget?.apply}
+          onCancel={() => setCropTarget(null)}
+          onReplace={cropTarget?.replace}
+        />
       </SafeAreaView>
     </ImageBackground>
   );
@@ -369,6 +466,12 @@ const styles = StyleSheet.create({
   // PWA `.memorial-card.is-lit { background: linear-gradient(rgba(251,247,239,.96), rgba(238,226,206,.92)) }`
   cardLit: { backgroundColor: 'rgba(251, 247, 239, 0.96)' },
 
+  // Pressable wrapper around the portrait — its only job is to host the
+  // tap-to-toggle and the floating ImageControls overlay.
+  memorialImageTap: {
+    width:    '100%',
+    position: 'relative',
+  },
   memorialImage: {
     width:           '100%',
     height:          280,
