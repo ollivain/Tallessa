@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import {
@@ -37,6 +38,7 @@ import {
   getMemorialImage,
   getMemorialName,
   getMonthPhotosArray,
+  parseDateInput,
 } from '../models/memorial';
 
 const SCREEN_BG = require('../../assets/bg-asetukset.png');
@@ -65,7 +67,8 @@ const PET_TYPE_KEYS = [
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useI18n();
   const { themeKey, setTheme, themeColors } = useTheme();
-  const { activeMemorial, clearActive, deleteMemorial, updateMemorial } = useMemorials();
+  const { activeMemorial, memorials, clearActive, deleteMemorial, updateMemorial } = useMemorials();
+  const navigation = useNavigation();
 
   // Memorial fields
   const [name, setName]               = useState('');
@@ -119,9 +122,9 @@ export default function SettingsScreen() {
     if (!activeMemorial) return;
     updateMemorial(activeMemorial.id, {
       horseName:     name.trim(),
-      memorialDate:  death.trim(),
+      memorialDate:  parseDateInput(death),
       memorialImage: portraitUri ?? '',
-      heroImage:     portraitUri ?? '',
+      heroImage:     activeMemorial.heroImage ?? '',
       memorialImagePosition,
       monthPhotos:   calendarImages.reduce((acc, uri, index) => {
         if (uri) acc[String(index + 1).padStart(2, '0')] = uri;
@@ -135,7 +138,7 @@ export default function SettingsScreen() {
       language,
       name:          name.trim(),
       birth:         birth.trim(),
-      death:         death.trim(),
+      death:         parseDateInput(death),
       description:   description.trim(),
       petType:       petType || null,
       petTypeCustom: petTypeCustom.trim(),
@@ -232,7 +235,11 @@ export default function SettingsScreen() {
         {
           text: t('settings.clearAllConfirm'),
           style: 'destructive',
-          onPress: async () => { await clearAllData(); clearActive(); },
+          onPress: async () => {
+            await clearAllData();
+            clearActive();
+            navigation.navigate('MemorialSelection');
+          },
         },
       ],
     );
@@ -248,7 +255,11 @@ export default function SettingsScreen() {
         {
           text: t('memorial.deleteConfirm'),
           style: 'destructive',
-          onPress: () => { deleteMemorial(activeMemorial.id); clearActive(); },
+          onPress: () => {
+            const deletingLast = memorials.length <= 1;
+            deleteMemorial(activeMemorial.id);
+            if (deletingLast) navigation.navigate('MemorialSelection');
+          },
         },
       ],
     );
@@ -277,7 +288,7 @@ export default function SettingsScreen() {
 
           {/* Switch memorial pill */}
           <Pressable
-            onPress={clearActive}
+            onPress={() => navigation.navigate('MemorialSelection')}
             style={({ pressed }) => [styles.switchPill, pressed && styles.switchPillPressed]}
             accessibilityRole="button"
           >

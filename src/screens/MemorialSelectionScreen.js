@@ -19,6 +19,11 @@ export default function MemorialSelectionScreen() {
   const { memorials, selectMemorial } = useMemorials();
   const navigation = useNavigation();
 
+  const openMemorial = (id) => {
+    selectMemorial(id);
+    navigation.navigate('Main', { screen: 'Home' });
+  };
+
   return (
     <ImageBackground source={SCREEN_BG} resizeMode="cover" style={styles.bgWrap}>
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
@@ -53,7 +58,7 @@ export default function MemorialSelectionScreen() {
                 <MemorialPlaceCard
                   key={m.id}
                   memorial={m}
-                  onPress={() => selectMemorial(m.id)}
+                  onPress={() => openMemorial(m.id)}
                 />
               ))}
             </View>

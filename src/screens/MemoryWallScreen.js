@@ -36,7 +36,8 @@ import {
   pickVideoFromLibrary,
   removePersistedMedia,
 } from '../lib/media';
-import { uploadMedia, UploadError } from '../lib/uploadMedia';
+import { createMemory, formatDate, parseDateInput } from '../models/memorial';
+import { deleteUploadedMedia, uploadMedia, UploadError } from '../lib/uploadMedia';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { useTheme } from '../state/ThemeContext';
 
@@ -49,7 +50,7 @@ const MODE_EDIT = 'edit';
 // removes `.is-collapsed`, tapping `data-close-card="memory"` re-adds it.
 // We mirror that behaviour with a local `open` state.
 export default function MemoryWallScreen({ route }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { activeMemorial, addMemory, updateMemory, deleteMemory } = useMemorials();
   const { themeColors } = useTheme();
 
@@ -163,13 +164,21 @@ export default function MemoryWallScreen({ route }) {
 
   const onPickVideo = async () => {
     const result = await pickVideoFromLibrary(t, { maxDurationSeconds: DEFAULT_VIDEO_CLIP_SECONDS });
-    if (result) swapMedia({ type: 'video', uri: result.uri, mimeType: result.mimeType });
+    if (!result) return;
+    if (result.durationMillis && result.durationMillis > DEFAULT_VIDEO_CLIP_SECONDS * 1000) {
+      Alert.alert(t('wall.pickVideo'), t('media.videoNoNativeTrim'));
+    }
+    swapMedia({
+      type: 'video',
+      uri: result.uri,
+      mimeType: result.mimeType,
+      durationMillis: result.durationMillis,
+    });
   };
 
   const save = async () => {
-    if (!title.trim() && !body.trim() && !media) { close(); return; }
-    const today = new Date().toISOString().slice(0, 10);
-    const memoryDate = calendarDate.trim() || today;
+    if (!body.trim() && !media) { close(); return; }
+    const memoryDate = parseDateInput(calendarDate);
 
     const mediaChanged = media && !media._persisted;
     let uploaded = null;
@@ -189,28 +198,42 @@ export default function MemoryWallScreen({ route }) {
       }
     }
 
-    const payload = {
+    const videoDurationSeconds = media?.type === 'video' && media.durationMillis
+      ? Math.round(media.durationMillis / 1000)
+      : null;
+    const canClaimTenSecondClip = media?.type === 'video' && videoDurationSeconds && videoDurationSeconds <= DEFAULT_VIDEO_CLIP_SECONDS;
+    const payload = createMemory({
+      type: media?.type ?? 'image',
+      media: uploaded?.publicUrl ?? media?.uri ?? '',
+      storagePath: uploaded?.path ?? (media?._persisted ? undefined : ''),
+      draft: media?.type === 'video' && canClaimTenSecondClip
+        ? { clipStart: 0, clipEnd: videoDurationSeconds }
+        : { position: imagePosition },
+      text: body.trim() || payload.text,
+      calendarDate: memoryDate,
+      videoClipSeconds: canClaimTenSecondClip ? videoDurationSeconds : undefined,
+      fallbackText: t('wall.memoryNoWords'),
+    });
+    Object.assign(payload, {
       title: title.trim(),
       body: body.trim(),
       text: body.trim(),
       date: memoryDate,
       calendarDate: memoryDate,
       createdAt: modalMode === MODE_ADD ? new Date().toISOString() : undefined,
-      mediaType: media?.type ?? null,
+      mediaType: media?.type ?? 'image',
       mediaUri: media?.uri ?? null,
       mediaRemoteUrl: uploaded?.publicUrl ?? (media?._persisted ? undefined : null),
       mediaRemotePath: uploaded?.path ?? (media?._persisted ? undefined : null),
-      type: media?.type ?? null,
+      type: media?.type ?? 'image',
       media: uploaded?.publicUrl ?? media?.uri ?? '',
       storagePath: uploaded?.path ?? (media?._persisted ? undefined : ''),
-      imagePosition: media?.type === 'image' ? imagePosition : undefined,
-      // PWA parity approximation: native 10-second video trimming is not yet
-      // available; the picker enforces a 10s upper bound and we store the
-      // PWA-compatible clip metadata without modifying the uploaded file.
-      clipStart: media?.type === 'video' ? 0 : undefined,
-      clipEnd: media?.type === 'video' ? DEFAULT_VIDEO_CLIP_SECONDS : undefined,
-      videoClipSeconds: media?.type === 'video' ? DEFAULT_VIDEO_CLIP_SECONDS : undefined,
-    };
+      imagePosition: media?.type === 'video' ? undefined : imagePosition,
+      videoDurationSeconds: media?.type === 'video' ? videoDurationSeconds : undefined,
+      isTrimmed: media?.type === 'video' ? false : undefined,
+      clipStart: canClaimTenSecondClip ? 0 : undefined,
+      clipEnd: canClaimTenSecondClip ? videoDurationSeconds : undefined,
+    });
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
     if (modalMode === MODE_EDIT && editingId) {
@@ -231,7 +254,9 @@ export default function MemoryWallScreen({ route }) {
         {
           text: t('delete.confirm'),
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            await deleteUploadedMedia(memory.storagePath || memory.mediaRemotePath);
+            removePersistedMedia(memory.mediaUri);
             deleteMemory(activeMemorial.id, memory.id);
           },
         },
@@ -295,6 +320,7 @@ export default function MemoryWallScreen({ route }) {
                 key={m.id}
                 memory={m}
                 t={t}
+                language={language}
                 highlighted={m.id === highlightedMemoryId}
                 onEdit={() => openEdit(m)}
                 onDelete={() => confirmDelete(m)}
@@ -442,9 +468,9 @@ function InlineMemoryForm({
 // at 230px, body padding 16, date-line (brown italic serif) → optional title
 // → muted body p. Delete action: single red pill at top-right; we add a
 // matching edit pill so users can re-open the inline form.
-function MemoryCard({ memory, t, highlighted, onEdit, onDelete }) {
+function MemoryCard({ memory, t, language, highlighted, onEdit, onDelete }) {
   const { themeColors } = useTheme();
-  const dateLabel = memory.calendarDate || memory.date || memory.createdAt;
+  const dateLabel = formatDate(memory.calendarDate || memory.createdAt, language);
   const text = memory.body || memory.text;
   const mediaUri = getMemoryMediaUri(memory);
   const mediaType = getMemoryMediaType(memory);

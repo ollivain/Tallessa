@@ -4,6 +4,7 @@ import { normalizeMemorials } from '../models/memorial';
 // Version suffix lets us safely migrate storage format in the future by
 // changing the key prefix without old data silently breaking the app.
 const K = {
+  APP_STATE: 'tallessa.prototype.v2',
   MEMORIALS: 'tallessa.mobile.v1.memorials',
   ACTIVE_ID: 'tallessa.mobile.v1.activeId',
   SETTINGS:  'tallessa.mobile.v1.settings',
@@ -47,6 +48,21 @@ async function writeJSON(key, value) {
  */
 export async function loadAppState() {
   try {
+    const unifiedRaw = await AsyncStorage.getItem(K.APP_STATE);
+    if (unifiedRaw) {
+      const raw = parseJSON(unifiedRaw, {});
+      const memorials = normalizeMemorials(raw.memorials);
+      const activeId = memorials.some((m) => m.id === raw.activeMemorialId)
+        ? raw.activeMemorialId
+        : memorials[0]?.id ?? null;
+      return {
+        memorials,
+        activeId,
+        settings: await readJSON(K.SETTINGS, {}),
+        savedAt: raw.savedAt || 0,
+      };
+    }
+
     const results = await AsyncStorage.multiGet([K.MEMORIALS, K.ACTIVE_ID, K.SETTINGS]);
     const [memorialsStr, activeIdStr, settingsStr] = results.map(([, v]) => v);
     const memorials = normalizeMemorials(parseJSON(memorialsStr, []));
@@ -61,10 +77,7 @@ export async function loadAppState() {
       settings,
     };
 
-    if (
-      (memorialsStr && JSON.stringify(memorials) !== memorialsStr) ||
-      activeId !== normalizedActiveId
-    ) {
+    if (memorials.length || normalizedActiveId) {
       await saveAppState(normalized);
     }
 
@@ -86,10 +99,20 @@ export async function loadAppState() {
 export async function saveAppState({ memorials, activeId, settings }) {
   try {
     const normalizedMemorials = normalizeMemorials(memorials);
+    const normalizedActiveId = normalizedMemorials.some((m) => m.id === activeId)
+      ? activeId
+      : normalizedMemorials[0]?.id ?? null;
+    const appState = {
+      version: 2,
+      activeMemorialId: normalizedActiveId || '',
+      savedAt: Date.now(),
+      memorials: normalizedMemorials,
+    };
     await AsyncStorage.multiSet([
+      [K.APP_STATE, JSON.stringify(appState)],
       [K.MEMORIALS, JSON.stringify(normalizedMemorials)],
-      [K.ACTIVE_ID, JSON.stringify(activeId)],
-      [K.SETTINGS,  JSON.stringify(settings)],
+      [K.ACTIVE_ID, JSON.stringify(normalizedActiveId)],
+      [K.SETTINGS,  JSON.stringify(settings ?? {})],
     ]);
   } catch (e) {
     console.error('[storage] saveAppState failed:', e);
@@ -98,11 +121,23 @@ export async function saveAppState({ memorials, activeId, settings }) {
 
 // ── Granular helpers ─────────────────────────────────────────────────────────
 
-export async function getMemorialSpaces()           { return normalizeMemorials(await readJSON(K.MEMORIALS, [])); }
-export async function saveMemorialSpaces(spaces)    { return writeJSON(K.MEMORIALS, normalizeMemorials(spaces)); }
+export async function getMemorialSpaces() {
+  const state = await loadAppState();
+  return state.memorials;
+}
+export async function saveMemorialSpaces(spaces) {
+  const state = await loadAppState();
+  return saveAppState({ ...state, memorials: spaces });
+}
 
-export async function getActiveMemorialSpaceId()    { return readJSON(K.ACTIVE_ID, null); }
-export async function saveActiveMemorialSpaceId(id) { return writeJSON(K.ACTIVE_ID, id); }
+export async function getActiveMemorialSpaceId() {
+  const state = await loadAppState();
+  return state.activeId;
+}
+export async function saveActiveMemorialSpaceId(id) {
+  const state = await loadAppState();
+  return saveAppState({ ...state, activeId: id });
+}
 
 export async function getSettings()                 { return readJSON(K.SETTINGS, {}); }
 /**

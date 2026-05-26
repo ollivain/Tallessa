@@ -15,7 +15,7 @@ import {
   typography,
 } from '../theme/designSystem';
 import { useTheme } from '../state/ThemeContext';
-import { getHeroImage, getHomeMemoryOfDay, getMemorialName } from '../models/memorial';
+import { getHeroImage, getHomeMemoryOfDay, getMemorialName, toPossessive } from '../models/memorial';
 
 const HERO_FALLBACK = require('../../assets/bg-koti.png');
 const SCREEN_BG = require('../../assets/bg-koti.png');
@@ -96,7 +96,7 @@ export default function HomeScreen() {
 function MemoryOfDayCard({ memory, eyebrow, title, emptyBody, openLabel, onPress }) {
   const { themeColors } = useTheme();
   const hasMemory = !!memory;
-  const body = memory?.body || memory?.text || emptyBody;
+  const body = memory?.text || emptyBody;
   return (
     <AppCard
       variant="soft"
@@ -107,16 +107,14 @@ function MemoryOfDayCard({ memory, eyebrow, title, emptyBody, openLabel, onPress
       {/* col 1 — copy block (matches PWA `.memory-of-day-copy`) */}
       <View style={styles.memoryCopy}>
         <SectionLabel variant="pill" style={styles.eyebrow}>{eyebrow}</SectionLabel>
-        {hasMemory ? (
-          <Text
-            style={[styles.memoryTitle, { color: themeColors.textPrimary }]}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.84}
-          >
-            {title}
-          </Text>
-        ) : null}
+        <Text
+          style={[styles.memoryTitle, { color: themeColors.textPrimary }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.84}
+        >
+          {title}
+        </Text>
         <Text style={styles.memoryBody} numberOfLines={3}>{hasMemory ? body : emptyBody}</Text>
         {/* PWA: <span class="memory-of-day-link">Open memory <span>→</span></span> */}
         <View style={styles.openRow}>
@@ -142,14 +140,6 @@ function MemoryOfDayCard({ memory, eyebrow, title, emptyBody, openLabel, onPress
       </View>
     </AppCard>
   );
-}
-
-function toPossessive(name, language) {
-  const trimmed = String(name || '').trim();
-  if (!trimmed) return language === 'fi' ? 'Rakkaan' : 'Beloved';
-  if (language !== 'fi') return /s$/i.test(trimmed) ? `${trimmed}'` : `${trimmed}'s`;
-  const last = trimmed[trimmed.length - 1]?.toLowerCase() || '';
-  return 'aeiouäöy'.includes(last) ? `${trimmed}n` : `${trimmed}in`;
 }
 
 // PWA `.daily-quote.card`: 14×16×16 padding, border-radius 22, light cream

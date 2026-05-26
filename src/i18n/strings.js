@@ -64,6 +64,7 @@ export const strings = {
       changeVideo: 'Vaihda video',
       removeMedia: 'Poista media',
       noMemorial: 'Luo ensin muistopaikka, johon voit liittää muistoja.',
+      memoryNoWords: 'Muisto ilman sanoja.',
       form: {
         title: 'Muiston otsikko',
         titlePlaceholder: 'Esim. Kesäilta puutarhassa',
@@ -130,6 +131,8 @@ export const strings = {
       next: '›',
       weekdays: ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'],
       memorialRecurring: 'Toistuu automaattisesti joka vuosi.',
+      memorialDayName: '{name} muistopäivä',
+      memoryHeading: 'Muisto tältä päivältä',
       eyebrow: 'Kalenteri',
       form: {
         name: 'Muistopäivän nimi',
@@ -150,6 +153,7 @@ export const strings = {
       dayTitle: '{name} päivä',
       dayTitleEn: '{name} päivä',
       eyebrow: 'Muistopäivä',
+      dateFallback: 'Valitse muistopäivä asetuksista.',
       born: 'Syntyi',
       died: 'Poismeni',
       note: 'Muutama sana',
@@ -270,6 +274,8 @@ export const strings = {
         'Verkkoyhteys katkesi median latauksen aikana. Tarkista yhteytesi ja yritä uudelleen.',
       uploadErrorGeneric:
         'Median lataus pilveen ei onnistunut. Muisto on tallennettu vain tälle laitteelle.',
+      videoNoNativeTrim:
+        'Mobiiliversio ei leikkaa videota automaattisesti 10 sekuntiin. Valitse valmiiksi lyhyt video, jos haluat saman lopputuloksen kuin web-versiossa.',
     },
 
     quote:
@@ -351,6 +357,7 @@ export const strings = {
       changeVideo: 'Change video',
       removeMedia: 'Remove media',
       noMemorial: 'Create a memorial space first so you can add memories to it.',
+      memoryNoWords: 'A memory without words.',
       form: {
         title: 'Memory title',
         titlePlaceholder: 'E.g. Summer evening in the garden',
@@ -417,6 +424,8 @@ export const strings = {
       next: '›',
       weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
       memorialRecurring: 'Repeats automatically every year.',
+      memorialDayName: "{name}'s memorial day",
+      memoryHeading: 'Memory from this day',
       eyebrow: 'Calendar',
       form: {
         name: 'Memorial day name',
@@ -437,6 +446,7 @@ export const strings = {
       dayTitle: '{name} day',
       dayTitleEn: '{name} day',
       eyebrow: 'Memorial day',
+      dateFallback: 'Choose a memorial day in settings.',
       born: 'Born',
       died: 'Passed',
       note: 'A few words',
@@ -557,6 +567,8 @@ export const strings = {
         'The connection dropped while uploading. Check your network and try again.',
       uploadErrorGeneric:
         "Uploading the media to the cloud didn't work. The memory is saved on this device only.",
+      videoNoNativeTrim:
+        "The mobile app doesn't automatically trim videos to 10 seconds. Choose an already-short video if you want the same result as the web version.",
     },
 
     quote:

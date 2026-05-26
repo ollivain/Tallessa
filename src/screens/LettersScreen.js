@@ -10,6 +10,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
+import { formatDate, getMemorialName, toAllative } from '../models/memorial';
 import {
   colors,
   radii,
@@ -32,7 +33,7 @@ const MODE_EDIT = 'edit';
 //   transparent topbar (h2) → .add-card-toggle → .form-card.is-collapsed → list
 // The form card is inline — see comments in MemoryWallScreen.
 export default function LettersScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { activeMemorial, addLetter, updateLetter, deleteLetter } = useMemorials();
   const { themeColors } = useTheme();
 
@@ -72,14 +73,14 @@ export default function LettersScreen() {
 
     if (modalMode === MODE_EDIT && editingId) {
       updateLetter(activeMemorial.id, editingId, {
-        title: title.trim() || t('letters.form.titlePlaceholder'),
+        title: title.trim() || `Kirje ${toAllative(getMemorialName(activeMemorial), language)}`,
         body:  body.trim(),
       });
     } else {
       addLetter(activeMemorial.id, {
-        title: title.trim() || t('letters.form.titlePlaceholder'),
+        title: title.trim() || `Kirje ${toAllative(getMemorialName(activeMemorial), language)}`,
         body:  body.trim(),
-        date:  new Date().toISOString().slice(0, 10),
+        createdAt: new Date().toISOString(),
       });
     }
     close();
@@ -165,6 +166,7 @@ export default function LettersScreen() {
               <LetterCard
                 key={l.id}
                 letter={l}
+                language={language}
                 onEdit={() => openEdit(l)}
                 onDelete={() => confirmDelete(l)}
               />
@@ -177,7 +179,7 @@ export default function LettersScreen() {
 }
 
 // PWA `.letter-card.card { padding: 16; bg: rgba(251,247,239,0.92) }`
-function LetterCard({ letter, onEdit, onDelete }) {
+function LetterCard({ letter, language, onEdit, onDelete }) {
   const { themeColors } = useTheme();
   return (
     <View style={styles.letterCardShadow}>
@@ -192,8 +194,8 @@ function LetterCard({ letter, onEdit, onDelete }) {
         </View>
 
         <View style={styles.letterBody}>
-          {letter.date ? (
-            <Text style={[styles.dateLine, { color: themeColors.brown }]}>{letter.date}</Text>
+          {letter.createdAt ? (
+            <Text style={[styles.dateLine, { color: themeColors.brown }]}>{formatDate(letter.createdAt, language)}</Text>
           ) : null}
           <Text style={[styles.letterTitle, { color: themeColors.textPrimary }]} numberOfLines={2}>{letter.title}</Text>
           {letter.body ? (

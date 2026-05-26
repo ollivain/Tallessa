@@ -29,6 +29,7 @@ import PositionedImage from '../components/PositionedImage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
 import { themes, THEME_KEYS } from '../theme/themes';
+import { parseDateInput } from '../models/memorial';
 
 // All image pickers share the same default metadata so the saved value is
 // the same shape no matter which slot was tapped.
@@ -79,7 +80,7 @@ export default function MemorialCreationScreen() {
   const [birth, setBirth] = useState('');
   const [death, setDeath] = useState('');
   const [description, setDescription] = useState('');
-  const [petType, setPetType] = useState('');
+  const [petType, setPetType] = useState('horse');
   const [petTypeCustom, setPetTypeCustom] = useState('');
   const [memorialName, setMemorialName] = useState('');
   const [heroImageUri, setHeroImageUri] = useState(null);
@@ -225,16 +226,12 @@ export default function MemorialCreationScreen() {
   };
 
   const onSave = () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t('creation.nameRequired'));
-      return;
-    }
+    const trimmed = name.trim() || 'Pepe';
 
     savedMediaRef.current = true;
     createMemorial({
       horseName: trimmed,
-      memorialDate: death.trim(),
+      memorialDate: parseDateInput(death),
       memorialImage: memorialImageUri ?? '',
       heroImage: heroImageUri ?? '',
       heroImagePosition,
@@ -246,14 +243,15 @@ export default function MemorialCreationScreen() {
       language,
       name: trimmed,
       birth: birth.trim(),
-      death: death.trim(),
+      death: parseDateInput(death),
       description: description.trim(),
-      petType: petType || null,
+      petType: petType || 'horse',
       petTypeCustom: petTypeCustom.trim(),
       memorialName: memorialName.trim(),
       portraitUri: memorialImageUri ?? heroImageUri ?? null,
       calendarImages,
     });
+    navigation.navigate('Main', { screen: 'Home' });
   };
 
   const calCount = calendarImages.filter(Boolean).length;

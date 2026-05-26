@@ -25,7 +25,17 @@ import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
 import PositionedImage from '../components/PositionedImage';
 import { useTheme } from '../state/ThemeContext';
-import { getImportantDays, getMemorialDate, getMonthPhotosArray } from '../models/memorial';
+import {
+  capitalize,
+  monthName,
+  parseDate,
+  parseDateInput,
+  toDateKey,
+  toPossessive,
+  getImportantDays,
+  getMemorialDate,
+  getMonthPhotosArray,
+} from '../models/memorial';
 
 const SCREEN_BG = require('../../assets/bg-kalenteri.png');
 // Fallback cover used until the user picks a month image — matches the PWA
@@ -43,24 +53,6 @@ const SYMBOL_OPTIONS = [
 ];
 const DEFAULT_SYMBOL = SYMBOL_OPTIONS[0].value;
 
-// Parse "dd.mm.yyyy", "d.m.yyyy" or ISO "yyyy-mm-dd"
-function parseAnyDate(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const [y, m, d] = s.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-  const m = s.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
-  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-  return null;
-}
-function toDateKey(date) {
-  const y = date.getFullYear();
-  const mo = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${mo}-${d}`;
-}
 function sameMonthDay(date, refDate) {
   return date.getMonth() === refDate.getMonth() && date.getDate() === refDate.getDate();
 }
@@ -88,12 +80,13 @@ export default function CalendarScreen() {
   const [note, setNote] = useState('');
 
   const events = getImportantDays(activeMemorial);
-  const deathDate = parseAnyDate(getMemorialDate(activeMemorial));
-  const gridCells = buildGridCells(visibleMonth, events, deathDate);
+  const memories = activeMemorial?.memories ?? [];
+  const deathDate = parseDate(getMemorialDate(activeMemorial));
+  const gridCells = buildGridCells(visibleMonth, events, deathDate, memories);
   const sortedEvents = sortDaysForVisibleMonth(events, visibleMonth);
   // PWA shows all memories in the day list (visible-month first, then the
   // rest) — never hides the off-month ones, just orders them.
-  const calendarMemories = sortMemoriesForVisibleMonth(activeMemorial?.memories ?? [], visibleMonth);
+  const calendarMemories = sortMemoriesForVisibleMonth(memories, visibleMonth);
   const visibleCards = [
     ...getMemorialDayCards(activeMemorial, visibleMonth, t),
     ...sortedEvents,
@@ -137,7 +130,7 @@ export default function CalendarScreen() {
 
   const save = () => {
     const trimmedName = name.trim();
-    const trimmedDate = date.trim();
+    const trimmedDate = parseDateInput(date);
     if (!trimmedName || !trimmedDate) {
       Alert.alert(t('calendar.add'), t('calendar.form.required'));
       return;
@@ -297,7 +290,7 @@ export default function CalendarScreen() {
   );
 }
 
-function buildGridCells(visibleMonth, events, deathDate) {
+function buildGridCells(visibleMonth, events, deathDate, memories) {
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const today = new Date();
@@ -314,17 +307,18 @@ function buildGridCells(visibleMonth, events, deathDate) {
     const isToday = key === todayKey;
     const isMemorial = deathDate ? sameMonthDay(d, deathDate) : false;
     const event = events.find((ev) => {
-      const pd = parseAnyDate(ev.date);
+      const pd = parseDate(ev.date);
       return pd && toDateKey(pd) === key;
     });
+    const hasMemory = memories.some((memory) => memory.calendarDate === key);
     return {
       date: d,
       day: d.getDate(),
       inMonth,
       isToday,
       isMemorial,
-      hasEvent: Boolean(event),
-      symbol: event ? event.symbol || DEFAULT_SYMBOL : '',
+      hasEvent: Boolean(event) || hasMemory,
+      symbol: event ? event.symbol || DEFAULT_SYMBOL : hasMemory ? DEFAULT_SYMBOL : '',
     };
   });
 }
@@ -398,11 +392,12 @@ function EventCard({ event, language, onEdit, onDelete }) {
 }
 
 function MemoryDayCard({ memory, language }) {
+  const { t } = useI18n();
   const { themeColors } = useTheme();
   const day = formatDay(memory.calendarDate);
   const month = formatMonth(memory.calendarDate, language);
   const dateLabel = day !== '·' ? `${day}${month ? '. ' + month : ''}` : null;
-  const body = memory.text || memory.body || memory.title || '';
+  const body = memory.text || t('wall.memoryNoWords');
 
   return (
     <View style={styles.eventCardShadow}>
@@ -416,9 +411,9 @@ function MemoryDayCard({ memory, language }) {
               <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
             ) : null}
             <Text style={[styles.eventName, { color: themeColors.textPrimary }]} numberOfLines={2}>
-              {memory.title || 'Memory'}
+              {t('calendar.memoryHeading')}
             </Text>
-            {body ? <Text style={styles.eventNote} numberOfLines={4}>{body}</Text> : null}
+            <Text style={styles.eventNote} numberOfLines={4}>{body}</Text>
           </View>
         </View>
       </View>
@@ -428,30 +423,28 @@ function MemoryDayCard({ memory, language }) {
 
 function formatDay(iso) {
   if (!iso) return '·';
-  const d = parseAnyDate(iso);
+  const d = parseDate(iso);
   if (!d) return iso.split(/[-.]/).pop() ?? '·';
   return String(d.getDate());
 }
 function formatMonth(iso, language) {
   if (!iso) return '';
-  const d = parseAnyDate(iso);
+  const d = parseDate(iso);
   if (!d || Number.isNaN(d.getTime())) return '';
-  try {
-    return d.toLocaleString(language === 'fi' ? 'fi-FI' : 'en-GB', { month: 'short' });
-  } catch {
-    return '';
-  }
+  return monthName(d.getMonth(), language, 'short');
 }
-function capitalize(s) { return !s ? '' : s.charAt(0).toUpperCase() + s.slice(1); }
-function isSameVisibleMonth(dateString, visibleMonth) {
-  const date = parseAnyDate(dateString);
-  return date && date.getFullYear() === visibleMonth.getFullYear() && date.getMonth() === visibleMonth.getMonth();
+function isSameVisibleMonth(dateString, visibleMonth, recurring = false) {
+  const date = parseDate(dateString);
+  return date && date.getMonth() === visibleMonth.getMonth() && (recurring || date.getFullYear() === visibleMonth.getFullYear());
 }
 function sortDaysForVisibleMonth(days, visibleMonth) {
-  return days.filter((day) => isSameVisibleMonth(day.date, visibleMonth)).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return days
+    .filter((day) => isSameVisibleMonth(day.date, visibleMonth, day.recurring))
+    .slice()
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 function sortMemoriesForVisibleMonth(memories, visibleMonth) {
-  const dated = memories.filter((memory) => parseAnyDate(memory.calendarDate));
+  const dated = memories.filter((memory) => parseDate(memory.calendarDate));
   return [
     ...dated.filter((memory) => isSameVisibleMonth(memory.calendarDate, visibleMonth)),
     ...dated.filter((memory) => !isSameVisibleMonth(memory.calendarDate, visibleMonth)),
@@ -459,11 +452,13 @@ function sortMemoriesForVisibleMonth(memories, visibleMonth) {
 }
 function getMemorialDayCards(activeMemorial, visibleMonth, t) {
   const memorialDate = getMemorialDate(activeMemorial);
-  const parsed = parseAnyDate(memorialDate);
+  const parsed = parseDate(memorialDate);
   if (!parsed || parsed.getMonth() !== visibleMonth.getMonth()) return [];
   return [{
     id: 'memorial-day',
-    name: activeMemorial?.memorialName || t('tab.memorial'),
+    name: t('calendar.memorialDayName', {
+      name: toPossessive(activeMemorial?.horseName || activeMemorial?.name || '', activeMemorial?.language),
+    }),
     date: memorialDate,
     note: t('calendar.memorialRecurring'),
     symbol: DEFAULT_SYMBOL,

@@ -2,10 +2,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { Alert, Linking, Platform } from 'react-native';
 
-// Default cap for memory videos. The web app trims uploads to ~10 s clips;
-// the mobile picker doesn't trim automatically yet, so we use this as a
-// soft hint passed to the gallery picker (iOS honors it via the native UI,
-// Android typically ignores it — see TODO in pickVideoFromLibrary).
+// Default web clip length. The mobile app does not trim video files without
+// an additional native processing library; callers use this only as a picker
+// hint and must keep saved metadata honest when the OS returns a longer file.
 export const DEFAULT_VIDEO_CLIP_SECONDS = 10;
 
 // expo-file-system gives us a stable per-app sandbox directory. We copy
@@ -99,11 +98,11 @@ export async function pickImageFromLibrary(t) {
  * Opens the OS video picker. Returns { uri, durationMillis } on success
  * or null on cancel / failure.
  *
- * TODO: server-quality trim. The web app trims videos to a configurable
- * clip length using a canvas/MediaRecorder pipeline. On mobile the picker
- * passes `videoMaxDuration` as a hint (iOS uses it, Android typically does
- * not). True frame-accurate trim should be added later via a native module
- * like `react-native-video-processing` or `ffmpeg-kit-react-native`.
+ * The web app trims videos to a configurable clip length before upload.
+ * Expo ImagePicker can only request a maximum duration from the native UI;
+ * iOS usually honors it, Android often returns the original video. The caller
+ * checks duration and avoids storing PWA clip metadata unless the file is
+ * actually short enough.
  */
 export async function pickVideoFromLibrary(t, { maxDurationSeconds = DEFAULT_VIDEO_CLIP_SECONDS } = {}) {
   const ok = await ensureLibraryPermission(t);

@@ -11,23 +11,19 @@ export default function RootNavigator() {
 
   return (
     <Stack.Navigator
+      initialRouteName={activeMemorial ? 'Main' : 'MemorialSelection'}
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: '#f5eddf' },
       }}
     >
-      {activeMemorial ? (
-        <Stack.Screen name="Main" component={MainTabs} />
-      ) : (
-        <>
-          <Stack.Screen name="MemorialSelection" component={MemorialSelectionScreen} />
-          <Stack.Screen
-            name="MemorialCreation"
-            component={MemorialCreationScreen}
-            options={{ presentation: 'modal' }}
-          />
-        </>
-      )}
+      <Stack.Screen name="MemorialSelection" component={MemorialSelectionScreen} />
+      <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen
+        name="MemorialCreation"
+        component={MemorialCreationScreen}
+        options={{ presentation: 'modal' }}
+      />
     </Stack.Navigator>
   );
 }

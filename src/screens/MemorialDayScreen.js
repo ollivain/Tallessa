@@ -34,9 +34,9 @@ import {
 //   `.memorial-sky-*` class on the screen.
 function getTimeOfDay() {
   const h = new Date().getHours();
-  if (h >= 5 && h < 10) return 'morning';
-  if (h >= 10 && h < 18) return 'day';
-  if (h >= 18 && h < 22) return 'evening';
+  if (h >= 5 && h < 11) return 'morning';
+  if (h >= 11 && h < 17) return 'day';
+  if (h >= 17 && h < 22) return 'evening';
   return 'night';
 }
 
@@ -223,7 +223,7 @@ export default function MemorialDayScreen() {
   const cardTitle = getMemorialDayName(activeMemorial) || pageTitle;
   // PWA `elements.memorialHeading.textContent = toAllative(state.horseName)`
   const cardHeading = toAllative(displayName, language);
-  const formattedDate = formatMemorialDate(displayDate, language, t('calendar.memorialRecurring'));
+  const formattedDate = formatMemorialDate(displayDate, language, t('calendar.memorialRecurring')) || t('memorial.dateFallback');
 
   const petTypeKey = PET_TYPES.includes(activeMemorial.petType) ? activeMemorial.petType : 'horse';
   const memorialBody = t(`memorialText.${petTypeKey}`, {
