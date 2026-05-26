@@ -6,6 +6,8 @@ import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import {
   colors,
+  radii,
+  shadows,
   typography,
 } from '../theme/designSystem';
 import { getMemorialImage, getMemorialName } from '../models/memorial';
@@ -119,112 +121,109 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingBottom: 42,
   },
-  // PWA: .selector-hero h1 { font-size:clamp(4.6rem,20vw,6.7rem)≈74px; line-height:0.82; color:mossDark; text-shadow:0 1px 0 rgba(255,255,255,.62) }
-  // adjustsFontSizeToFit ensures long Finnish brand names ("Tallessa") stay on
-  // one line on narrow screens like iPhone SE (320pt content width).
+  // PWA `.selector-hero h1 { font-size: clamp(4.6rem,20vw,6.7rem); line-height: 0.82;
+  //   color: var(--color-primary); text-shadow: 0 1px 0 rgba(255,255,255,.62) }`
+  // adjustsFontSizeToFit guards Finnish "Tallessa" on narrow SE screens.
   heroTitle: {
-    fontFamily: typography.serif,
-    fontSize: 74,
-    lineHeight: 61,
-    fontWeight: '400',
-    color: colors.mossDark,
-    textShadowColor: 'rgba(255, 255, 255, 0.62)',
+    fontFamily:       typography.serif,
+    fontSize:         typography.sizes.h1Selector,
+    lineHeight:       typography.lineHeights.h1Selector,
+    fontWeight:       typography.weights.regular,
+    color:            colors.mossDark,
+    textShadowColor:  'rgba(255, 255, 255, 0.62)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 0,
-    marginBottom: 14,
+    marginBottom:     14,
   },
-  // PWA: .selector-hero p { font-size:clamp(1.1rem,4.7vw,1.42rem)≈18px; font-weight:500; line-height:1.45; color:rgba(80,86,76,.88) }
+  // PWA `.selector-hero p { font-size: clamp(1.1rem,4.7vw,1.42rem); font-weight: 500 }`
   heroTagline: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize:   typography.sizes.selectorSub,
+    fontWeight: typography.weights.medium,
     lineHeight: 26,
-    color: 'rgba(80, 86, 76, 0.88)',
+    color:      'rgba(80, 86, 76, 0.88)',
   },
 
-  // PWA: .memorial-place-list { gap:14px }
+  // PWA `.memorial-place-list { gap: 14 }`
   list: { gap: 14 },
 
-  // PWA: .memorial-place-card { min-height:122px; border-radius:30px; bg:rgba(255,253,247,.78); border:1px solid rgba(255,255,255,.82); padding:14px }
+  // PWA `.memorial-place-card { grid: 78px 1fr 26px; min-height: 122; padding: 14;
+  //   border: 1px solid rgba(255,255,255,0.82); border-radius: 30;
+  //   bg: rgba(255,253,247,0.78); box-shadow: 0 22px 46px rgba(62,53,36,.18),
+  //   0 7px 16px rgba(62,53,36,.08), inset 0 1px 0 rgba(255,255,255,.88) }`
+  // PWA parity approximation: RN supports only one shadow per view; inset is dropped.
   placeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    minHeight: 122,
-    padding: 14,
-    borderRadius: 30,
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             14,
+    minHeight:       122,
+    padding:         14,
+    borderRadius:    radii.selectorCard,
     backgroundColor: 'rgba(255, 253, 247, 0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.82)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#3e3524',
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.18,
-        shadowRadius: 20,
-      },
-      android: { elevation: 6 },
-      default: {},
-    }),
+    borderWidth:     1,
+    borderColor:     'rgba(255, 255, 255, 0.82)',
+    ...shadows.selectorCard,
   },
   placeCardPressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
 
-  // PWA: .memorial-place-image { width:78px; aspect-ratio:1; border-radius:24px }
+  // PWA `.memorial-place-image { width: 78; aspect-ratio: 1; border-radius: 24 }`
   placeImage: {
-    width: 78,
-    height: 78,
-    borderRadius: 24,
+    width:           78,
+    height:          78,
+    borderRadius:    24,
     backgroundColor: 'rgba(80, 95, 62, 0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    flexShrink: 0,
+    alignItems:      'center',
+    justifyContent:  'center',
+    overflow:        'hidden',
+    flexShrink:      0,
   },
   placeImageFill: { width: '100%', height: '100%' },
 
   placeCopy: { flex: 1, minWidth: 0 },
-  // PWA: .memorial-place-copy strong { font-family:serif; font-size:~20px; line-height:1.16; color:mossDark }
+  // PWA `.memorial-place-copy strong { font-family: var(--serif);
+  //   font-size: clamp(1.04rem,3.8vw,1.28rem); line-height: 1.16; color: var(--moss-dark) }`
   placeName: {
     fontFamily: typography.serif,
-    fontSize: 20,
+    fontSize:   20,
     lineHeight: 23,
-    fontWeight: '400',
-    color: colors.mossDark,
+    fontWeight: typography.weights.regular,
+    color:      colors.mossDark,
   },
 
-  // PWA: .memorial-place-arrow { font-size:2.25rem≈36px; color:rgba(81,87,75,.82) }
+  // PWA `.memorial-place-arrow { font-size: 2.25rem; color: rgba(81,87,75,0.82) }`
   placeArrow: {
-    fontSize: 36,
+    fontSize:   36,
     lineHeight: 40,
-    color: 'rgba(81, 87, 75, 0.82)',
+    color:      'rgba(81, 87, 75, 0.82)',
     flexShrink: 0,
   },
 
-  // PWA: .selector-empty { padding:26px } .selector-empty h2 { font-size:2rem; color:mossDark }
-  emptyBlock: {
-    paddingVertical: 26,
-    paddingHorizontal: 4,
-  },
+  // PWA `.selector-empty { padding: 26 }`
+  emptyBlock: { paddingVertical: 26, paddingHorizontal: 4 },
   emptyText: {
-    color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    fontStyle: 'italic',
+    color:      colors.textMuted,
+    fontSize:   typography.sizes.body,
+    lineHeight: typography.lineHeights.body,
+    fontStyle:  'italic',
   },
 
-  // PWA: .primary-action.selector-add { min-height:74px; border-radius:28px; gradient bg:moss→mossDark; font-size:1.08rem }
+  // PWA `.primary-action.selector-add { min-height: 74; border-radius: 28;
+  //   background: linear-gradient(135deg, var(--color-primary-soft), var(--color-primary));
+  //   box-shadow: 0 16px 34px rgba(45,58,39,0.2); font-size: 1.08rem }`
+  // PWA parity approximation: gradient flattened to mossDark solid colour;
+  // a second pseudo-layer cannot be stacked on a Pressable without extra deps.
   selectorAdd: {
-    minHeight: 74,
-    borderRadius: 28,
+    minHeight:       74,
+    borderRadius:    radii.hero,
     backgroundColor: colors.mossDark,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems:      'center',
+    justifyContent:  'center',
     paddingHorizontal: 18,
     ...Platform.select({
       ios: {
-        shadowColor: '#2d3a27',
-        shadowOffset: { width: 0, height: 16 },
+        shadowColor:   '#2d3a27',
+        shadowOffset:  { width: 0, height: 16 },
         shadowOpacity: 0.20,
-        shadowRadius: 14,
+        shadowRadius:  14,
       },
       android: { elevation: 6 },
       default: {},
@@ -232,9 +231,9 @@ const styles = StyleSheet.create({
   },
   selectorAddPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   selectorAddLabel: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fffaf0',
+    fontSize:      typography.sizes.primaryBtn,
+    fontWeight:    typography.weights.bold,
+    color:         '#fffaf0',
     letterSpacing: 0.3,
   },
 });

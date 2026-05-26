@@ -2,26 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import {
   colors,
-  typography,
-  spacing,
   radii,
   shadows,
+  spacing,
+  typography,
 } from '../theme/designSystem';
 import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
@@ -44,6 +40,11 @@ import { useTheme } from '../state/ThemeContext';
 const MODE_ADD  = 'add';
 const MODE_EDIT = 'edit';
 
+// PWA Memory wall mirrors styles.css `.screen[data-screen="wall"]`:
+//   transparent topbar (h2) → .add-card-toggle → .form-card.is-collapsed → grid.
+// The form card is inline (not a modal); tapping `data-open-card="memory"`
+// removes `.is-collapsed`, tapping `data-close-card="memory"` re-adds it.
+// We mirror that behaviour with a local `open` state.
 export default function MemoryWallScreen({ route }) {
   const { t } = useI18n();
   const { activeMemorial, addMemory, updateMemory, deleteMemory } = useMemorials();
@@ -163,9 +164,9 @@ export default function MemoryWallScreen({ route }) {
       media: uploaded?.publicUrl ?? media?.uri ?? '',
       storagePath: uploaded?.path ?? (media?._persisted ? undefined : ''),
       imagePosition: media?.type === 'image' ? imagePosition : undefined,
-      // TODO: Add true native 10-second video trimming when a trimming-capable
-      // dependency is available. For now the picker gets a 10s hint and we
-      // store PWA-compatible clip metadata without changing the uploaded file.
+      // PWA parity approximation: native 10-second video trimming is not yet
+      // available; the picker enforces a 10s upper bound and we store the
+      // PWA-compatible clip metadata without modifying the uploaded file.
       clipStart: media?.type === 'video' ? 0 : undefined,
       clipEnd: media?.type === 'video' ? DEFAULT_VIDEO_CLIP_SECONDS : undefined,
       videoClipSeconds: media?.type === 'video' ? DEFAULT_VIDEO_CLIP_SECONDS : undefined,
@@ -178,13 +179,7 @@ export default function MemoryWallScreen({ route }) {
       addMemory(activeMemorial.id, payload);
     }
 
-    setOpen(false);
-    setTitle('');
-    setBody('');
-    setCalendarDate('');
-    setMedia(null);
-    setImagePosition(DEFAULT_IMAGE_POSITION);
-    setEditingId(null);
+    close();
   };
 
   const confirmDelete = (memory) => {
@@ -206,24 +201,47 @@ export default function MemoryWallScreen({ route }) {
 
   return (
     <AppScreen scroll={false} background={SCREEN_BG} contentStyle={styles.noInnerPad}>
-      {/* PWA: topbar is position:static, scrolls with content */}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* PWA: <h2> wall.title — transparent, no divider */}
+        {/* PWA `.topbar` static override on content screens: transparent + h2 */}
         <View style={styles.wallHeader}>
           <Text style={[styles.wallTitle, { color: themeColors.textPrimary }]}>{t('wall.title')}</Text>
         </View>
 
-        {/* PWA: .add-card-toggle — card button with + circle and label */}
-        <Pressable
-          onPress={openAdd}
-          style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
-          accessibilityRole="button"
-        >
-          <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
-            <Text style={styles.addPlus}>+</Text>
-          </View>
-          <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('wall.add')}</Text>
-        </Pressable>
+        {/* PWA `.add-card-toggle` (collapsed) → form-card (expanded).
+            Mirroring PWA: when the form is open, the add toggle hides. */}
+        {!open ? (
+          <Pressable
+            onPress={openAdd}
+            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
+            accessibilityRole="button"
+          >
+            <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
+              <Text style={styles.addPlus}>+</Text>
+            </View>
+            <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('wall.add')}</Text>
+          </Pressable>
+        ) : (
+          <InlineMemoryForm
+            t={t}
+            themeColors={themeColors}
+            mode={modalMode}
+            title={title}
+            setTitle={setTitle}
+            body={body}
+            setBody={setBody}
+            calendarDate={calendarDate}
+            setCalendarDate={setCalendarDate}
+            media={media}
+            imagePosition={imagePosition}
+            setImagePosition={setImagePosition}
+            onPickImage={onPickImage}
+            onPickVideo={onPickVideo}
+            onRemoveMedia={() => swapMedia(null)}
+            uploading={uploading}
+            onSave={save}
+            onClose={close}
+          />
+        )}
 
         {/* Memory grid */}
         {!activeMemorial ? (
@@ -245,111 +263,126 @@ export default function MemoryWallScreen({ route }) {
           </View>
         )}
       </ScrollView>
-
-      {/* Add / Edit Modal */}
-      <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <View style={styles.modalBar}>
-              <Pressable onPress={close} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={themeColors.textPrimary} />
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerStyle={styles.modalScroll}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
-                {modalMode === MODE_EDIT ? t('wall.edit') : t('wall.add')}
-              </Text>
-
-              {/* Media preview — PWA: .memory-draft-preview { border-radius: 18px } */}
-              <View style={styles.mediaPreviewBox}>
-                {media?.type === 'image' ? (
-                  <PositionedImage uri={media.uri} position={imagePosition} style={styles.mediaPreview} />
-                ) : media?.type === 'video' ? (
-                  <VideoClip uri={media.uri} style={styles.mediaPreview} />
-                ) : (
-                  <View style={styles.mediaPlaceholder}>
-                    <Feather name="image" size={32} color={themeColors.brown} />
-                  </View>
-                )}
-              </View>
-              {media?.type === 'image' ? (
-                <ImagePositionControls value={imagePosition} onChange={setImagePosition} t={t} />
-              ) : null}
-
-              {/* Media actions */}
-              <View style={styles.mediaActions}>
-                <Pressable onPress={onPickImage} style={styles.mediaBtn}>
-                  <Feather name="image" size={15} color={themeColors.moss} />
-                  <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
-                    {media?.type === 'image' ? t('wall.changeImage') : t('wall.pickImage')}
-                  </Text>
-                </Pressable>
-                <Pressable onPress={onPickVideo} style={styles.mediaBtn}>
-                  <Feather name="video" size={15} color={themeColors.moss} />
-                  <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
-                    {media?.type === 'video' ? t('wall.changeVideo') : t('wall.pickVideo')}
-                  </Text>
-                </Pressable>
-                {media ? (
-                  <Pressable onPress={() => swapMedia(null)} style={styles.mediaBtn}>
-                    <Feather name="trash-2" size={15} color={colors.danger} />
-                    <Text style={[styles.mediaBtnLabel, { color: colors.danger }]}>
-                      {t('wall.removeMedia')}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-
-              <AppInput
-                label={t('wall.form.title')}
-                value={title}
-                onChangeText={setTitle}
-                placeholder={t('wall.form.titlePlaceholder')}
-                style={styles.inputWrap}
-              />
-              <AppInput
-                label={t('wall.form.text')}
-                value={body}
-                onChangeText={setBody}
-                placeholder={t('wall.form.textPlaceholder')}
-                multiline
-                style={styles.inputWrap}
-              />
-              <AppInput
-                label={t('wall.form.calendarDate')}
-                value={calendarDate}
-                onChangeText={setCalendarDate}
-                placeholder={t('creation.datePlaceholder')}
-                style={styles.inputWrap}
-              />
-
-              <AppButton
-                label={uploading ? t('media.uploading') : t('creation.save')}
-                onPress={save}
-                disabled={uploading}
-                style={styles.saveBtn}
-              />
-              {uploading ? (
-                <View style={styles.uploadingRow}>
-                  <ActivityIndicator color={themeColors.moss} />
-                  <Text style={styles.uploadingText}>{t('media.uploading')}</Text>
-                </View>
-              ) : null}
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
     </AppScreen>
   );
 }
 
-// PWA: .memory-card.card — overflow:hidden card, full-bleed media, body padding
+// PWA `.form-card`: inline form revealed by removing `.is-collapsed`.
+// Contains a close-card-button (×) at top-right, media picker, text + date
+// inputs, and a Save primary action.
+function InlineMemoryForm({
+  t,
+  themeColors,
+  mode,
+  title, setTitle,
+  body, setBody,
+  calendarDate, setCalendarDate,
+  media,
+  imagePosition, setImagePosition,
+  onPickImage, onPickVideo, onRemoveMedia,
+  uploading,
+  onSave, onClose,
+}) {
+  return (
+    <View style={[styles.formCardShadow]}>
+      <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+        {/* PWA `.close-card-button` — 44px round top-right */}
+        <Pressable
+          onPress={onClose}
+          hitSlop={6}
+          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+          accessibilityRole="button"
+        >
+          <Text style={styles.closeBtnText}>×</Text>
+        </Pressable>
+
+        {/* PWA: media preview inside `.memory-draft-preview` */}
+        <View style={styles.formField}>
+          <Text style={styles.fieldLabel}>{t('wall.form.title')}</Text>
+          <AppInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder={t('wall.form.titlePlaceholder')}
+          />
+        </View>
+
+        {/* Media preview when set */}
+        {media ? (
+          <View style={styles.mediaPreviewBox}>
+            {media.type === 'image' ? (
+              <PositionedImage uri={media.uri} position={imagePosition} style={styles.mediaPreview} />
+            ) : (
+              <VideoClip uri={media.uri} style={styles.mediaPreview} />
+            )}
+          </View>
+        ) : null}
+        {media?.type === 'image' ? (
+          <ImagePositionControls value={imagePosition} onChange={setImagePosition} t={t} />
+        ) : null}
+
+        {/* Media picker buttons */}
+        <View style={styles.mediaActions}>
+          <Pressable onPress={onPickImage} style={styles.mediaBtn}>
+            <Feather name="image" size={15} color={themeColors.moss} />
+            <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
+              {media?.type === 'image' ? t('wall.changeImage') : t('wall.pickImage')}
+            </Text>
+          </Pressable>
+          <Pressable onPress={onPickVideo} style={styles.mediaBtn}>
+            <Feather name="video" size={15} color={themeColors.moss} />
+            <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
+              {media?.type === 'video' ? t('wall.changeVideo') : t('wall.pickVideo')}
+            </Text>
+          </Pressable>
+          {media ? (
+            <Pressable onPress={onRemoveMedia} style={styles.mediaBtn}>
+              <Feather name="trash-2" size={15} color={colors.danger} />
+              <Text style={[styles.mediaBtnLabel, { color: colors.danger }]}>
+                {t('wall.removeMedia')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.formField}>
+          <Text style={styles.fieldLabel}>{t('wall.form.text')}</Text>
+          <AppInput
+            value={body}
+            onChangeText={setBody}
+            placeholder={t('wall.form.textPlaceholder')}
+            multiline
+          />
+        </View>
+
+        <View style={styles.formField}>
+          <Text style={styles.fieldLabel}>{t('wall.form.calendarDate')}</Text>
+          <AppInput
+            value={calendarDate}
+            onChangeText={setCalendarDate}
+            placeholder={t('creation.datePlaceholder')}
+          />
+        </View>
+
+        <AppButton
+          label={uploading ? t('media.uploading') : (mode === MODE_EDIT ? t('creation.save') : t('wall.add'))}
+          onPress={onSave}
+          disabled={uploading}
+        />
+        {uploading ? (
+          <View style={styles.uploadingRow}>
+            <ActivityIndicator color={themeColors.moss} />
+            <Text style={styles.uploadingText}>{t('media.uploading')}</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+// PWA `.memory-card.card`: overflow-hidden, border-radius 24, full-bleed media
+// at 230px, body padding 16, date-line (brown italic serif) → optional title
+// → muted body p. Delete action: single red pill at top-right; we add a
+// matching edit pill so users can re-open the inline form.
 function MemoryCard({ memory, t, highlighted, onEdit, onDelete }) {
   const { themeColors } = useTheme();
   const dateLabel = memory.calendarDate || memory.date || memory.createdAt;
@@ -357,23 +390,18 @@ function MemoryCard({ memory, t, highlighted, onEdit, onDelete }) {
   const mediaUri = getMemoryMediaUri(memory);
   const mediaType = getMemoryMediaType(memory);
   return (
-    // Shadow wrapper separate from overflow:hidden (RN clips shadow if overflow:hidden)
     <View style={styles.memCardShadow}>
       <View style={[
         styles.memCard,
         highlighted && [styles.memCardHighlighted, { borderColor: themeColors.moss }],
         { backgroundColor: themeColors.card },
       ]}>
-        {/* Full-bleed media — PWA: .memory-card .media-preview { min-height: 230px } */}
         {mediaUri && mediaType === 'image' ? (
           <PositionedImage uri={mediaUri} position={memory.imagePosition} style={styles.memMedia} />
         ) : mediaUri && mediaType === 'video' ? (
           <VideoClip uri={mediaUri} style={styles.memMedia} />
-        ) : (
-          <View style={styles.memMediaPlaceholder} />
-        )}
+        ) : null}
 
-        {/* PWA: .delete-action — absolute pill buttons over media */}
         <View style={styles.memActions}>
           <Pressable onPress={onEdit} hitSlop={8} style={styles.memActionPill}>
             <Feather name="edit-2" size={12} color={themeColors.moss} />
@@ -383,9 +411,7 @@ function MemoryCard({ memory, t, highlighted, onEdit, onDelete }) {
           </Pressable>
         </View>
 
-        {/* PWA: .memory-body { padding: 16px } */}
         <View style={styles.memBody}>
-          {/* PWA: .date-line — brown, serif, italic */}
           {dateLabel ? (
             <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
           ) : null}
@@ -416,214 +442,214 @@ function VideoClip({ uri, style }) {
 
 const styles = StyleSheet.create({
   noInnerPad: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
-  // PWA: screen padding matches shell + topbar reset (padding-top: 6px after static reset)
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop:    spacing.sm,
     paddingBottom: 150,
   },
 
-  // PWA: .topbar { h2 } — transparent, static, large serif title
-  wallHeader: {
-    paddingTop: 6,
-    paddingBottom: 14,
-  },
+  // PWA `.topbar` static override → transparent h2 with padding-top:6
+  wallHeader: { paddingTop: 6, paddingBottom: 14 },
   wallTitle: {
-    fontFamily: typography.serif,
-    fontSize: 36,
-    lineHeight: 37,
-    fontWeight: '400',
-    color: colors.textPrimary,
-    letterSpacing: 0.2,
+    fontFamily:    typography.serif,
+    fontSize:      typography.sizes.h2,
+    lineHeight:    typography.lineHeights.h2,
+    fontWeight:    typography.weights.bold,
+    color:         colors.textPrimary,
+    letterSpacing: typography.letterSpacing.title,
   },
 
-  // PWA: .add-card-toggle — white card, 96px, + circle, label
+  // PWA `.add-card-toggle { min-height: 96; border-radius: 24; place-items: center }`
   addToggle: {
-    flexDirection: 'column',
-    alignItems: 'center',
+    flexDirection:  'column',
+    alignItems:     'center',
     justifyContent: 'center',
-    gap: 8,
-    minHeight: 96,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    gap:            8,
+    minHeight:      96,
+    borderRadius:   radii.card,
+    borderWidth:    1,
+    borderColor:    colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
-    marginBottom: 12,
+    marginBottom:   12,
     ...shadows.card,
   },
   addTogglePressed: { transform: [{ scale: 0.99 }], opacity: 0.95 },
+  // PWA `.add-card-toggle span { width: 42; height: 42; bg: var(--moss) }`
   addIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width:           42,
+    height:          42,
+    borderRadius:    21,
     backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   addPlus: {
-    fontSize: 27,
-    fontWeight: '600',
-    color: colors.textOnPrimary,
+    fontSize:   27,
+    fontWeight: typography.weights.semibold,
+    color:      colors.textOnPrimary,
     lineHeight: 32,
-    textAlign: 'center',
+    textAlign:  'center',
     includeFontPadding: false,
   },
+  // PWA `.add-card-toggle strong { font-size: 0.95rem }`
   addLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontSize:   15,
+    fontWeight: typography.weights.bold,
+    color:      colors.textPrimary,
   },
 
-  // PWA: .memory-grid { gap: 12px }
-  grid: { gap: 12 },
-
-  // Shadow wrapper (shadow separate from overflow:hidden)
-  memCardShadow: {
-    borderRadius: 24,
+  // PWA `.form-card`: gap 14, padding 16, overflow hidden, position relative
+  formCardShadow: {
+    borderRadius: radii.card,
+    marginBottom: 12,
     ...shadows.soft,
   },
-  // PWA: .memory-card.card — overflow:hidden, border-radius:24px, border:1px var(--line), bg rgba(255,250,240,0.98)
-  memCard: {
-    overflow: 'hidden',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
+  formCard: {
+    position:        'relative',
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    padding:         spacing.md,
+    gap:             14,
   },
-  memCardHighlighted: {
-    borderWidth: 2,
-  },
-  // PWA: .memory-card .media-preview { min-height: 230px; background-color: var(--sand) }
-  memMedia: {
-    width: '100%',
-    height: 230,
-  },
-  memMediaPlaceholder: {
-    width: '100%',
-    height: 230,
-    backgroundColor: colors.surface,
-  },
-  // PWA: .delete-action { position:absolute; top:12px; right:12px; border-radius:999px }
-  memActions: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
-    gap: 6,
-    zIndex: 2,
-  },
-  memActionPill: {
-    minHeight: 36,
-    paddingHorizontal: 13,
-    borderRadius: 999,
+  // PWA `.close-card-button { 44×44; top: 10; right: 10; border-radius: 50% }`
+  closeBtn: {
+    position:        'absolute',
+    top:             10,
+    right:           10,
+    width:           44,
+    height:          44,
+    borderRadius:    22,
     backgroundColor: 'rgba(255, 250, 240, 0.88)',
-    borderWidth: 1,
-    borderColor: colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    alignItems:      'center',
+    justifyContent:  'center',
+    zIndex:          2,
   },
-  // PWA: .delete-action { background: rgba(143,77,56,0.92) }
-  memDeletePill: {
-    backgroundColor: 'rgba(143, 77, 56, 0.92)',
-    borderColor: 'transparent',
-  },
-  // PWA: .memory-body { padding: 16px }
-  memBody: {
-    padding: 16,
-  },
-  // PWA: .date-line { font-family:serif; font-size:1.12rem; font-style:italic; font-weight:500; color:var(--brown) }
-  dateLine: {
-    fontFamily: typography.serif,
-    fontSize: 18,
-    fontStyle: 'italic',
-    fontWeight: '500',
-    color: colors.brown,
-    lineHeight: 21,
-    marginBottom: 6,
-  },
-  memTitle: {
-    fontFamily: typography.serif,
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  // PWA: .memory-body p { color:var(--muted); line-height:1.6 }
-  memBodyText: {
-    color: colors.textMuted,
-    fontSize: 15,
+  closeBtnText: {
+    fontSize:   22,
+    color:      colors.mossDark,
     lineHeight: 24,
+    includeFontPadding: false,
+  },
+  formField: { gap: 0 },
+  // PWA `<label> > span { font-size: 0.86rem; font-weight: 700 }`
+  fieldLabel: {
+    fontSize:   typography.sizes.label,
+    fontWeight: typography.weights.bold,
+    color:      colors.textPrimary,
+    marginBottom: 8,
   },
 
-  // Modal
-  modalSafe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  modalBar: {
+  // PWA `.memory-grid { gap: 12 }`
+  grid: { gap: 12 },
+
+  // PWA `.memory-card.card` — shadow on wrapper, content overflows hidden
+  memCardShadow: {
+    borderRadius: radii.card,
+    ...shadows.soft,
+  },
+  memCard: {
+    overflow:        'hidden',
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+  },
+  memCardHighlighted: { borderWidth: 2 },
+  // PWA `.memory-card .media-preview { min-height: 230 }`
+  memMedia:            { width: '100%', height: 230 },
+  // PWA `.delete-action { top: 12; right: 12; border-radius: 999 }`
+  memActions: {
+    position:      'absolute',
+    top:           12,
+    right:         12,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+    gap:           6,
+    zIndex:        2,
   },
-  iconBtn: { padding: spacing.xs },
-  modalScroll: { paddingHorizontal: spacing.xl, paddingBottom: 60 },
-  modalTitle: {
-    fontFamily: typography.serif,
-    fontSize: typography.sizes.titleLarge,
-    fontWeight: typography.weights.regular,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-    letterSpacing: 0.3,
+  memActionPill: {
+    minHeight:       36,
+    paddingHorizontal: 13,
+    borderRadius:    999,
+    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    alignItems:      'center',
+    justifyContent:  'center',
   },
-  // PWA: .memory-draft-preview { border-radius: 18px }
+  memDeletePill: {
+    backgroundColor: 'rgba(143, 77, 56, 0.92)',
+    borderColor:     'transparent',
+  },
+  // PWA `.memory-body { padding: 16 }`
+  memBody: { padding: spacing.md },
+  // PWA `.date-line { brown serif italic 1.12rem }`
+  dateLine: {
+    fontFamily:   typography.serif,
+    fontSize:     typography.sizes.italicNote,
+    fontStyle:    'italic',
+    fontWeight:   typography.weights.medium,
+    color:        colors.brown,
+    lineHeight:   typography.lineHeights.italicNote,
+    marginBottom: 6,
+  },
+  // PWA `h3 { font-size: 1.35rem; color: var(--moss-dark) }`
+  memTitle: {
+    fontFamily:   typography.serif,
+    fontSize:     typography.sizes.title,
+    fontWeight:   typography.weights.semibold,
+    color:        colors.textPrimary,
+    lineHeight:   typography.lineHeights.title,
+    marginBottom: 4,
+  },
+  // PWA `.memory-body p { color: var(--muted); line-height: 1.6 }`
+  memBodyText: {
+    color:      colors.textMuted,
+    fontSize:   typography.sizes.body,
+    lineHeight: typography.lineHeights.body,
+  },
+
+  // Inline form media preview (PWA `.memory-draft-preview { border-radius: 18 }`)
   mediaPreviewBox: {
-    borderRadius: 18,
-    overflow: 'hidden',
+    borderRadius:    radii.lg,
+    overflow:        'hidden',
     backgroundColor: colors.surface,
-    marginBottom: spacing.sm,
   },
-  // PWA: .memory-draft-preview .media-preview { min-height: 230px }
   mediaPreview: { width: '100%', height: 230 },
-  mediaPlaceholder: {
-    width: '100%',
-    height: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   mediaActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
+    flexWrap:      'wrap',
+    gap:           spacing.xs,
   },
   mediaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             6,
     paddingVertical: 8,
     paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    borderRadius:    radii.pill,
+    borderWidth:     1,
+    borderColor:     colors.divider,
     backgroundColor: colors.card,
   },
   mediaBtnLabel: {
-    fontSize: typography.sizes.label,
-    color: colors.moss,
+    fontSize:      typography.sizes.label,
+    color:         colors.moss,
     letterSpacing: 0.3,
   },
-  inputWrap: { marginBottom: spacing.md },
-  saveBtn: { marginTop: spacing.xs },
   uploadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection:  'row',
+    alignItems:     'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
+    gap:            spacing.xs,
+    marginTop:      spacing.xs,
   },
   uploadingText: {
-    fontSize: typography.sizes.label,
-    color: colors.textMuted,
+    fontSize:      typography.sizes.label,
+    color:         colors.textMuted,
     letterSpacing: 0.5,
   },
 });

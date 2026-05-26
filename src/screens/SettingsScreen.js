@@ -467,11 +467,12 @@ export default function SettingsScreen() {
                     </View>
                   ) : null}
 
-                  <View style={styles.divider} />
                 </>
               ) : null}
 
-              {/* Language */}
+              {/* PWA `.language-picker` — language <select>. The PWA settings
+                  form keeps the language picker inside the same form-card,
+                  directly after the theme disclosure, with no divider above. */}
               <View>
                 <Text style={styles.fieldLabel}>{t('settings.language')}</Text>
                 <View style={styles.langRow}>
@@ -516,7 +517,8 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* About */}
+          {/* PWA `.about` block / version footer — placed below the main
+              form card as in styles.css. Kept as a warm tinted card. */}
           <AppCard variant="warm" style={styles.aboutCard}>
             <Text style={styles.aboutBody}>{t('settings.aboutBody')}</Text>
             <View style={styles.versionRow}>

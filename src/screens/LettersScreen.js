@@ -1,25 +1,21 @@
 import { useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import {
   colors,
-  typography,
-  spacing,
   radii,
   shadows,
+  spacing,
+  typography,
 } from '../theme/designSystem';
 import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
@@ -32,6 +28,9 @@ const SCREEN_BG = require('../../assets/bg-kirjeet.png');
 const MODE_ADD  = 'add';
 const MODE_EDIT = 'edit';
 
+// PWA Letters mirrors styles.css `.screen[data-screen="letters"]`:
+//   transparent topbar (h2) → .add-card-toggle → .form-card.is-collapsed → list
+// The form card is inline — see comments in MemoryWallScreen.
 export default function LettersScreen() {
   const { t } = useI18n();
   const { activeMemorial, addLetter, updateLetter, deleteLetter } = useMemorials();
@@ -74,13 +73,13 @@ export default function LettersScreen() {
     if (modalMode === MODE_EDIT && editingId) {
       updateLetter(activeMemorial.id, editingId, {
         title: title.trim() || t('letters.form.titlePlaceholder'),
-        body: body.trim(),
+        body:  body.trim(),
       });
     } else {
       addLetter(activeMemorial.id, {
         title: title.trim() || t('letters.form.titlePlaceholder'),
-        body: body.trim(),
-        date: new Date().toISOString().slice(0, 10),
+        body:  body.trim(),
+        date:  new Date().toISOString().slice(0, 10),
       });
     }
     close();
@@ -103,26 +102,61 @@ export default function LettersScreen() {
 
   return (
     <AppScreen scroll={false} background={SCREEN_BG} contentStyle={styles.noInnerPad}>
-      {/* PWA: topbar is position:static, scrolls with content */}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* PWA: transparent h2 header, no divider */}
+        {/* PWA `.topbar` static override → transparent h2 */}
         <View style={styles.wallHeader}>
           <Text style={[styles.wallTitle, { color: themeColors.textPrimary }]}>{t('letters.title')}</Text>
         </View>
 
-        {/* PWA: .add-card-toggle — same pattern as wall screen */}
-        <Pressable
-          onPress={openAdd}
-          style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
-          accessibilityRole="button"
-        >
-          <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
-            <Text style={styles.addPlus}>+</Text>
-          </View>
-          <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('letters.add')}</Text>
-        </Pressable>
+        {!open ? (
+          <Pressable
+            onPress={openAdd}
+            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
+            accessibilityRole="button"
+          >
+            <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
+              <Text style={styles.addPlus}>+</Text>
+            </View>
+            <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('letters.add')}</Text>
+          </Pressable>
+        ) : (
+          // PWA `.form-card.letter-editor`
+          <View style={styles.formCardShadow}>
+            <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+              <Pressable
+                onPress={close}
+                hitSlop={6}
+                style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+                accessibilityRole="button"
+              >
+                <Text style={styles.closeBtnText}>×</Text>
+              </Pressable>
 
-        {/* Letter list */}
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>{t('letters.form.title')}</Text>
+                <AppInput
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder={t('letters.form.titlePlaceholder')}
+                />
+              </View>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>{t('letters.form.body')}</Text>
+                {/* PWA `.letter-editor textarea { min-height: 190 }` */}
+                <AppInput
+                  value={body}
+                  onChangeText={setBody}
+                  placeholder={t('letters.form.bodyPlaceholder')}
+                  multiline
+                  inputStyle={styles.letterTextarea}
+                />
+              </View>
+
+              <AppButton label={t('letters.form.save')} onPress={save} />
+            </View>
+          </View>
+        )}
+
         {letters.length === 0 ? (
           <EmptyStateCard eyebrow={t('letters.title')} body={t('letters.empty')} />
         ) : (
@@ -138,59 +172,16 @@ export default function LettersScreen() {
           </View>
         )}
       </ScrollView>
-
-      <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <View style={styles.modalBar}>
-              <Pressable onPress={close} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={themeColors.textPrimary} />
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerStyle={styles.modalScroll}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
-                {modalMode === MODE_EDIT ? t('letters.edit') : t('letters.add')}
-              </Text>
-              <AppInput
-                label={t('letters.form.title')}
-                value={title}
-                onChangeText={setTitle}
-                placeholder={t('letters.form.titlePlaceholder')}
-                style={styles.inputWrap}
-              />
-              {/* PWA: .letter-editor textarea { min-height: 190px } */}
-              <AppInput
-                label={t('letters.form.body')}
-                value={body}
-                onChangeText={setBody}
-                placeholder={t('letters.form.bodyPlaceholder')}
-                multiline
-                inputStyle={styles.letterTextarea}
-                style={styles.inputWrap}
-              />
-              <AppButton label={t('letters.form.save')} onPress={save} />
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
     </AppScreen>
   );
 }
 
-// PWA: .letter-card.card — padding 16px, date-line → h3 → p
+// PWA `.letter-card.card { padding: 16; bg: rgba(251,247,239,0.92) }`
 function LetterCard({ letter, onEdit, onDelete }) {
   const { themeColors } = useTheme();
   return (
-    // Shadow wrapper separate from overflow:hidden
     <View style={styles.letterCardShadow}>
       <View style={[styles.letterCard, { backgroundColor: themeColors.card }]}>
-        {/* PWA: .delete-action — absolute pill buttons top:12 right:12 */}
         <View style={styles.cardActions}>
           <Pressable onPress={onEdit} hitSlop={8} style={styles.actionPill}>
             <Feather name="edit-2" size={12} color={themeColors.moss} />
@@ -200,7 +191,6 @@ function LetterCard({ letter, onEdit, onDelete }) {
           </Pressable>
         </View>
 
-        {/* PWA: .date-line → h3 → p */}
         <View style={styles.letterBody}>
           {letter.date ? (
             <Text style={[styles.dateLine, { color: themeColors.brown }]}>{letter.date}</Text>
@@ -219,153 +209,159 @@ const styles = StyleSheet.create({
   noInnerPad: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop:    spacing.sm,
     paddingBottom: 150,
   },
 
-  // PWA: transparent static h2
-  wallHeader: {
-    paddingTop: 6,
-    paddingBottom: 14,
-  },
+  wallHeader: { paddingTop: 6, paddingBottom: 14 },
   wallTitle: {
-    fontFamily: typography.serif,
-    fontSize: 36,
-    lineHeight: 37,
-    fontWeight: '400',
-    color: colors.textPrimary,
-    letterSpacing: 0.2,
+    fontFamily:    typography.serif,
+    fontSize:      typography.sizes.h2,
+    lineHeight:    typography.lineHeights.h2,
+    fontWeight:    typography.weights.bold,
+    color:         colors.textPrimary,
+    letterSpacing: typography.letterSpacing.title,
   },
 
-  // PWA: .add-card-toggle { min-height:96px; border-radius:24px; bg:rgba(255,250,240,.98) }
+  // PWA `.add-card-toggle`
   addToggle: {
-    flexDirection: 'column',
-    alignItems: 'center',
+    flexDirection:  'column',
+    alignItems:     'center',
     justifyContent: 'center',
-    gap: 8,
-    minHeight: 96,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    gap:            8,
+    minHeight:      96,
+    borderRadius:   radii.card,
+    borderWidth:    1,
+    borderColor:    colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
-    marginBottom: 12,
+    marginBottom:   12,
     ...shadows.card,
   },
   addTogglePressed: { transform: [{ scale: 0.99 }], opacity: 0.95 },
   addIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width:           42,
+    height:          42,
+    borderRadius:    21,
     backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   addPlus: {
-    fontSize: 27,
-    fontWeight: '600',
-    color: colors.textOnPrimary,
+    fontSize:   27,
+    fontWeight: typography.weights.semibold,
+    color:      colors.textOnPrimary,
     lineHeight: 32,
-    textAlign: 'center',
+    textAlign:  'center',
     includeFontPadding: false,
   },
   addLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontSize:   15,
+    fontWeight: typography.weights.bold,
+    color:      colors.textPrimary,
   },
 
-  // PWA: .letter-list { gap: 12px }
-  grid: { gap: 12 },
-
-  // Shadow wrapper (shadow separate from overflow:hidden)
-  letterCardShadow: {
-    borderRadius: 24,
+  // PWA `.form-card` inline
+  formCardShadow: {
+    borderRadius: radii.card,
+    marginBottom: 12,
     ...shadows.soft,
   },
-  // PWA: .letter-card.card { overflow:hidden; border-radius:24px; padding:16px; bg:rgba(251,247,239,.92) }
-  letterCard: {
-    overflow: 'hidden',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(251, 247, 239, 0.92)',
+  formCard: {
+    position:        'relative',
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    padding:         spacing.md,
+    gap:             14,
   },
-
-  // PWA: .delete-action { position:absolute; top:12px; right:12px; border-radius:999px }
-  cardActions: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
-    gap: 6,
-    zIndex: 2,
-  },
-  actionPill: {
-    minHeight: 36,
-    paddingHorizontal: 13,
-    borderRadius: 999,
+  closeBtn: {
+    position:        'absolute',
+    top:             10,
+    right:           10,
+    width:           44,
+    height:          44,
+    borderRadius:    22,
     backgroundColor: 'rgba(255, 250, 240, 0.88)',
-    borderWidth: 1,
-    borderColor: colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    alignItems:      'center',
+    justifyContent:  'center',
+    zIndex:          2,
   },
-  // PWA: .delete-action { background:rgba(143,77,56,.92) }
-  deletePill: {
-    backgroundColor: 'rgba(143, 77, 56, 0.92)',
-    borderColor: 'transparent',
+  closeBtnText: {
+    fontSize:   22,
+    color:      colors.mossDark,
+    lineHeight: 24,
+    includeFontPadding: false,
   },
-
-  // PWA: .letter-card { padding: 16px }
-  letterBody: {
-    padding: 16,
-  },
-  // PWA: .date-line { font-family:serif; font-size:1.12rem; font-style:italic; color:var(--brown) }
-  dateLine: {
-    fontFamily: typography.serif,
-    fontSize: 18,
-    fontStyle: 'italic',
-    fontWeight: '500',
-    color: colors.brown,
-    lineHeight: 21,
-    marginBottom: 6,
-  },
-  // PWA: h3 { font-size:1.35rem ≈ 22px; color:var(--moss-dark); line-height:1.12 }
-  letterTitle: {
-    fontFamily: typography.serif,
-    fontSize: 22,
-    lineHeight: 25,
-    fontWeight: '400',
-    color: colors.textPrimary,
+  formField: { gap: 0 },
+  fieldLabel: {
+    fontSize:     typography.sizes.label,
+    fontWeight:   typography.weights.bold,
+    color:        colors.textPrimary,
     marginBottom: 8,
   },
-  // PWA: .letter-card p { color:var(--muted); line-height:1.6 }
-  letterBodyText: {
-    color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-
-  // Modal
-  modalSafe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  modalBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  iconBtn: { padding: spacing.xs },
-  modalScroll: { paddingHorizontal: spacing.xl, paddingBottom: 60 },
-  modalTitle: {
-    fontFamily: typography.serif,
-    fontSize: typography.sizes.titleLarge,
-    fontWeight: typography.weights.regular,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-    letterSpacing: 0.3,
-  },
-  // PWA: .letter-editor textarea { min-height: 190px }
+  // PWA `.letter-editor textarea { min-height: 190 }`
   letterTextarea: { minHeight: 190 },
-  inputWrap: { marginBottom: spacing.md },
+
+  // PWA `.letter-list { gap: 12 }`
+  grid: { gap: 12 },
+
+  letterCardShadow: {
+    borderRadius: radii.card,
+    ...shadows.soft,
+  },
+  letterCard: {
+    overflow:        'hidden',
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    backgroundColor: 'rgba(251, 247, 239, 0.92)',
+  },
+  cardActions: {
+    position:      'absolute',
+    top:           12,
+    right:         12,
+    flexDirection: 'row',
+    gap:           6,
+    zIndex:        2,
+  },
+  actionPill: {
+    minHeight:       36,
+    paddingHorizontal: 13,
+    borderRadius:    999,
+    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  deletePill: {
+    backgroundColor: 'rgba(143, 77, 56, 0.92)',
+    borderColor:     'transparent',
+  },
+  letterBody: { padding: spacing.md },
+  dateLine: {
+    fontFamily:   typography.serif,
+    fontSize:     typography.sizes.italicNote,
+    fontStyle:    'italic',
+    fontWeight:   typography.weights.medium,
+    color:        colors.brown,
+    lineHeight:   typography.lineHeights.italicNote,
+    marginBottom: 6,
+  },
+  letterTitle: {
+    fontFamily:   typography.serif,
+    fontSize:     typography.sizes.title,
+    lineHeight:   typography.lineHeights.title,
+    fontWeight:   typography.weights.regular,
+    color:        colors.textPrimary,
+    marginBottom: 8,
+  },
+  letterBodyText: {
+    color:      colors.textMuted,
+    fontSize:   typography.sizes.body,
+    lineHeight: typography.lineHeights.body,
+  },
 });

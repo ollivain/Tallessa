@@ -2,8 +2,6 @@ import { useState } from 'react';
 import {
   Alert,
   Dimensions,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -11,15 +9,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useMemorials } from '../state/MemorialContext';
 import {
   colors,
-  typography,
-  spacing,
+  radii,
   shadows,
+  spacing,
+  typography,
 } from '../theme/designSystem';
 import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
@@ -30,15 +28,17 @@ import { useTheme } from '../state/ThemeContext';
 import { getImportantDays, getMemorialDate, getMonthPhotosArray } from '../models/memorial';
 
 const SCREEN_BG = require('../../assets/bg-kalenteri.png');
+// Fallback cover used until the user picks a month image — matches the PWA
+// `.month-cover` default `background-image` (Unsplash kept locally on web).
+const DEFAULT_COVER = require('../../assets/memorial-day-sunny-field.jpg');
 
 const { width: SCREEN_W } = Dimensions.get('window');
-// PWA: .calendar-grid { gap: 6px } with calendar-card padding 14 and screen padding 16
 const CELL_GAP = 6;
 const CELL_SIZE = Math.floor((SCREEN_W - spacing.md * 2 - 14 * 2 - CELL_GAP * 6) / 7);
 const SYMBOL_OPTIONS = [
-  { value: '\u2661', labelKey: 'calendar.form.symbolHeart' },
-  { value: '\u2726', labelKey: 'calendar.form.symbolStar' },
-  { value: '\u2662', labelKey: 'calendar.form.symbolMemory' },
+  { value: '♡', labelKey: 'calendar.form.symbolHeart' },
+  { value: '✦', labelKey: 'calendar.form.symbolStar' },
+  { value: '♢', labelKey: 'calendar.form.symbolMemory' },
   { value: '\u{1F56F}', labelKey: 'calendar.form.symbolCandle' },
 ];
 const DEFAULT_SYMBOL = SYMBOL_OPTIONS[0].value;
@@ -52,23 +52,24 @@ function parseAnyDate(str) {
     return new Date(y, m - 1, d);
   }
   const m = s.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
-  if (m) {
-    return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-  }
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
   return null;
 }
-
 function toDateKey(date) {
   const y = date.getFullYear();
   const mo = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${mo}-${d}`;
 }
-
 function sameMonthDay(date, refDate) {
   return date.getMonth() === refDate.getMonth() && date.getDate() === refDate.getDate();
 }
 
+// PWA Calendar mirrors styles.css `.screen[data-screen="calendar"]`:
+//   transparent topbar (h2)
+//   → .calendar-card.card  (cover image, prev/next nav, weekdays, day grid)
+//   → .add-card-toggle / .form-card (inline form for memorial days)
+//   → .day-list  (sorted: visible month first, then everything else)
 export default function CalendarScreen() {
   const { t, language } = useI18n();
   const { activeMemorial, addEvent, updateEvent, deleteEvent } = useMemorials();
@@ -87,17 +88,17 @@ export default function CalendarScreen() {
   const [note, setNote] = useState('');
 
   const events = getImportantDays(activeMemorial);
-
   const deathDate = parseAnyDate(getMemorialDate(activeMemorial));
   const gridCells = buildGridCells(visibleMonth, events, deathDate);
   const sortedEvents = sortDaysForVisibleMonth(events, visibleMonth);
+  // PWA shows all memories in the day list (visible-month first, then the
+  // rest) — never hides the off-month ones, just orders them.
   const calendarMemories = sortMemoriesForVisibleMonth(activeMemorial?.memories ?? [], visibleMonth);
   const visibleCards = [
     ...getMemorialDayCards(activeMemorial, visibleMonth, t),
     ...sortedEvents,
   ];
 
-  // Monthly cover image — index 0=Jan … 11=Dec
   const calendarImages = getMonthPhotosArray(activeMemorial);
   const coverImageUri = calendarImages[visibleMonth.getMonth()] ?? null;
   const monthKey = String(visibleMonth.getMonth() + 1);
@@ -106,10 +107,8 @@ export default function CalendarScreen() {
     activeMemorial?.monthPhotoPositions?.[monthKey] ??
     activeMemorial?.monthPhotoPositions?.[paddedMonthKey];
 
-  const goPrev = () =>
-    setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
-  const goNext = () =>
-    setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
+  const goPrev = () => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
+  const goNext = () => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
 
   const openAdd = () => {
     setEditingId(null);
@@ -119,7 +118,6 @@ export default function CalendarScreen() {
     setNote('');
     setOpen(true);
   };
-
   const openEdit = (ev) => {
     setEditingId(ev.id);
     setName(ev.name ?? '');
@@ -128,7 +126,6 @@ export default function CalendarScreen() {
     setNote(ev.note ?? ev.description ?? ev.text ?? '');
     setOpen(true);
   };
-
   const close = () => {
     setOpen(false);
     setName('');
@@ -145,22 +142,9 @@ export default function CalendarScreen() {
       Alert.alert(t('calendar.add'), t('calendar.form.required'));
       return;
     }
-
-    if (editingId) {
-      updateEvent(activeMemorial.id, editingId, {
-        name: trimmedName,
-        date: trimmedDate,
-        note: note.trim(),
-        symbol: symbol || DEFAULT_SYMBOL,
-      });
-    } else {
-      addEvent(activeMemorial.id, {
-        name: trimmedName,
-        date: trimmedDate,
-        note: note.trim(),
-        symbol: symbol || DEFAULT_SYMBOL,
-      });
-    }
+    const payload = { name: trimmedName, date: trimmedDate, note: note.trim(), symbol: symbol || DEFAULT_SYMBOL };
+    if (editingId) updateEvent(activeMemorial.id, editingId, payload);
+    else addEvent(activeMemorial.id, payload);
     close();
   };
 
@@ -170,68 +154,46 @@ export default function CalendarScreen() {
       t('delete.eventBody'),
       [
         { text: t('delete.cancel'), style: 'cancel' },
-        {
-          text: t('delete.confirm'),
-          style: 'destructive',
-          onPress: () => deleteEvent(activeMemorial.id, ev.id),
-        },
+        { text: t('delete.confirm'), style: 'destructive', onPress: () => deleteEvent(activeMemorial.id, ev.id) },
       ],
     );
   };
 
-  const monthLabel = visibleMonth.toLocaleString(
-    language === 'fi' ? 'fi-FI' : 'en-GB',
-    { month: 'long', year: 'numeric' },
-  );
-
+  const monthLabel = visibleMonth.toLocaleString(language === 'fi' ? 'fi-FI' : 'en-GB', { month: 'long', year: 'numeric' });
   const weekdays = t('calendar.weekdays');
 
   return (
     <AppScreen scroll={false} background={SCREEN_BG} contentStyle={styles.noInnerPad}>
-      {/* PWA: topbar is position:static, scrolls with content */}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* PWA: transparent h2 header */}
         <View style={styles.wallHeader}>
           <Text style={[styles.wallTitle, { color: themeColors.textPrimary }]}>{t('calendar.title')}</Text>
         </View>
 
-        {/* PWA: .calendar-card.card — padding:14, gap:14 */}
+        {/* PWA `.calendar-card.card { padding: 14; gap: 14; border-radius: 24 }` */}
         <View style={styles.calCardShadow}>
           <View style={[styles.calCard, { backgroundColor: themeColors.card }]}>
+            {/* PWA `.month-cover { min-height: 165; border-radius: 18; default photo }` */}
+            <PositionedImage
+              uri={coverImageUri || undefined}
+              source={coverImageUri ? undefined : DEFAULT_COVER}
+              position={coverImagePosition}
+              style={styles.coverImage}
+            />
 
-            {/* Monthly cover image — set via Settings → Calendar images */}
-            {coverImageUri ? (
-              <PositionedImage
-                uri={coverImageUri}
-                position={coverImagePosition}
-                style={styles.coverImage}
-              />
-            ) : null}
-
-            {/* PWA: .calendar-controls — 52px nav + center (eyebrow+h3) + 52px nav */}
+            {/* PWA `.calendar-controls { grid: 52px 1fr 52px; gap: 10 }` */}
             <View style={styles.monthNav}>
-              <Pressable
-                onPress={goPrev}
-                hitSlop={8}
-                style={({ pressed }) => [styles.navBtn, { backgroundColor: themeColors.moss }, pressed && styles.navBtnPressed]}
-              >
+              <Pressable onPress={goPrev} hitSlop={8} style={({ pressed }) => [styles.navBtn, { backgroundColor: themeColors.moss }, pressed && styles.navBtnPressed]}>
                 <Text style={styles.navArrow}>{t('calendar.prev')}</Text>
               </Pressable>
               <View style={styles.monthCenter}>
                 <Text style={[styles.monthEyebrow, { color: themeColors.brown }]}>{t('calendar.eyebrow')}</Text>
                 <Text style={[styles.monthLabel, { color: themeColors.textPrimary }]}>{capitalize(monthLabel)}</Text>
               </View>
-              <Pressable
-                onPress={goNext}
-                hitSlop={8}
-                style={({ pressed }) => [styles.navBtn, { backgroundColor: themeColors.moss }, pressed && styles.navBtnPressed]}
-              >
+              <Pressable onPress={goNext} hitSlop={8} style={({ pressed }) => [styles.navBtn, { backgroundColor: themeColors.moss }, pressed && styles.navBtnPressed]}>
                 <Text style={styles.navArrow}>{t('calendar.next')}</Text>
               </Pressable>
             </View>
 
-            {/* PWA: .weekdays — 7-col grid, gap:6, muted text */}
             <View style={styles.weekRow}>
               {weekdays.map((wd, i) => (
                 <View key={i} style={styles.weekCell}>
@@ -240,7 +202,6 @@ export default function CalendarScreen() {
               ))}
             </View>
 
-            {/* PWA: .calendar-grid — 7-col grid, gap:6 */}
             <View style={styles.calGrid}>
               {gridCells.map((cell, i) => (
                 <DayCell key={i} cell={cell} />
@@ -249,19 +210,70 @@ export default function CalendarScreen() {
           </View>
         </View>
 
-        {/* PWA: .add-card-toggle after calendar card */}
-        <Pressable
-          onPress={openAdd}
-          style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
-          accessibilityRole="button"
-        >
-          <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
-            <Text style={styles.addPlus}>+</Text>
-          </View>
-          <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('calendar.add')}</Text>
-        </Pressable>
+        {!open ? (
+          <Pressable
+            onPress={openAdd}
+            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
+            accessibilityRole="button"
+          >
+            <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
+              <Text style={styles.addPlus}>+</Text>
+            </View>
+            <Text style={[styles.addLabel, { color: themeColors.textPrimary }]}>{t('calendar.add')}</Text>
+          </Pressable>
+        ) : (
+          // PWA `.form-card` inline (gap: 14, padding: 16)
+          <View style={styles.formCardShadow}>
+            <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+              <Pressable onPress={close} hitSlop={6} style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+                <Text style={styles.closeBtnText}>×</Text>
+              </Pressable>
 
-        {/* PWA: .day-list — grid gap:12 */}
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>{t('calendar.form.name')}</Text>
+                <AppInput value={name} onChangeText={setName} placeholder={t('calendar.form.namePlaceholder')} />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>{t('calendar.form.date')}</Text>
+                <AppInput value={date} onChangeText={setDate} placeholder={t('creation.datePlaceholder')} />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>{t('calendar.form.symbol')}</Text>
+                <View style={styles.symbolRow}>
+                  {SYMBOL_OPTIONS.map((option) => {
+                    const active = symbol === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => setSymbol(option.value)}
+                        style={({ pressed }) => [
+                          styles.symbolPill,
+                          active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
+                          pressed && styles.pressed,
+                        ]}
+                        accessibilityRole="button"
+                      >
+                        <Text style={[styles.symbolText, active && styles.symbolTextActive]}>{option.value}</Text>
+                        <Text style={[styles.symbolLabel, active && styles.symbolLabelActive]}>{t(option.labelKey)}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>{t('calendar.form.text')}</Text>
+                <AppInput value={note} onChangeText={setNote} placeholder={t('calendar.form.textPlaceholder')} multiline />
+              </View>
+
+              <AppButton label={t('creation.save')} onPress={save} />
+            </View>
+          </View>
+        )}
+
+        {/* PWA `.day-list { gap: 12 }` — always shows all memories, sorted */}
         {visibleCards.length === 0 && calendarMemories.length === 0 ? (
           <EmptyStateCard eyebrow={t('calendar.title')} body={t('calendar.empty')} />
         ) : (
@@ -281,87 +293,15 @@ export default function CalendarScreen() {
           </View>
         )}
       </ScrollView>
-
-      <Modal visible={open} animationType="slide" onRequestClose={close} transparent={false}>
-        <SafeAreaView style={[styles.modalSafe, { backgroundColor: themeColors.background }]} edges={['top', 'left', 'right']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <View style={styles.modalBar}>
-              <Pressable onPress={close} hitSlop={12} style={styles.iconBtn}>
-                <Feather name="x" size={22} color={themeColors.textPrimary} />
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerStyle={styles.modalScroll}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>
-                {editingId ? t('calendar.edit') : t('calendar.add')}
-              </Text>
-              <AppInput
-                label={t('calendar.form.name')}
-                value={name}
-                onChangeText={setName}
-                placeholder={t('calendar.form.namePlaceholder')}
-                style={styles.inputWrap}
-              />
-              <AppInput
-                label={t('calendar.form.date')}
-                value={date}
-                onChangeText={setDate}
-                placeholder={t('creation.datePlaceholder')}
-                style={styles.inputWrap}
-              />
-              <Text style={styles.fieldLabel}>{t('calendar.form.symbol')}</Text>
-              <View style={styles.symbolRow}>
-                {SYMBOL_OPTIONS.map((option) => {
-                  const active = symbol === option.value;
-                  return (
-                    <Pressable
-                      key={option.value}
-                      onPress={() => setSymbol(option.value)}
-                      style={({ pressed }) => [
-                        styles.symbolPill,
-                        active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
-                        pressed && styles.pressed,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <Text style={[styles.symbolText, active && styles.symbolTextActive]}>{option.value}</Text>
-                      <Text style={[styles.symbolLabel, active && styles.symbolLabelActive]}>
-                        {t(option.labelKey)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <AppInput
-                label={t('calendar.form.text')}
-                value={note}
-                onChangeText={setNote}
-                placeholder={t('calendar.form.textPlaceholder')}
-                multiline
-                style={styles.inputWrap}
-              />
-              <AppButton label={t('creation.save')} onPress={save} />
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </Modal>
     </AppScreen>
   );
 }
-
-// ── Grid helpers ──────────────────────────────────────────────────────────────
 
 function buildGridCells(visibleMonth, events, deathDate) {
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const today = new Date();
   const todayKey = toDateKey(today);
-
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay() + 6) % 7;
   const gridStart = new Date(year, month, 1 - startOffset);
@@ -389,7 +329,7 @@ function buildGridCells(visibleMonth, events, deathDate) {
   });
 }
 
-// PWA: .day-cell { min-height:44px; border-radius:13px; bg:rgba(255,250,240,0.82) }
+// PWA `.day-cell { min-height: 44; border-radius: 13; bg: rgba(255,250,240,0.82) }`
 function DayCell({ cell }) {
   const { themeColors } = useTheme();
   const { day, inMonth, isToday, isMemorial, hasEvent, symbol } = cell;
@@ -401,13 +341,9 @@ function DayCell({ cell }) {
       isMemorial && [styles.cellMemorial, { backgroundColor: themeColors.moss }],
       !inMonth && styles.cellMuted,
     ]}>
-      <Text style={[
-        styles.cellText,
-        isMemorial && styles.cellTextMemorial,
-      ]}>
+      <Text style={[styles.cellText, isMemorial && styles.cellTextMemorial]}>
         {isMemorial && !isToday ? DEFAULT_SYMBOL : day}
       </Text>
-      {/* PWA: .has-note::after uses the day symbol */}
       {hasEvent && !isMemorial ? (
         <Text style={[styles.eventMarker, { color: themeColors.brown }]}>{marker}</Text>
       ) : null}
@@ -418,7 +354,7 @@ function DayCell({ cell }) {
   );
 }
 
-// PWA: .day-card.card — grid auto 1fr gap:12, padding:16, .day-symbol 38px circle
+// PWA `.day-card.card { grid: auto 1fr; gap: 12; padding: 16 }`
 function EventCard({ event, language, onEdit, onDelete }) {
   const { themeColors } = useTheme();
   const day = formatDay(event.date);
@@ -429,7 +365,6 @@ function EventCard({ event, language, onEdit, onDelete }) {
   return (
     <View style={styles.eventCardShadow}>
       <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
-        {/* PWA: .delete-action absolute top:12 right:12 */}
         {onEdit || onDelete ? (
           <View style={styles.cardActions}>
             {onEdit ? (
@@ -445,18 +380,14 @@ function EventCard({ event, language, onEdit, onDelete }) {
           </View>
         ) : null}
 
-        {/* PWA: .day-card grid: auto 1fr, gap:12 */}
         <View style={styles.eventRow}>
-          {/* PWA: .day-symbol { width:38; height:38; border-radius:50%; bg:var(--moss) } */}
           <View style={[styles.daySymbol, { backgroundColor: themeColors.moss }]}>
             <Text style={styles.daySymbolText}>{event.symbol || DEFAULT_SYMBOL}</Text>
           </View>
           <View style={styles.eventBody}>
-            {/* PWA: .date-line { brown serif italic } */}
             {dateLabel ? (
               <Text style={[styles.dateLine, { color: themeColors.brown }]}>{dateLabel}</Text>
             ) : null}
-            {/* PWA: h3 { font-size:1.35rem; color:var(--moss-dark) } */}
             <Text style={[styles.eventName, { color: themeColors.textPrimary }]} numberOfLines={2}>{event.name}</Text>
             {body ? <Text style={styles.eventNote} numberOfLines={4}>{body}</Text> : null}
           </View>
@@ -501,7 +432,6 @@ function formatDay(iso) {
   if (!d) return iso.split(/[-.]/).pop() ?? '·';
   return String(d.getDate());
 }
-
 function formatMonth(iso, language) {
   if (!iso) return '';
   const d = parseAnyDate(iso);
@@ -512,28 +442,14 @@ function formatMonth(iso, language) {
     return '';
   }
 }
-
-function capitalize(s) {
-  if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
+function capitalize(s) { return !s ? '' : s.charAt(0).toUpperCase() + s.slice(1); }
 function isSameVisibleMonth(dateString, visibleMonth) {
   const date = parseAnyDate(dateString);
-  return (
-    date &&
-    date.getFullYear() === visibleMonth.getFullYear() &&
-    date.getMonth() === visibleMonth.getMonth()
-  );
+  return date && date.getFullYear() === visibleMonth.getFullYear() && date.getMonth() === visibleMonth.getMonth();
 }
-
 function sortDaysForVisibleMonth(days, visibleMonth) {
-  return days
-    .filter((day) => isSameVisibleMonth(day.date, visibleMonth))
-    .slice()
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return days.filter((day) => isSameVisibleMonth(day.date, visibleMonth)).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
-
 function sortMemoriesForVisibleMonth(memories, visibleMonth) {
   const dated = memories.filter((memory) => parseAnyDate(memory.calendarDate));
   return [
@@ -541,7 +457,6 @@ function sortMemoriesForVisibleMonth(memories, visibleMonth) {
     ...dated.filter((memory) => !isSameVisibleMonth(memory.calendarDate, visibleMonth)),
   ];
 }
-
 function getMemorialDayCards(activeMemorial, visibleMonth, t) {
   const memorialDate = getMemorialDate(activeMemorial);
   const parsed = parseAnyDate(memorialDate);
@@ -556,348 +471,288 @@ function getMemorialDayCards(activeMemorial, visibleMonth, t) {
   }];
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   noInnerPad: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop:    spacing.sm,
     paddingBottom: 150,
   },
 
-  // PWA: transparent static h2
   wallHeader: { paddingTop: 6, paddingBottom: 14 },
   wallTitle: {
-    fontFamily: typography.serif,
-    fontSize: 36,
-    lineHeight: 37,
-    fontWeight: '400',
-    color: colors.textPrimary,
-    letterSpacing: 0.2,
+    fontFamily:    typography.serif,
+    fontSize:      typography.sizes.h2,
+    lineHeight:    typography.lineHeights.h2,
+    fontWeight:    typography.weights.bold,
+    color:         colors.textPrimary,
+    letterSpacing: typography.letterSpacing.title,
   },
 
-  // Monthly cover image at top of calendar card
+  // PWA `.month-cover { min-height: 165; border-radius: 18 }`
   coverImage: {
-    width: '100%',
-    height: 160,
-    borderRadius: 14,
+    width:        '100%',
+    height:       165,
+    borderRadius: radii.lg,
   },
 
-  // PWA: .calendar-card.card { padding:14; gap:14; border-radius:24 }
-  calCardShadow: {
-    borderRadius: 24,
-    marginBottom: 12,
-    ...shadows.soft,
-  },
+  // PWA `.calendar-card.card { padding: 14; gap: 14; border-radius: 24 }`
+  calCardShadow: { borderRadius: radii.card, marginBottom: 12, ...shadows.soft },
   calCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
-    padding: 14,
-    gap: 14,
+    padding:         14,
+    gap:             14,
   },
 
-  // PWA: .calendar-controls { grid-template-columns: 52px 1fr 52px; gap:10 }
+  // PWA `.calendar-controls`
   monthNav: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    alignItems:    'center',
+    gap:           10,
   },
-  // PWA: .icon-button { width:52; min-height:52; border-radius:17; bg:var(--moss); color:#fffaf0; font-size:1.9rem }
+  // PWA `.icon-button { width: 52; min-height: 52; border-radius: 17 }`
   navBtn: {
-    width: 52,
-    minHeight: 52,
-    borderRadius: 17,
+    width:           52,
+    minHeight:       52,
+    borderRadius:    radii.button,
     backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   navBtnPressed: { opacity: 0.8 },
   navArrow: {
-    fontSize: 30,
-    color: '#fffaf0',
-    fontWeight: '400',
+    fontSize:   30,
+    color:      '#fffaf0',
+    fontWeight: typography.weights.regular,
     lineHeight: 36,
-    textAlign: 'center',
+    textAlign:  'center',
     includeFontPadding: false,
   },
-  monthCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  // PWA: .eyebrow { font-size:0.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--brown) }
+  monthCenter: { flex: 1, alignItems: 'center' },
+  // PWA `.eyebrow { font-size: 0.72rem; font-weight: 700; uppercase }`
   monthEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: colors.brown,
-    marginBottom: 2,
+    fontSize:       typography.sizes.eyebrow,
+    fontWeight:     typography.weights.bold,
+    letterSpacing:  typography.letterSpacing.eyebrow,
+    textTransform:  'uppercase',
+    color:          colors.brown,
+    marginBottom:   2,
   },
-  // PWA: h3 { font-size:1.35rem≈22px; color:var(--moss-dark); line-height:1.12 }
+  // PWA `h3 { font-size: 1.35rem; color: var(--moss-dark) }`
   monthLabel: {
     fontFamily: typography.serif,
-    fontSize: 22,
-    lineHeight: 25,
-    fontWeight: '400',
-    color: colors.textPrimary,
-    textAlign: 'center',
+    fontSize:   typography.sizes.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.regular,
+    color:      colors.textPrimary,
+    textAlign:  'center',
   },
 
-  // PWA: .weekdays { gap:6px; grid 7-col }
-  weekRow: {
-    flexDirection: 'row',
-    gap: CELL_GAP,
-  },
-  weekCell: {
-    width: CELL_SIZE,
-    alignItems: 'center',
-  },
-  // PWA: .weekdays span { color:var(--muted); font-size:0.72rem; font-weight:700; text-align:center }
+  weekRow: { flexDirection: 'row', gap: CELL_GAP },
+  weekCell: { width: CELL_SIZE, alignItems: 'center' },
+  // PWA `.weekdays span { color: var(--muted); font-size: 0.72rem }`
   weekday: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontSize:   typography.sizes.eyebrow,
+    color:      colors.textMuted,
+    fontWeight: typography.weights.bold,
+    textAlign:  'center',
   },
 
-  // PWA: .calendar-grid { gap:6px; grid 7-col }
-  calGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: CELL_GAP,
-  },
-  // PWA: .day-cell { min-height:44px; border-radius:13px; bg:rgba(255,250,240,0.82); font-size:0.86rem }
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CELL_GAP },
+  // PWA `.day-cell { min-height: 44; border-radius: 13; bg: rgba(255,250,240,0.82) }`
   cell: {
-    width: CELL_SIZE,
-    minHeight: 44,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width:           CELL_SIZE,
+    minHeight:       44,
+    borderRadius:    radii.dayCell,
+    alignItems:      'center',
+    justifyContent:  'center',
     backgroundColor: 'rgba(255, 250, 240, 0.82)',
-    position: 'relative',
+    position:        'relative',
   },
-  // PWA: .day-cell.is-muted { opacity:0.34 }
   cellMuted: { opacity: 0.34 },
-  // PWA: .day-cell.is-today { outline:1px solid rgba(88,98,68,0.34) } — subtle border, no bg
-  cellToday: {
-    borderWidth: 1,
-    borderColor: 'rgba(88, 98, 68, 0.34)',
-  },
-  // PWA: .day-cell.is-memorial { bg:var(--moss); color:#fffaf0; box-shadow:0 10px 22px rgba(88,98,68,0.22) }
+  cellToday: { borderWidth: 1, borderColor: 'rgba(88, 98, 68, 0.34)' },
   cellMemorial: {
     backgroundColor: colors.moss,
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(88, 98, 68, 1)',
-        shadowOffset: { width: 0, height: 4 },
+        shadowColor:   'rgba(88, 98, 68, 1)',
+        shadowOffset:  { width: 0, height: 4 },
         shadowOpacity: 0.22,
-        shadowRadius: 8,
+        shadowRadius:  8,
       },
       android: { elevation: 3 },
       default: {},
     }),
   },
   cellText: {
-    fontSize: 14,
-    color: colors.textBody,
-    fontWeight: '400',
+    fontSize:   14,
+    color:      colors.textBody,
+    fontWeight: typography.weights.regular,
   },
-  // PWA: .day-cell.is-memorial { color:#fffaf0 }
-  cellTextMemorial: {
-    color: '#fffaf0',
-    fontWeight: '600',
-  },
-  // PWA: .day-cell.has-note::after — symbol indicator
-  eventMarker: {
-    position: 'absolute',
-    bottom: 4,
-    right: 6,
-    fontSize: 11,
-    lineHeight: 13,
-  },
+  cellTextMemorial: { color: '#fffaf0', fontWeight: typography.weights.semibold },
+  eventMarker: { position: 'absolute', bottom: 4, right: 6, fontSize: 11, lineHeight: 13 },
 
-  // PWA: .add-card-toggle (same as wall/letters screens)
+  // PWA `.add-card-toggle` and inline form
   addToggle: {
-    flexDirection: 'column',
-    alignItems: 'center',
+    flexDirection:  'column',
+    alignItems:     'center',
     justifyContent: 'center',
-    gap: 8,
-    minHeight: 96,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    gap:            8,
+    minHeight:      96,
+    borderRadius:   radii.card,
+    borderWidth:    1,
+    borderColor:    colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
-    marginBottom: 12,
+    marginBottom:   12,
     ...shadows.card,
   },
   addTogglePressed: { transform: [{ scale: 0.99 }], opacity: 0.95 },
   addIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width:           42,
+    height:          42,
+    borderRadius:    21,
     backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   addPlus: {
-    fontSize: 27,
-    fontWeight: '600',
-    color: colors.textOnPrimary,
+    fontSize:   27,
+    fontWeight: typography.weights.semibold,
+    color:      colors.textOnPrimary,
     lineHeight: 32,
-    textAlign: 'center',
+    textAlign:  'center',
     includeFontPadding: false,
   },
   addLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontSize:   15,
+    fontWeight: typography.weights.bold,
+    color:      colors.textPrimary,
   },
 
-  // PWA: .day-list { gap:12px }
-  eventList: { gap: 12 },
-
-  // Shadow wrapper (shadow separate from overflow:hidden)
-  eventCardShadow: {
-    borderRadius: 24,
-    ...shadows.soft,
-  },
-  // PWA: .day-card.card { overflow:hidden; border-radius:24px; padding:16; border:1px var(--line) }
-  eventCard: {
-    overflow: 'hidden',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.divider,
+  formCardShadow: { borderRadius: radii.card, marginBottom: 12, ...shadows.soft },
+  formCard: {
+    position:        'relative',
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.98)',
-    padding: 16,
+    padding:         spacing.md,
+    gap:             14,
   },
-  // PWA: .delete-action { position:absolute; top:12; right:12; border-radius:999 }
-  cardActions: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    flexDirection: 'row',
-    gap: 6,
-    zIndex: 2,
-  },
-  actionPill: {
-    minHeight: 36,
-    paddingHorizontal: 13,
-    borderRadius: 999,
+  closeBtn: {
+    position:        'absolute',
+    top:             10,
+    right:           10,
+    width:           44,
+    height:          44,
+    borderRadius:    22,
     backgroundColor: 'rgba(255, 250, 240, 0.88)',
-    borderWidth: 1,
-    borderColor: colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    alignItems:      'center',
+    justifyContent:  'center',
+    zIndex:          2,
   },
-  deletePill: {
-    backgroundColor: 'rgba(143, 77, 56, 0.92)',
-    borderColor: 'transparent',
+  closeBtnText: {
+    fontSize:   22,
+    color:      colors.mossDark,
+    lineHeight: 24,
+    includeFontPadding: false,
   },
-  // PWA: .day-card { display:grid; grid-template-columns:auto 1fr; gap:12 }
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  // PWA: .day-symbol { width:38; height:38; border-radius:50%; bg:var(--moss); color:#fffaf0 }
-  daySymbol: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.moss,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  daySymbolText: {
-    fontSize: 16,
-    color: '#fffaf0',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  eventBody: { flex: 1, paddingRight: 60 },
-  // PWA: .date-line { brown serif italic 18px }
-  dateLine: {
-    fontFamily: typography.serif,
-    fontSize: 18,
-    fontStyle: 'italic',
-    fontWeight: '500',
-    color: colors.brown,
-    lineHeight: 21,
-    marginBottom: 4,
-  },
-  // PWA: h3 { font-size:1.35rem≈22px; color:var(--moss-dark) }
-  eventName: {
-    fontFamily: typography.serif,
-    fontSize: 22,
-    lineHeight: 25,
-    fontWeight: '400',
-    color: colors.textPrimary,
-  },
-  eventNote: {
-    color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 6,
-  },
-
-  // Modal
-  modalSafe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  modalBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  iconBtn: { padding: spacing.xs },
-  modalScroll: { paddingHorizontal: spacing.xl, paddingBottom: 60 },
-  modalTitle: {
-    fontFamily: typography.serif,
-    fontSize: typography.sizes.titleLarge,
-    fontWeight: typography.weights.regular,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-    letterSpacing: 0.3,
-  },
+  formField: { gap: 0 },
   fieldLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textBody,
+    fontSize:     typography.sizes.label,
+    fontWeight:   typography.weights.bold,
+    color:        colors.textPrimary,
     marginBottom: 8,
   },
-  symbolRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+
+  eventList: { gap: 12 },
+  eventCardShadow: { borderRadius: radii.card, ...shadows.soft },
+  eventCard: {
+    overflow:        'hidden',
+    borderRadius:    radii.card,
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    padding:         spacing.md,
   },
-  symbolPill: {
+  cardActions: {
+    position:      'absolute',
+    top:           12,
+    right:         12,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    gap:           6,
+    zIndex:        2,
+  },
+  actionPill: {
+    minHeight:       36,
+    paddingHorizontal: 13,
+    borderRadius:    999,
+    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    borderWidth:     1,
+    borderColor:     colors.divider,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  deletePill: { backgroundColor: 'rgba(143, 77, 56, 0.92)', borderColor: 'transparent' },
+  // PWA `.day-card { display: grid; grid-template-columns: auto 1fr; gap: 12 }`
+  eventRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  // PWA `.day-symbol { width: 38; height: 38; border-radius: 50%; bg: var(--moss) }`
+  daySymbol: {
+    width:          38,
+    height:         38,
+    borderRadius:   19,
+    backgroundColor: colors.moss,
+    alignItems:     'center',
+    justifyContent: 'center',
+    marginTop:      2,
+  },
+  daySymbolText: { fontSize: 16, color: '#fffaf0', lineHeight: 20, textAlign: 'center' },
+  eventBody: { flex: 1, paddingRight: 60 },
+  dateLine: {
+    fontFamily:   typography.serif,
+    fontSize:     typography.sizes.italicNote,
+    fontStyle:    'italic',
+    fontWeight:   typography.weights.medium,
+    color:        colors.brown,
+    lineHeight:   typography.lineHeights.italicNote,
+    marginBottom: 4,
+  },
+  eventName: {
+    fontFamily: typography.serif,
+    fontSize:   typography.sizes.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.regular,
+    color:      colors.textPrimary,
+  },
+  eventNote: {
+    color:      colors.textMuted,
+    fontSize:   typography.sizes.body,
+    lineHeight: typography.lineHeights.body,
+    marginTop:  6,
+  },
+
+  symbolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  // PWA `<select> option pills` — PWA parity approximation: PWA uses a native
+  // <select> dropdown; we expose the same four options as inline pill chips.
+  symbolPill: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             6,
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.divider,
+    borderRadius:    999,
+    borderWidth:     1,
+    borderColor:     colors.divider,
     backgroundColor: 'rgba(255, 250, 240, 0.82)',
   },
-  symbolText: {
-    fontSize: 15,
-    color: colors.moss,
-    lineHeight: 18,
-  },
-  symbolTextActive: { color: colors.textOnPrimary },
-  symbolLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.moss,
-  },
+  symbolText:        { fontSize: 15, color: colors.moss, lineHeight: 18 },
+  symbolTextActive:  { color: colors.textOnPrimary },
+  symbolLabel:       { fontSize: 12, fontWeight: typography.weights.bold, color: colors.moss },
   symbolLabelActive: { color: colors.textOnPrimary },
   pressed: { opacity: 0.72 },
-  inputWrap: { marginBottom: spacing.md },
 });

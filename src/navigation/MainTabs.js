@@ -36,6 +36,10 @@ export default function MainTabs() {
       <Tab.Screen name="Letters"  component={LettersScreen}   options={{ title: t('tab.letters') }} />
       <Tab.Screen name="Calendar" component={CalendarScreen}  options={{ title: t('tab.calendar') }} />
       <Tab.Screen name="Memorial" component={MemorialDayScreen} options={{ title: t('tab.memorial'), tabBarHidden: true }} />
+      {/* PWA shows the bottom nav on the memorial screen as well, but the
+          PWA tab bar has 5 entries (no Memorial tab). We hide the Memorial
+          entry from the tab bar to match PWA, while still allowing
+          navigation.navigate('Memorial') from the home quick actions. */}
       <Tab.Screen name="Settings" component={SettingsScreen}  options={{ title: t('tab.settings') }} />
     </Tab.Navigator>
   );

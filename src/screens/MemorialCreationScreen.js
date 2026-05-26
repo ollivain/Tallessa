@@ -203,27 +203,17 @@ export default function MemorialCreationScreen() {
             <Text style={styles.title}>{t('creation.title')}</Text>
             <Text style={styles.subtitle}>{t('creation.subtitle')}</Text>
 
+            {/* PWA settings/creation form is one big card, not multiple.
+                Field order mirrors index.html lines 336–450 exactly:
+                horseName → petType → petTypeCustom → memorialName → memorialDate
+                → memorialImage → calendar-photos-disclosure → theme-disclosure
+                → language → save. The RN-only birth + description fields are
+                placed where they group naturally (next to memorialDate and
+                memorialImage respectively) without disturbing PWA order. */}
             <View style={styles.formCardShadow}>
               <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
-                <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
-                <View style={styles.langRow}>
-                  <LanguagePill
-                    label={t('settings.languageFi')}
-                    active={language === 'fi'}
-                    onPress={() => setLanguage('fi')}
-                  />
-                  <LanguagePill
-                    label={t('settings.languageEn')}
-                    active={language === 'en'}
-                    onPress={() => setLanguage('en')}
-                  />
-                </View>
-              </View>
-            </View>
+                <Text style={styles.createNote}>{t('settings.createNote')}</Text>
 
-            <View style={styles.formCardShadow}>
-              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
-                <Text style={styles.sectionTitle}>{t('settings.createNote')}</Text>
                 <AppInput
                   label={t('settings.horseName')}
                   value={name}
@@ -231,6 +221,7 @@ export default function MemorialCreationScreen() {
                   placeholder={t('settings.horseNamePlaceholder')}
                 />
 
+                {/* PWA `<select name="petType">` → modal picker (RN-native dropdown) */}
                 <View>
                   <Text style={styles.fieldLabel}>{t('settings.petType')}</Text>
                   <Pressable
@@ -253,14 +244,6 @@ export default function MemorialCreationScreen() {
                 />
 
                 <AppInput
-                  label={t('creation.description')}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder={t('creation.descriptionPlaceholder')}
-                  multiline
-                />
-
-                <AppInput
                   label={t('settings.memorialName')}
                   value={memorialName}
                   onChangeText={setMemorialName}
@@ -274,30 +257,18 @@ export default function MemorialCreationScreen() {
                   placeholder={t('creation.datePlaceholder')}
                 />
 
+                {/* RN extra: birth date. Kept here (not in PWA) but grouped next to
+                    memorialDate so PWA visitors won't notice an out-of-place field. */}
                 <AppInput
                   label={t('creation.birth')}
                   value={birth}
                   onChangeText={setBirth}
                   placeholder={t('creation.datePlaceholder')}
                 />
-              </View>
-            </View>
 
-            <View style={styles.formCardShadow}>
-              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
-                <ImagePickerBlock
-                  label={t('creation.portrait')}
-                  uri={heroImageUri}
-                  position={heroImagePosition}
-                  onPositionChange={setHeroImagePosition}
-                  icon="image"
-                  onPick={pickHeroImage}
-                  onRemove={removeHeroImage}
-                  pickLabel={heroImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
-                  removeLabel={t('creation.removePortrait')}
-                  tint={themeColors.brown}
-                />
-
+                {/* PWA `<input name="memorialImage" type="file">` — single picker.
+                    RN exposes both the hero image and memorial image since both
+                    can be set independently on the settings page in PWA app.js. */}
                 <ImagePickerBlock
                   label={t('settings.memorialImage')}
                   uri={memorialImageUri}
@@ -311,6 +282,31 @@ export default function MemorialCreationScreen() {
                   tint={themeColors.brown}
                 />
 
+                <ImagePickerBlock
+                  label={t('creation.portrait')}
+                  uri={heroImageUri}
+                  position={heroImagePosition}
+                  onPositionChange={setHeroImagePosition}
+                  icon="image"
+                  onPick={pickHeroImage}
+                  onRemove={removeHeroImage}
+                  pickLabel={heroImageUri ? t('creation.changePortrait') : t('creation.pickPortrait')}
+                  removeLabel={t('creation.removePortrait')}
+                  tint={themeColors.brown}
+                />
+
+                {/* RN extra: "a few words" description (not in PWA settings form,
+                    but stored on the memorial model). Placed after the images so
+                    the PWA fields stay in their canonical order. */}
+                <AppInput
+                  label={t('creation.description')}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder={t('creation.descriptionPlaceholder')}
+                  multiline
+                />
+
+                {/* PWA `.calendar-photos-disclosure` — <details> accordion */}
                 <Pressable
                   onPress={() => setCalExpanded((value) => !value)}
                   style={({ pressed }) => [styles.accordion, { backgroundColor: themeColors.mossDark }, pressed && { opacity: 0.88 }]}
@@ -371,11 +367,8 @@ export default function MemorialCreationScreen() {
                     ) : null}
                   </View>
                 ) : null}
-              </View>
-            </View>
 
-            <View style={styles.formCardShadow}>
-              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                {/* PWA `.theme-disclosure` — <details> accordion */}
                 <Pressable
                   onPress={() => setThemeExpanded((value) => !value)}
                   style={({ pressed }) => [styles.accordion, { backgroundColor: themeColors.mossDark }, pressed && { opacity: 0.88 }]}
@@ -423,11 +416,25 @@ export default function MemorialCreationScreen() {
                     </View>
                   </View>
                 ) : null}
-              </View>
-            </View>
 
-            <View style={styles.formCardShadow}>
-              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+                {/* PWA `.language-picker` — language <select>.
+                    Placed at end of the form, matching PWA order. */}
+                <View>
+                  <Text style={styles.fieldLabel}>{t('settings.language')}</Text>
+                  <View style={styles.langRow}>
+                    <LanguagePill
+                      label={t('settings.languageFi')}
+                      active={language === 'fi'}
+                      onPress={() => setLanguage('fi')}
+                    />
+                    <LanguagePill
+                      label={t('settings.languageEn')}
+                      active={language === 'en'}
+                      onPress={() => setLanguage('en')}
+                    />
+                  </View>
+                </View>
+
                 {error ? <Text style={styles.error}>{error}</Text> : null}
                 <AppButton label={t('creation.save')} onPress={onSave} />
                 <AppButton
@@ -602,6 +609,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textMuted,
     lineHeight: 19,
+  },
+  // PWA `.settings-create-note { color: var(--muted); font-weight: 700;
+  //   line-height: 1.55; margin-bottom: 16px }`
+  createNote: {
+    fontSize:     13,
+    fontWeight:   '700',
+    color:        colors.textMuted,
+    lineHeight:   19,
+    marginBottom: 2,
   },
   fieldLabel: {
     fontSize: 13,
