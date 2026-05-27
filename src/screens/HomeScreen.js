@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     borderRadius:      radii.button,
     borderWidth:       1,
     borderColor:       colors.cardBorder,
-    backgroundColor:   'rgba(255, 250, 240, 0.72)',
+    backgroundColor:   'rgba(255, 244, 222, 0.88)',
     ...shadows.soft,
   },
   tilePressed: { transform: [{ scale: 0.98 }], opacity: 0.94 },

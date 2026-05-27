@@ -29,8 +29,8 @@ export default function AppCard({
       ? cardStyles.warm
       : cardStyles.base;
 
-  // Override the static card colour with the active theme's card colour.
-  const themed = [base, { backgroundColor: themeColors.card }, style];
+  // Override static card colours with the active theme's values.
+  const themed = [base, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }, style];
 
   if (onPress) {
     return (

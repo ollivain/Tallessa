@@ -17,15 +17,18 @@ export const colors = {
   background:     '#f2e8d7',                    // --color-background
   backgroundSoft: '#f6efde',                    // mid-tone for subtle bands
   backgroundWarm: '#ede2cb',                    // warmer footer tint near tab bar
+  backgroundCream: '#fdf5e4',                   // brightest warm ivory (lightest bg option)
   surface:        '#e6d8c0',                    // --color-surface / --sand
-  card:           '#fffaf0',                    // --color-card
-  cardSoft:       '#fffdf6',                    // brightest ivory
-  cardWarm:       '#f8efdd',                    // off-white with a beige cast
+  card:           '#fff4e3',                    // warm amber-ivory card (was #fffaf0)
+  cardSoft:       '#fff8ec',                    // mid-warm ivory (was #fffdf6)
+  cardWarm:       '#f8e8cf',                    // rich warm cream (was #f8efdd)
+  cardCream:      '#fff4e3',                    // warmest card surface — amber ivory
 
   // Ink / text — PWA --text / --muted
   textPrimary:    '#26352a',                    // --color-primary (theme-classic)
   textBody:       '#2f362f',                    // --text
   textMuted:      '#65695d',                    // --muted
+  mutedText:      '#65695d',                    // alias: textMuted (convenience)
   textSoft:       '#9b8d72',                    // faintest body text (selector-bird stroke tone)
   textOnImage:    '#fffaf0',                    // overlay text on hero/memorial backgrounds
   textOnPrimary:  '#fffaf0',                    // text on moss buttons
@@ -33,37 +36,51 @@ export const colors = {
   // Accents — PWA --moss / --moss-dark / --brown
   moss:           '#586244',                    // --color-primary-soft (root)
   mossDark:       '#26352a',                    // --color-primary
+  primaryGreen:   '#26352a',                    // alias: mossDark — dark forest green headings/icons
   brown:          '#9a7657',                    // --color-accent (root)
   brownSoft:      '#b89b70',
+
+  // Candle-warmth accent tokens — warm glow palette
+  candleGold:     '#c49a3c',                    // deep candle honey gold — warm accent
+  softGold:       '#d4b06a',                    // lighter warm gold highlight
+  warmBorder:     'rgba(192, 152, 80, 0.22)',   // subtle warm golden card border
+
+  // Semantic warm-theme surface tokens (overridden per-theme in themes.js)
+  // These give each theme its own warm identity while sharing the same token names.
+  surfaceWarm:    '#f8e8cf',                    // slightly darker warm surface within cards
+  overlayWarm:    'rgba(255, 244, 222, 0.97)',  // semi-opaque warm overlay for card bg
+  borderWarm:     'rgba(192, 152, 80, 0.22)',   // alias: warmBorder (theme-specific golden border)
+  candleGlow:     'rgba(196, 154, 60, 0.10)',   // subtle golden glow behind cards
 
   // Lines / overlays — PWA --line
   divider:        'rgba(79, 83, 62, 0.14)',     // --line
   cardBorder:     'rgba(255, 250, 240, 0.72)',  // .memory-of-day / .daily-quote border-color
   cardBorderSoft: 'rgba(255, 250, 240, 0.72)',  // warm card border
   hairline:       'rgba(48, 56, 45, 0.10)',     // section-button shadow contour
+  shadowWarm:     '#7a5435',                    // warm amber shadow base (candle glow underkey)
 
-  // Hero gradient bands — PWA `linear-gradient(180deg, rgba(37,42,31,.08) 24%,
-  // rgba(37,42,31,.72) 100%)` (.hero-image).
-  // PWA parity approximation: RN has no native multi-stop gradient without an
-  // extra dep, so the gradient is sliced into ten translucent stepped bands.
-  // Values calculated from the CSS gradient: 0–24% is constant 0.08, then
-  // linear from 0.08 → 0.72 over 24–100%.
+  // Hero gradient bands — warm amber-brown candle glow (replaces the original
+  // cool dark-forest-green `rgba(37,42,31,…)`).
+  // Warm dark amber `rgba(52,30,8,…)` gives the hero image a candlelight feel:
+  // barely-there golden warmth at the top, deep amber at the bottom for legible text.
+  // Opacity curve mirrors the original (0–24% constant ~0.05, then linear → 0.70).
   heroOverlayBands: [
-    'rgba(37, 42, 31, 0.08)',
-    'rgba(37, 42, 31, 0.08)',
-    'rgba(37, 42, 31, 0.09)',
-    'rgba(37, 42, 31, 0.17)',
-    'rgba(37, 42, 31, 0.26)',
-    'rgba(37, 42, 31, 0.34)',
-    'rgba(37, 42, 31, 0.43)',
-    'rgba(37, 42, 31, 0.51)',
-    'rgba(37, 42, 31, 0.59)',
-    'rgba(37, 42, 31, 0.68)',
+    'rgba(52, 30, 8, 0.05)',
+    'rgba(52, 30, 8, 0.05)',
+    'rgba(52, 30, 8, 0.09)',
+    'rgba(52, 30, 8, 0.18)',
+    'rgba(52, 30, 8, 0.28)',
+    'rgba(52, 30, 8, 0.37)',
+    'rgba(52, 30, 8, 0.46)',
+    'rgba(52, 30, 8, 0.54)',
+    'rgba(52, 30, 8, 0.61)',
+    'rgba(52, 30, 8, 0.70)',
   ],
 
   // Eyebrow pill — PWA .memory-of-day .eyebrow / .daily-quote .eyebrow
-  pillBg:   'rgba(224, 216, 196, 0.72)',
-  pillText: 'rgba(48, 56, 45, 0.78)',
+  // Warmed up from neutral beige to golden-sand to echo the candle palette.
+  pillBg:   'rgba(220, 196, 148, 0.72)',
+  pillText: 'rgba(52, 38, 16, 0.80)',
 
   // Tab bar — PWA .bottom-nav
   // PWA parity approximation: the PWA layers a 22px backdrop-filter blur on
@@ -72,12 +89,12 @@ export const colors = {
   // through the bar and makes scroll text appear behind the icons.
   // Using a fully-opaque cream matches the visual result while keeping the
   // PWA palette.
-  tabBg:            '#fffaf0',
-  tabBgInactive:    '#fffaf0',
+  tabBg:            '#fff4e3',   // warm amber-ivory (matches card)
+  tabBgInactive:    '#fff4e3',
   tabActiveBg:      'rgba(88, 98, 68, 0.10)',   // .bottom-nav button.is-active
   tabActiveText:    '#26352a',
   tabInactiveText:  'rgba(101, 105, 93, 0.72)', // color-mix(muted 72%, cream 28%)
-  tabBorderTop:     'rgba(255, 250, 240, 0.62)', // .bottom-nav border-top
+  tabBorderTop:     'rgba(100, 75, 40, 0.28)',   // darker warm brown — clear shelf separation
 
   // Feedback — PWA .danger-action / .danger-zone (styles.css ~L1273+)
   danger:        '#8f4d38',                      // .danger-zone-label colour
@@ -230,90 +247,104 @@ export const radii = {
 };
 
 // ── Shadows ───────────────────────────────────────────────────────────────
-// PWA --shadow / --soft-shadow / button + nav shadows.
-// Each entry below explicitly references its PWA box-shadow rule.
+// Warm-toned shadows — neutral warm brown for everyday cards (no golden halo
+// on everything), golden amber reserved only for hero / candle elements.
+//
+// Balance:
+//   • soft / card  = neutral warm brown (#8c6844) — present but not glowing
+//   • hero / candle = warm amber (#9a6b30/#d4a050) — premium glow only there
+//   • tabBar       = dark warm brown, tight offset — creates visible separation
 export const shadows = {
-  // PWA --soft-shadow: 0 12px 30px rgba(83,73,55,0.08)
+  // Small card / form-card — neutral warm brown, tight (no golden filter halo)
+  // PWA reference: --soft-shadow: 0 12px 30px rgba(83,73,55,0.08)
   soft: Platform.select({
     ios: {
-      shadowColor:   '#534937',
-      shadowOffset:  { width: 0, height: 12 },
-      shadowOpacity: 0.08,
-      shadowRadius:  12,
+      shadowColor:   '#8c6844',   // neutral warm brown — not golden amber
+      shadowOffset:  { width: 0, height: 4 },
+      shadowOpacity: 0.08,        // subtle — just enough depth
+      shadowRadius:  12,          // tight — no ambient halo on whole UI
     },
     android: { elevation: 2 },
     default: {},
   }),
-  // PWA --shadow: 0 18px 48px rgba(83,73,55,0.13)
+  // Raised card — slightly deeper neutral warm shadow
+  // PWA reference: --shadow: 0 18px 48px rgba(83,73,55,0.13)
   card: Platform.select({
     ios: {
-      shadowColor:   '#534937',
-      shadowOffset:  { width: 0, height: 18 },
-      shadowOpacity: 0.13,
-      shadowRadius:  16,
+      shadowColor:   '#8c6844',   // neutral warm brown
+      shadowOffset:  { width: 0, height: 6 },
+      shadowOpacity: 0.10,
+      shadowRadius:  15,
     },
-    android: { elevation: 4 },
+    android: { elevation: 3 },
     default: {},
   }),
-  // PWA .primary-action: box-shadow 0 13px 30px rgba(88,98,68,0.18)
+  // Primary action button — warm amber-brown
   button: Platform.select({
     ios: {
-      shadowColor:   '#586244',
-      shadowOffset:  { width: 0, height: 13 },
-      shadowOpacity: 0.18,
-      shadowRadius:  10,
+      shadowColor:   '#7a5435',
+      shadowOffset:  { width: 0, height: 8 },
+      shadowOpacity: 0.16,
+      shadowRadius:  14,
     },
     android: { elevation: 6 },
     default: {},
   }),
-  // PWA .hero / .selector-hero h1 / .selector-add deep elevation:
-  //   .hero box-shadow: 0 18px 44px rgba(55,48,35,0.13)
-  //   .memorial-card box-shadow: 0 22px 60px rgba(55,48,35,0.20)
-  // We expose the deeper variant for hero/memorial cards.
+  // Hero / memorial card — warm amber glow (reserved for premium section only)
   hero: Platform.select({
     ios: {
-      shadowColor:   '#373023',
-      shadowOffset:  { width: 0, height: 22 },
-      shadowOpacity: 0.20,
-      shadowRadius:  24,
+      shadowColor:   '#9a6b30',   // warm amber-brown
+      shadowOffset:  { width: 0, height: 14 },
+      shadowOpacity: 0.18,
+      shadowRadius:  28,          // wide but focused around the hero image
     },
     android: { elevation: 8 },
     default: {},
   }),
-  // PWA .memorial-place-card: 0 22px 46px rgba(62,53,36,0.18), 0 7px 16px rgba(62,53,36,0.08)
-  // PWA parity approximation: RN supports only one shadow per view, so we
-  // merge into the larger of the two. The 7px inner glow / 1px inset are
-  // dropped (no native equivalent without overlay views).
+  // Memorial selector place cards
   selectorCard: Platform.select({
     ios: {
-      shadowColor:   '#3e3524',
-      shadowOffset:  { width: 0, height: 22 },
-      shadowOpacity: 0.18,
-      shadowRadius:  23,
+      shadowColor:   '#9a6b30',
+      shadowOffset:  { width: 0, height: 16 },
+      shadowOpacity: 0.14,
+      shadowRadius:  24,
     },
     android: { elevation: 6 },
     default: {},
   }),
-  // PWA .bottom-nav: 0 -8px 26px rgba(55,48,35,0.08)
+  // Bottom tab bar — dark warm brown, tight offset for clear visual separation.
+  // Tighter radius = a defined "shelf" edge rather than a diffuse golden bloom.
   tabBar: Platform.select({
     ios: {
-      shadowColor:   '#373023',
-      shadowOffset:  { width: 0, height: -8 },
-      shadowOpacity: 0.08,
-      shadowRadius:  10,
+      shadowColor:   '#4a3018',   // dark warm brown — strong clear edge
+      shadowOffset:  { width: 0, height: -3 },
+      shadowOpacity: 0.18,        // stronger than cards — needs definition
+      shadowRadius:  8,           // tight — visible shelf, not ambient halo
     },
     android: { elevation: 8 },
     default: {},
   }),
-  // PWA .delete-action: 0 10px 22px rgba(83,73,55,0.18)
+  // Action pill (delete, candle-switch)
   pill: Platform.select({
     ios: {
-      shadowColor:   '#534937',
-      shadowOffset:  { width: 0, height: 10 },
-      shadowOpacity: 0.18,
+      shadowColor:   '#7a5435',
+      shadowOffset:  { width: 0, height: 5 },
+      shadowOpacity: 0.12,
       shadowRadius:  10,
     },
     android: { elevation: 3 },
+    default: {},
+  }),
+  // Candle ambient — golden glow reserved for hero/memorial-day cards ONLY.
+  // Do NOT apply to regular form cards or list cards.
+  candle: Platform.select({
+    ios: {
+      shadowColor:   '#d4a050',   // golden amber — the premium glow
+      shadowOffset:  { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius:  22,
+    },
+    android: { elevation: 4 },
     default: {},
   }),
 };
@@ -321,12 +352,14 @@ export const shadows = {
 // ── Reusable style fragments ──────────────────────────────────────────────
 // `cardStyles.base` mirrors PWA .card; `warm` mirrors .daily-quote /
 // .memory-of-day border-color rgba(255,250,240,0.72).
+// All card borders use warmBorder (golden) instead of the cool olive divider
+// so the card edge reads as a warm rim-light, not a cold grey line.
 export const cardStyles = {
   base: {
     backgroundColor: colors.card,
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,   // warm golden rim instead of cool olive
     padding:         spacing.md,
     ...shadows.soft,
   },
@@ -334,15 +367,15 @@ export const cardStyles = {
     backgroundColor: colors.card,
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,   // warm golden rim
     padding:         spacing.md,
     ...shadows.card,
   },
   warm: {
-    backgroundColor: colors.cardWarm,
+    backgroundColor: colors.cardCream,
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.cardBorder,
+    borderColor:     colors.warmBorder,   // golden-warm border
     padding:         spacing.md,
     ...shadows.soft,
   },
@@ -372,9 +405,9 @@ export const buttonStyles = {
     minHeight:       48,
     paddingHorizontal: spacing.lg,
     borderRadius:    radii.secondary,
-    backgroundColor: 'rgba(255, 252, 246, 0.90)',
+    backgroundColor: 'rgba(255, 244, 222, 0.95)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -415,8 +448,8 @@ export const inputStyles = {
     paddingVertical: 13,
     borderRadius:    radii.input,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 252, 246, 0.88)',
+    borderColor:     colors.warmBorder,   // warm golden border glow instead of cool olive
+    backgroundColor: 'rgba(255, 240, 212, 0.92)',
     color:           colors.textBody,
     fontSize:        typography.sizes.input,
   },

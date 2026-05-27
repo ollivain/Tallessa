@@ -23,7 +23,8 @@ import AppScreen from '../components/AppScreen';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
-import PositionedImage, { cardPosition } from '../components/PositionedImage';
+import PositionedImage from '../components/PositionedImage';
+import { resolveCardAspectRatio } from '../lib/imageAspectRatio';
 import ImageControls from '../components/ImageControls';
 import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
@@ -112,8 +113,14 @@ export default function CalendarScreen() {
     activeMemorial?.monthPhotoPositions?.[monthKey] ??
     activeMemorial?.monthPhotoPositions?.[paddedMonthKey];
 
-  const goPrev = () => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
-  const goNext = () => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
+  const goPrev = () => {
+    setCoverControlsVisible(false);
+    setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
+  };
+  const goNext = () => {
+    setCoverControlsVisible(false);
+    setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
+  };
 
   const openAdd = () => {
     setName('');
@@ -232,11 +239,19 @@ export default function CalendarScreen() {
 
         {/* PWA `.calendar-card.card { padding: 14; gap: 14; border-radius: 24 }` */}
         <View style={styles.calCardShadow}>
-          <View style={[styles.calCard, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.calCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
             {/* PWA `.month-cover { min-height: 165; border-radius: 18 }`.
-                Tap toggles the floating ImageControls. `cardPosition` keeps
-                the cover cover-fitted into the 165-tall slot regardless of
-                the metadata's aspectRatio choice. */}
+                When metadata supplies an aspectRatio, the cover adopts that
+                shape; otherwise the PWA 165-tall fallback is used. The
+                default cover photo always uses the fallback height. */}
+            {(() => {
+              const coverAspect = coverImageUri
+                ? resolveCardAspectRatio(coverImagePosition)
+                : null;
+              const coverAspectStyle = coverAspect
+                ? { aspectRatio: coverAspect, height: undefined }
+                : null;
+              return (
             <Pressable
               onPress={() => setCoverControlsVisible((v) => !v)}
               accessibilityRole="button"
@@ -245,8 +260,8 @@ export default function CalendarScreen() {
               <PositionedImage
                 uri={coverImageUri || undefined}
                 source={coverImageUri ? undefined : DEFAULT_COVER}
-                position={cardPosition(coverImagePosition)}
-                style={styles.coverImage}
+                position={coverImagePosition}
+                style={[styles.coverImage, coverAspectStyle]}
               />
               <ImageControls
                 variant="floating"
@@ -260,6 +275,8 @@ export default function CalendarScreen() {
                 removeLabel={t('creation.removePortrait')}
               />
             </Pressable>
+              );
+            })()}
 
             {/* PWA `.calendar-controls { grid: 52px 1fr 52px; gap: 10 }` */}
             <View style={styles.monthNav}>
@@ -294,7 +311,7 @@ export default function CalendarScreen() {
         {!open ? (
           <Pressable
             onPress={openAdd}
-            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
+            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }, pressed && styles.addTogglePressed]}
             accessibilityRole="button"
           >
             <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
@@ -305,8 +322,8 @@ export default function CalendarScreen() {
         ) : (
           // PWA `.form-card` inline (gap: 14, padding: 16)
           <View style={styles.formCardShadow}>
-            <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
-              <Pressable onPress={close} hitSlop={6} style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+            <View style={[styles.formCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
+              <Pressable onPress={close} hitSlop={6} style={({ pressed }) => [styles.closeBtn, { backgroundColor: themeColors.surfaceWarm }, pressed && { opacity: 0.7 }]} accessibilityRole="button">
                 <Text style={styles.closeBtnText}>×</Text>
               </Pressable>
 
@@ -331,6 +348,7 @@ export default function CalendarScreen() {
                         onPress={() => setSymbol(option.value)}
                         style={({ pressed }) => [
                           styles.symbolPill,
+                          { backgroundColor: themeColors.overlayWarm },
                           active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                           pressed && styles.pressed,
                         ]}
@@ -428,6 +446,7 @@ function DayCell({ cell }) {
   return (
     <View style={[
       styles.cell,
+      { backgroundColor: themeColors.overlayWarm },
       isToday && [styles.cellToday, { borderColor: `${themeColors.moss}55` }],
       isMemorial && [styles.cellMemorial, { backgroundColor: themeColors.moss }],
       !inMonth && styles.cellMuted,
@@ -455,7 +474,7 @@ function EventCard({ event, language, onDelete }) {
 
   return (
     <View style={styles.eventCardShadow}>
-      <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
+      <View style={[styles.eventCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
         {onDelete ? (
           <View style={styles.cardActions}>
             <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
@@ -491,7 +510,7 @@ function MemoryDayCard({ memory, language }) {
 
   return (
     <View style={styles.eventCardShadow}>
-      <View style={[styles.eventCard, { backgroundColor: themeColors.card }]}>
+      <View style={[styles.eventCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
         <View style={styles.eventRow}>
           <View style={[styles.daySymbol, { backgroundColor: themeColors.moss }]}>
             <Text style={styles.daySymbolText}>{DEFAULT_SYMBOL}</Text>
@@ -569,9 +588,16 @@ const styles = StyleSheet.create({
   },
   // Pressable wrapper for the month cover — hosts tap-to-toggle floating
   // ImageControls. `relative` so the controls can be absolutely positioned.
+  // `maxHeight` + `overflow:hidden` prevent portrait images (e.g. 9:16) from
+  // blowing the calendar card open when the user saved with `aspectRatio:'original'`.
+  // PositionedImage's internal aspectStyle overrides any height on its own View,
+  // so the cap must live on the *parent* with overflow:hidden.
   coverTap: {
-    width:    '100%',
-    position: 'relative',
+    width:        '100%',
+    position:     'relative',
+    maxHeight:    280,
+    overflow:     'hidden',
+    borderRadius: radii.lg,
   },
 
   // PWA `.calendar-card.card { padding: 14; gap: 14; border-radius: 24 }`
@@ -579,8 +605,8 @@ const styles = StyleSheet.create({
   calCard: {
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     padding:         14,
     gap:             14,
   },
@@ -647,7 +673,7 @@ const styles = StyleSheet.create({
     borderRadius:    radii.dayCell,
     alignItems:      'center',
     justifyContent:  'center',
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    backgroundColor: 'rgba(255, 244, 222, 0.86)',
     position:        'relative',
   },
   cellMuted: { opacity: 0.34 },
@@ -682,8 +708,8 @@ const styles = StyleSheet.create({
     minHeight:      96,
     borderRadius:   radii.card,
     borderWidth:    1,
-    borderColor:    colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:    colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     marginBottom:   12,
     ...shadows.card,
   },
@@ -715,8 +741,8 @@ const styles = StyleSheet.create({
     position:        'relative',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     padding:         spacing.md,
     gap:             14,
   },
@@ -727,9 +753,9 @@ const styles = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    backgroundColor: 'rgba(255, 244, 222, 0.90)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
     zIndex:          2,
@@ -754,8 +780,8 @@ const styles = StyleSheet.create({
     overflow:        'hidden',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     padding:         spacing.md,
   },
   cardActions: {
@@ -770,9 +796,9 @@ const styles = StyleSheet.create({
     minHeight:       36,
     paddingHorizontal: 13,
     borderRadius:    999,
-    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    backgroundColor: 'rgba(255, 244, 222, 0.90)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -825,8 +851,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius:    999,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.86)',
   },
   symbolText:        { fontSize: 15, color: colors.moss, lineHeight: 18 },
   symbolTextActive:  { color: colors.textOnPrimary },

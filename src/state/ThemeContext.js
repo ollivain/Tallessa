@@ -1,54 +1,42 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { saveSettings } from '../storage/storage';
-import { themes, THEME_KEYS } from '../theme/themes';
+import { createContext, useContext, useMemo } from 'react';
+import { themes } from '../theme/themes';
 import { colors as baseColors } from '../theme/designSystem';
 
 const ThemeContext = createContext(null);
 
+// Classic theme colours — computed once, never changes.
+const CLASSIC_COLORS = Object.freeze({ ...baseColors, ...themes.classic });
+
 /**
- * Wraps the app and provides the active theme name + computed colour tokens.
- * initialTheme is loaded from AsyncStorage settings in App.js before mount
- * so there is no flash-of-wrong-theme on startup.
+ * Wraps the app and provides the Classic theme colour tokens.
+ * The mobile app uses only the Classic theme; the theme picker has been
+ * removed. initialTheme is accepted but ignored — always resolves to classic.
  */
-export function ThemeProvider({ initialTheme, children }) {
-  const [themeKey, setThemeKey] = useState(() =>
-    THEME_KEYS.includes(initialTheme) ? initialTheme : 'classic',
-  );
-
-  const setTheme = useCallback((key) => {
-    const resolved = THEME_KEYS.includes(key) ? key : 'classic';
-    setThemeKey(resolved);
-    // Persist alongside language (saveSettings merges, not overwrites)
-    saveSettings({ theme: resolved });
-  }, []);
-
-  // Merge base design-system colours with per-theme overrides so consumers
-  // can use themeColors as a drop-in replacement for the static `colors`.
-  const themeColors = useMemo(
-    () => ({ ...baseColors, ...themes[themeKey] }),
-    [themeKey],
-  );
-
+export function ThemeProvider({ children }) {
   const value = useMemo(
-    () => ({ themeKey, setTheme, themeColors, themes }),
-    [themeKey, setTheme, themeColors],
+    () => ({
+      themeKey:    'classic',
+      setTheme:    () => {},   // no-op — kept so any stale callsite doesn't crash
+      themeColors: CLASSIC_COLORS,
+      themes,
+    }),
+    [],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 /**
- * Returns the active theme state.
- * Provides a Classic-theme fallback when called outside a ThemeProvider so
- * components are safe in test/storybook contexts.
+ * Returns the active theme state (always Classic).
+ * Safe to call outside a ThemeProvider — returns Classic fallback.
  */
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     return {
-      themeKey: 'classic',
-      setTheme: () => {},
-      themeColors: { ...baseColors, ...themes.classic },
+      themeKey:    'classic',
+      setTheme:    () => {},
+      themeColors: CLASSIC_COLORS,
       themes,
     };
   }

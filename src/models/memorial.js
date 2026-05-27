@@ -130,14 +130,24 @@ export function normalizePosition(value) {
   const y = Number(position.y);
   const zoom = Number(position.zoom);
   const naturalAspect = Number(position.naturalAspect);
+  const width  = Number(position.width);
+  const height = Number(position.height);
   // PWA parity: every image's saved metadata carries the full crop spec
-  // (aspectRatio + fitMode + naturalAspect) so the rendered card looks the
-  // same as the preview. The older `{ x, y, zoom, fit }` shape is still
-  // accepted and gets transparently upgraded.
+  // (aspectRatio + fitMode + naturalAspect + width + height) so the rendered
+  // card adopts the same shape as the preview. The older
+  // `{ x, y, zoom, fit }` shape is still accepted and gets transparently
+  // upgraded — when present it falls back to `'fill'` (PWA default).
   const fitMode = position.fitMode
     ?? (position.fit === 'contain' ? 'contain' : 'cover');
   // aspectRatio can be 'fill' (default), 'original', or a numeric ratio.
   const aspectRatio = position.aspectRatio ?? 'fill';
+  // Derive a sensible naturalAspect when only raw width/height were stored
+  // (e.g. legacy data picked from older builds).
+  const derivedNatural =
+    Number.isFinite(naturalAspect) && naturalAspect > 0 ? naturalAspect
+    : (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0)
+      ? width / height
+      : 1;
   return {
     x:    Number.isFinite(x) ? x : DEFAULT_POSITION.x,
     y:    Number.isFinite(y) ? y : DEFAULT_POSITION.y,
@@ -145,9 +155,9 @@ export function normalizePosition(value) {
     fit:  fitMode,        // legacy field kept for forward/back compatibility
     fitMode,
     aspectRatio,
-    naturalAspect: Number.isFinite(naturalAspect) && naturalAspect > 0
-      ? naturalAspect
-      : 1,
+    naturalAspect: derivedNatural,
+    width:  Number.isFinite(width)  && width  > 0 ? width  : 0,
+    height: Number.isFinite(height) && height > 0 ? height : 0,
   };
 }
 

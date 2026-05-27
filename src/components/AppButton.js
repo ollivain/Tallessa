@@ -22,10 +22,14 @@ export default function AppButton({
   const containerKey = variant in buttonStyles ? variant : 'primary';
   const labelKey = `${containerKey}Label`;
 
-  // Override primary background colour with the active theme's moss tone
+  // Override static colours with the active theme's values.
+  // primary   → moss background (theme accent)
+  // secondary → surfaceWarm background + borderWarm border
   const themeOverride = containerKey === 'primary'
     ? { backgroundColor: themeColors.moss }
-    : null;
+    : containerKey === 'secondary'
+      ? { backgroundColor: themeColors.surfaceWarm, borderColor: themeColors.borderWarm }
+      : null;
 
   return (
     <Pressable

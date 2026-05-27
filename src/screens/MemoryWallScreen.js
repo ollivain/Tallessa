@@ -25,7 +25,8 @@ import AppInput from '../components/AppInput';
 import EmptyStateCard from '../components/EmptyStateCard';
 import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
 import ImageControls from '../components/ImageControls';
-import PositionedImage, { cardPosition } from '../components/PositionedImage';
+import PositionedImage from '../components/PositionedImage';
+import { resolveCardAspectRatio } from '../lib/imageAspectRatio';
 
 // Shared default so saved metadata has a consistent shape everywhere.
 const DEFAULT_IMAGE_POSITION = DEFAULT_CROP_VALUE;
@@ -362,7 +363,7 @@ export default function MemoryWallScreen({ route }) {
         {!open ? (
           <Pressable
             onPress={openAdd}
-            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
+            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }, pressed && styles.addTogglePressed]}
             accessibilityRole="button"
           >
             <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
@@ -445,12 +446,12 @@ function InlineMemoryForm({
 }) {
   return (
     <View style={[styles.formCardShadow]}>
-      <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+      <View style={[styles.formCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
         {/* PWA `.close-card-button` — 44px round top-right */}
         <Pressable
           onPress={onClose}
           hitSlop={6}
-          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [styles.closeBtn, { backgroundColor: themeColors.surfaceWarm }, pressed && { opacity: 0.7 }]}
           accessibilityRole="button"
         >
           <Text style={styles.closeBtnText}>×</Text>
@@ -477,28 +478,28 @@ function InlineMemoryForm({
 
         {/* Media picker buttons */}
         <View style={styles.mediaActions}>
-          <Pressable onPress={onPickImage} style={styles.mediaBtn}>
+          <Pressable onPress={onPickImage} style={[styles.mediaBtn, { backgroundColor: themeColors.surfaceWarm }]}>
             <Feather name="image" size={15} color={themeColors.moss} />
             <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
               {media?.type === 'image' ? t('wall.changeImage') : t('wall.pickImage')}
             </Text>
           </Pressable>
           {media?.type === 'image' ? (
-            <Pressable onPress={onEditCrop} style={styles.mediaBtn}>
+            <Pressable onPress={onEditCrop} style={[styles.mediaBtn, { backgroundColor: themeColors.surfaceWarm }]}>
               <Feather name="crop" size={15} color={themeColors.moss} />
               <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
                 {t('imageCrop.edit')}
               </Text>
             </Pressable>
           ) : null}
-          <Pressable onPress={onPickVideo} style={styles.mediaBtn}>
+          <Pressable onPress={onPickVideo} style={[styles.mediaBtn, { backgroundColor: themeColors.surfaceWarm }]}>
             <Feather name="video" size={15} color={themeColors.moss} />
             <Text style={[styles.mediaBtnLabel, { color: themeColors.moss }]}>
               {media?.type === 'video' ? t('wall.changeVideo') : t('wall.pickVideo')}
             </Text>
           </Pressable>
           {media ? (
-            <Pressable onPress={onRemoveMedia} style={styles.mediaBtn}>
+            <Pressable onPress={onRemoveMedia} style={[styles.mediaBtn, { backgroundColor: themeColors.surfaceWarm }]}>
               <Feather name="trash-2" size={15} color={colors.danger} />
               <Text style={[styles.mediaBtnLabel, { color: colors.danger }]}>
                 {t('wall.removeMedia')}
@@ -576,19 +577,29 @@ function MemoryCard({
     <View style={styles.memCardShadow}>
       <View style={[
         styles.memCard,
+        { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm },
         highlighted && [styles.memCardHighlighted, { borderColor: themeColors.moss }],
-        { backgroundColor: themeColors.card },
       ]}>
-        {/* Media area with tap-to-toggle. cardPosition forces the card's
-            fixed 230 height to win — prevents the "weird zoom" from a
-            mismatched aspectRatio metadata. */}
+        {/* Media area with tap-to-toggle. The card adopts the user's
+            chosen aspect ratio (1:1, 4:5, original, etc.) when one is in
+            metadata; otherwise the PWA fallback 230-tall slot is used.
+            Videos always use the fallback height — they don't carry crop
+            metadata in this codebase. */}
+        {(() => {
+          const imageAspect = hasImage
+            ? resolveCardAspectRatio(memory.imagePosition)
+            : null;
+          const imageAspectStyle = imageAspect
+            ? { aspectRatio: imageAspect, height: undefined }
+            : null;
+          return (
         <MediaTap
           onPress={mediaType !== 'video' ? onToggleControls : undefined}
           accessibilityRole={mediaType !== 'video' ? 'button' : undefined}
           style={styles.memMediaTap}
         >
           {hasImage ? (
-            <PositionedImage uri={mediaUri} position={cardPosition(memory.imagePosition)} style={styles.memMedia} />
+            <PositionedImage uri={mediaUri} position={memory.imagePosition} style={[styles.memMedia, imageAspectStyle]} />
           ) : mediaType === 'video' ? (
             <VideoClip uri={mediaUri} style={styles.memMedia} />
           ) : (
@@ -614,6 +625,8 @@ function MemoryCard({
             />
           ) : null}
         </MediaTap>
+          );
+        })()}
 
         {/* Trash pill — deletes the *memory* itself, not just the image */}
         <View style={styles.memActions}>
@@ -676,8 +689,8 @@ const styles = StyleSheet.create({
     minHeight:      96,
     borderRadius:   radii.card,
     borderWidth:    1,
-    borderColor:    colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:    colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     marginBottom:   12,
     ...shadows.card,
   },
@@ -716,8 +729,8 @@ const styles = StyleSheet.create({
     position:        'relative',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     padding:         spacing.md,
     gap:             14,
   },
@@ -729,9 +742,9 @@ const styles = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    backgroundColor: 'rgba(255, 244, 222, 0.90)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
     zIndex:          2,
@@ -763,8 +776,8 @@ const styles = StyleSheet.create({
     overflow:        'hidden',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
   },
   memCardHighlighted: { borderWidth: 2 },
   // PWA `.memory-card .media-preview { min-height: 230 }`
@@ -790,9 +803,9 @@ const styles = StyleSheet.create({
     minHeight:       36,
     paddingHorizontal: 13,
     borderRadius:    999,
-    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    backgroundColor: 'rgba(255, 244, 222, 0.90)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -840,7 +853,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius:    radii.pill,
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     backgroundColor: colors.card,
   },
   mediaBtnLabel: {

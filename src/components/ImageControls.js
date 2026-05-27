@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius:      999,
     borderWidth:       1,
-    borderColor:       colors.divider,
+    borderColor:       colors.warmBorder,
     backgroundColor:   colors.card,
   },
   inlineText: {

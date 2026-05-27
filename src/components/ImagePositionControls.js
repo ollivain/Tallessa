@@ -40,6 +40,7 @@ export default function ImagePositionControls({ value, onChange, t }) {
               onPress={() => update({ fit })}
               style={({ pressed }) => [
                 styles.pill,
+                { backgroundColor: themeColors.overlayWarm },
                 active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                 pressed && styles.pressed,
               ]}
@@ -62,6 +63,7 @@ export default function ImagePositionControls({ value, onChange, t }) {
               onPress={() => update({ y: position.value, x: 50 })}
               style={({ pressed }) => [
                 styles.iconPill,
+                { backgroundColor: themeColors.overlayWarm },
                 active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                 pressed && styles.pressed,
               ]}
@@ -89,6 +91,7 @@ export default function ImagePositionControls({ value, onChange, t }) {
               onPress={() => update({ zoom })}
               style={({ pressed }) => [
                 styles.zoomPill,
+                { backgroundColor: themeColors.overlayWarm },
                 active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                 pressed && styles.pressed,
               ]}
@@ -122,8 +125,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    borderColor: colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.82)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -135,8 +138,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    borderColor: colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.82)',
   },
   zoomPill: {
     minHeight: 34,
@@ -145,8 +148,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    borderColor: colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.82)',
   },
   pillText: {
     fontSize: typography.sizes.label,

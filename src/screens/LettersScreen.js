@@ -89,7 +89,7 @@ export default function LettersScreen() {
         {!open ? (
           <Pressable
             onPress={openAdd}
-            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card }, pressed && styles.addTogglePressed]}
+            style={({ pressed }) => [styles.addToggle, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }, pressed && styles.addTogglePressed]}
             accessibilityRole="button"
           >
             <View style={[styles.addIcon, { backgroundColor: themeColors.moss }]}>
@@ -100,11 +100,11 @@ export default function LettersScreen() {
         ) : (
           // PWA `.form-card.letter-editor`
           <View style={styles.formCardShadow}>
-            <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.formCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
               <Pressable
                 onPress={close}
                 hitSlop={6}
-                style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.closeBtn, { backgroundColor: themeColors.surfaceWarm }, pressed && { opacity: 0.7 }]}
                 accessibilityRole="button"
               >
                 <Text style={styles.closeBtnText}>×</Text>
@@ -159,7 +159,7 @@ function LetterCard({ letter, language, onDelete }) {
   const { themeColors } = useTheme();
   return (
     <View style={styles.letterCardShadow}>
-      <View style={[styles.letterCard, { backgroundColor: themeColors.card }]}>
+      <View style={[styles.letterCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
         <View style={styles.cardActions}>
           <Pressable onPress={onDelete} hitSlop={8} style={[styles.actionPill, styles.deletePill]}>
             <Feather name="trash-2" size={12} color="#fffaf0" />
@@ -207,8 +207,8 @@ const styles = StyleSheet.create({
     minHeight:      96,
     borderRadius:   radii.card,
     borderWidth:    1,
-    borderColor:    colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:    colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     marginBottom:   12,
     ...shadows.card,
   },
@@ -245,8 +245,8 @@ const styles = StyleSheet.create({
     position:        'relative',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     padding:         spacing.md,
     gap:             14,
   },
@@ -257,9 +257,9 @@ const styles = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    backgroundColor: 'rgba(255, 244, 222, 0.90)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
     zIndex:          2,
@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
     overflow:        'hidden',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(251, 247, 239, 0.92)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.96)',
   },
   cardActions: {
     position:      'absolute',
@@ -306,9 +306,9 @@ const styles = StyleSheet.create({
     minHeight:       36,
     paddingHorizontal: 13,
     borderRadius:    999,
-    backgroundColor: 'rgba(255, 250, 240, 0.88)',
+    backgroundColor: 'rgba(255, 244, 222, 0.90)',
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     alignItems:      'center',
     justifyContent:  'center',
   },

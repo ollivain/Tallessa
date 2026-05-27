@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     lineHeight:       typography.lineHeights.h1Selector,
     fontWeight:       typography.weights.regular,
     color:            colors.mossDark,
-    textShadowColor:  'rgba(255, 255, 255, 0.62)',
+    textShadowColor:  'rgba(255, 240, 180, 0.68)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 0,
     marginBottom:     14,
@@ -163,9 +163,9 @@ const styles = StyleSheet.create({
     minHeight:       122,
     padding:         14,
     borderRadius:    radii.selectorCard,
-    backgroundColor: 'rgba(255, 253, 247, 0.78)',
+    backgroundColor: 'rgba(255, 244, 222, 0.86)',
     borderWidth:     1,
-    borderColor:     'rgba(255, 255, 255, 0.82)',
+    borderColor:     'rgba(200, 168, 110, 0.55)',
     ...shadows.selectorCard,
   },
   placeCardPressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
@@ -225,10 +225,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     ...Platform.select({
       ios: {
-        shadowColor:   '#2d3a27',
-        shadowOffset:  { width: 0, height: 16 },
-        shadowOpacity: 0.20,
-        shadowRadius:  14,
+        shadowColor:   '#7a5435',   // warm amber (was cool forest-green #2d3a27)
+        shadowOffset:  { width: 0, height: 10 },
+        shadowOpacity: 0.16,
+        shadowRadius:  20,          // wider warm glow
       },
       android: { elevation: 6 },
       default: {},

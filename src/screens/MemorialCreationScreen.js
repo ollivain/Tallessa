@@ -28,7 +28,6 @@ import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCr
 import PositionedImage from '../components/PositionedImage';
 import { pickImageFromLibrary, pickMultipleImagesFromLibrary, removePersistedMedia } from '../lib/media';
 import { useTheme } from '../state/ThemeContext';
-import { themes, THEME_KEYS } from '../theme/themes';
 import { parseDateInput } from '../models/memorial';
 
 // All image pickers share the same default metadata so the saved value is
@@ -73,7 +72,7 @@ function toMonthPhotoPositions(calendarImages, positions) {
 export default function MemorialCreationScreen() {
   const { t, language, setLanguage } = useI18n();
   const { createMemorial } = useMemorials();
-  const { themeKey, setTheme, themeColors } = useTheme();
+  const { themeColors } = useTheme();
   const navigation = useNavigation();
 
   const [name, setName] = useState('');
@@ -93,7 +92,6 @@ export default function MemorialCreationScreen() {
   const savedMediaRef = useRef(false);
   const [petTypeOpen, setPetTypeOpen] = useState(false);
   const [calExpanded, setCalExpanded] = useState(false);
-  const [themeExpanded, setThemeExpanded] = useState(false);
   // cropTarget routes the ImageCropAspectPicker modal: { uri, current, apply, replace }
   const [cropTarget, setCropTarget] = useState(null);
 
@@ -237,7 +235,7 @@ export default function MemorialCreationScreen() {
       monthPhotos: toMonthPhotos(calendarImages),
       monthPhotoPositions: toMonthPhotoPositions(calendarImages, calendarImagePositions),
       importantDays: [],
-      theme: themeKey,
+      theme: 'classic',
       language,
       name: trimmed,
       death: parseDateInput(death),
@@ -272,7 +270,7 @@ export default function MemorialCreationScreen() {
                 → memorialImage → calendar-photos-disclosure → theme-disclosure
                 → language → save. */}
             <View style={styles.formCardShadow}>
-              <View style={[styles.formCard, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.formCard, { backgroundColor: themeColors.card, borderColor: themeColors.borderWarm }]}>
                 <Text style={styles.createNote}>{t('settings.createNote')}</Text>
 
                 <AppInput
@@ -287,7 +285,7 @@ export default function MemorialCreationScreen() {
                   <Text style={styles.fieldLabel}>{t('settings.petType')}</Text>
                   <Pressable
                     onPress={() => setPetTypeOpen(true)}
-                    style={({ pressed }) => [styles.selectRow, pressed && styles.pressed]}
+                    style={({ pressed }) => [styles.selectRow, { backgroundColor: themeColors.surfaceWarm, borderColor: themeColors.borderWarm }, pressed && styles.pressed]}
                     accessibilityRole="button"
                   >
                     <Text style={[styles.selectValue, !petType && styles.selectPlaceholder]}>
@@ -367,7 +365,7 @@ export default function MemorialCreationScreen() {
                     <Text style={styles.accordionNote}>{t('settings.calendarImagesDesc')}</Text>
                     <Pressable
                       onPress={pickCalendarImages}
-                      style={({ pressed }) => [styles.pickButton, pressed && styles.pressed]}
+                      style={({ pressed }) => [styles.pickButton, { backgroundColor: themeColors.surfaceWarm, borderColor: themeColors.borderWarm }, pressed && styles.pressed]}
                       accessibilityRole="button"
                     >
                       <Text style={[styles.pickButtonTitle, { color: themeColors.textPrimary }]}>{t('settings.calendarImagesPick')}</Text>
@@ -395,7 +393,7 @@ export default function MemorialCreationScreen() {
                             <Text style={styles.monthPositionLabel}>{getMonthName(index, language)}</Text>
                             <Pressable
                               onPress={() => editCalendarCrop(index)}
-                              style={({ pressed }) => [styles.editCropBtn, pressed && styles.pressed]}
+                              style={({ pressed }) => [styles.editCropBtn, { backgroundColor: themeColors.surfaceWarm, borderColor: themeColors.borderWarm }, pressed && styles.pressed]}
                               accessibilityRole="button"
                             >
                               <Feather name="crop" size={14} color={themeColors.moss} />
@@ -407,55 +405,6 @@ export default function MemorialCreationScreen() {
                         ) : null)}
                       </View>
                     ) : null}
-                  </View>
-                ) : null}
-
-                {/* PWA `.theme-disclosure` — <details> accordion */}
-                <Pressable
-                  onPress={() => setThemeExpanded((value) => !value)}
-                  style={({ pressed }) => [styles.accordion, { backgroundColor: themeColors.mossDark }, pressed && { opacity: 0.88 }]}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.accordionTitle}>{t('settings.themeSection')}</Text>
-                  <View style={styles.accordionRight}>
-                    <Text style={styles.accordionCurrentTheme}>{t(`settings.themes.${themeKey}`)}</Text>
-                    <Feather name={themeExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#fffaf0" />
-                  </View>
-                </Pressable>
-
-                {themeExpanded ? (
-                  <View style={styles.accordionBody}>
-                    <View style={styles.themeList}>
-                      {THEME_KEYS.map((key) => {
-                        const th = themes[key];
-                        const active = themeKey === key;
-                        return (
-                          <Pressable
-                            key={key}
-                            onPress={() => setTheme(key)}
-                            style={({ pressed }) => [
-                              styles.themeCard,
-                              active && styles.themeCardActive,
-                              pressed && styles.pressed,
-                            ]}
-                            accessibilityRole="button"
-                          >
-                            <View style={[styles.themeAccent, { backgroundColor: th.accentHex }]} />
-                            <View style={styles.themeBody}>
-                              <Text style={[styles.themeName, { color: th.mossDark }]}>
-                                {t(`settings.themes.${key}`)}
-                              </Text>
-                              <Text style={styles.themeTagline}>{t('tagline')}</Text>
-                            </View>
-                            {active ? (
-                              <View style={[styles.themeCheck, { backgroundColor: th.moss }]}>
-                                <Feather name="check" size={14} color="#fffaf0" />
-                              </View>
-                            ) : null}
-                          </Pressable>
-                        );
-                      })}
-                    </View>
                   </View>
                 ) : null}
 
@@ -634,8 +583,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
+    borderColor: colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.98)',
     padding: 16,
     gap: 14,
   },
@@ -668,8 +617,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 252, 246, 0.88)',
+    borderColor: colors.warmBorder,
+    backgroundColor: 'rgba(255, 240, 212, 0.92)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -689,7 +638,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.divider,
+    borderColor: colors.warmBorder,
     marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -713,7 +662,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.divider,
+    borderColor: colors.warmBorder,
     backgroundColor: colors.card,
   },
   smallButtonLabel: {
@@ -754,12 +703,6 @@ const styles = StyleSheet.create({
     color: '#fffaf0',
     letterSpacing: 0.4,
   },
-  accordionCurrentTheme: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255, 250, 240, 0.78)',
-    letterSpacing: 0.3,
-  },
   accordionBody: {
     gap: 12,
     paddingTop: 2,
@@ -773,8 +716,8 @@ const styles = StyleSheet.create({
     minHeight: 64,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    borderColor: colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.86)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
@@ -802,7 +745,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.divider,
+    borderColor: colors.warmBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -837,7 +780,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius:    radii.pill,
     borderWidth:     1,
-    borderColor:     colors.divider,
+    borderColor:     colors.warmBorder,
     backgroundColor: colors.card,
     alignSelf:       'flex-start',
   },
@@ -848,59 +791,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  themeList: { gap: 10 },
-  themeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
-    overflow: 'hidden',
-    minHeight: 68,
-  },
-  themeCardActive: {
-    borderColor: 'rgba(88, 98, 68, 0.42)',
-    backgroundColor: 'rgba(255, 250, 240, 0.98)',
-  },
-  themeAccent: {
-    width: 6,
-    alignSelf: 'stretch',
-  },
-  themeBody: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 2,
-  },
-  themeName: {
-    fontFamily: typography.serif,
-    fontSize: 20,
-    fontWeight: '400',
-    letterSpacing: 0.2,
-    lineHeight: 24,
-  },
-  themeTagline: {
-    fontSize: 12,
-    color: colors.textMuted,
-    letterSpacing: 0.2,
-  },
-  themeCheck: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-
   langRow: { flexDirection: 'row', gap: spacing.sm },
   langPill: {
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.divider,
+    borderColor: colors.warmBorder,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',

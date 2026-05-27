@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, shadows, typography } from '../theme/designSystem';
-import PositionedImage, { cardPosition } from './PositionedImage';
+import PositionedImage from './PositionedImage';
+import { resolveCardAspectRatio } from '../lib/imageAspectRatio';
 
 // Hero card shown at the top of HomeScreen. Mirrors the web `.hero` block:
 //   - Big rounded corners (28)
@@ -24,18 +25,21 @@ export default function MemoryHeroCard({
   onPress,
 }) {
   const source = imageSource ?? fallbackSource;
-  // PWA parity: `.hero` has a fixed min/max height — the picker preview can
-  // honour the user's aspectRatio choice, but the saved hero card always
-  // cover-fits into that height. `cardPosition` strips numeric aspectRatio.
-  const renderPosition = imageSource ? cardPosition(imagePosition) : undefined;
+  // The hero card adopts the user's selected aspect ratio when one is
+  // present in metadata. Falls back to the PWA `.hero` min/max heights
+  // (330–382) when the user picked "Fill card" or there is no metadata.
+  const aspect = imageSource ? resolveCardAspectRatio(imagePosition) : null;
+  const cardShapeStyle = aspect
+    ? { aspectRatio: aspect, minHeight: undefined, maxHeight: undefined }
+    : null;
 
   const inner = (
-    <View style={styles.card}>
+    <View style={[styles.card, cardShapeStyle]}>
       {source ? (
         <View style={styles.image}>
           <PositionedImage
             source={source}
-            position={renderPosition}
+            position={imagePosition}
             style={StyleSheet.absoluteFill}
           />
           <GradientStack />
@@ -113,7 +117,11 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     zIndex: 1,
   },
-  // PWA: .hero { min-height: clamp(330px, 74vw, 382px) } — 330 min, 382 max
+  // PWA `.hero { min-height: clamp(330px, 74vw, 382px) }` — 330 min, 382 max.
+  // These act as the *fallback* when imagePosition has no aspectRatio (or
+  // is set to 'fill'). When the user picked an aspectRatio in the picker,
+  // MemoryHeroCard injects an `aspectRatio` style that overrides both
+  // bounds so the hero adopts the chosen shape.
   card: {
     borderRadius: radii.xxl,
     overflow: 'hidden',

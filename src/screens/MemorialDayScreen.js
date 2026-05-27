@@ -21,7 +21,8 @@ import {
 } from '../theme/designSystem';
 import AppCard from '../components/AppCard';
 import AppButton from '../components/AppButton';
-import PositionedImage, { cardPosition } from '../components/PositionedImage';
+import PositionedImage from '../components/PositionedImage';
+import { resolveCardAspectRatio } from '../lib/imageAspectRatio';
 import ImageControls from '../components/ImageControls';
 import ImageCropAspectPicker, { DEFAULT_CROP_VALUE } from '../components/ImageCropAspectPicker';
 import { pickImageFromLibrary, removePersistedMedia } from '../lib/media';
@@ -58,8 +59,8 @@ const SKY_BG_IMAGE = {
 // 0.95), transparent 18%)` for morning sun). RN has no multi-stop gradients
 // without expo-linear-gradient; we use a single tinted overlay per sky.
 const SKY_OVERLAY = {
-  morning: 'rgba(160, 90, 30, 0.22)',
-  day:     'rgba(20, 60, 10, 0.14)',
+  morning: 'rgba(180, 105, 20, 0.26)',   // warmer golden-amber morning
+  day:     'rgba(150, 95, 10, 0.22)',    // warm golden instead of cold green
   evening: 'rgba(60, 24, 8, 0.30)',
   night:   'rgba(12, 10, 20, 0.42)',
 };
@@ -118,68 +119,159 @@ function formatMemorialDate(dateStr, language, recurringText) {
 const PET_TYPES = ['human','horse','dog','cat','rabbit','bird',
                    'guineaPig','hamster','ferret','turtle','other'];
 
-// PWA `.candle` (.flame / .wick / .wax) — teardrop flame + cream wax body.
-// PWA parity approximation: PWA uses `border-radius: 55% 55% 55% 10%` to make
-// the asymmetric teardrop; RN approximates with mixed border radii.
+// Larger, more atmospheric candle — teardrop flame with soft outer glow,
+// tall cream body with drip detail, and a warm ambient halo when lit.
 function CandleView({ lit }) {
   return (
-    <View style={cStyles.wrap}>
-      <View style={cStyles.flameArea}>
-        {lit ? <View style={cStyles.flame} /> : null}
+    <View style={cStyles.outerWrap}>
+      {/* Ambient warm halo — visible only when lit */}
+      {lit ? <View style={cStyles.halo} /> : null}
+
+      <View style={cStyles.candleStack}>
+        {/* Flame area: soft outer + bright core teardrop */}
+        <View style={cStyles.flameArea}>
+          {lit ? (
+            <>
+              <View style={cStyles.flameSoft} />
+              <View style={cStyles.flameCore} />
+            </>
+          ) : null}
+        </View>
+
+        {/* Wick */}
+        <View style={[cStyles.wick, lit && cStyles.wickLit]} />
+
+        {/* Wax body with shine and drip */}
+        <View style={cStyles.body}>
+          <View style={cStyles.shine} />
+          <View style={cStyles.drip} />
+        </View>
       </View>
-      <View style={cStyles.wick} />
-      <View style={cStyles.body}>
-        <View style={cStyles.shine} />
-      </View>
+
+      {/* Soft shadow ellipse under the base */}
+      <View style={[cStyles.baseShadow, !lit && { opacity: 0.40 }]} />
     </View>
   );
 }
 
 const cStyles = StyleSheet.create({
-  wrap: {
-    width: 54,
-    height: 88,
-    alignSelf: 'center',
+  outerWrap: {
+    alignSelf:    'center',
+    alignItems:   'center',
+    marginTop:    -76,   // deeper overlap with the image bottom
+    marginBottom: 4,
+    zIndex:       1,
+  },
+
+  // Diffuse warm glow behind the candle (lit state only)
+  halo: {
+    position:        'absolute',
+    width:           150,
+    height:          120,
+    borderRadius:    75,
+    backgroundColor: 'rgba(255, 155, 25, 0.09)',
+    top:             -6,
+    alignSelf:       'center',
+  },
+
+  candleStack: {
     alignItems: 'center',
-    marginTop: -54,
     ...Platform.select({
       ios: {
-        shadowColor:   '#74522c',
-        shadowOffset:  { width: 0, height: 10 },
-        shadowOpacity: 0.22,
-        shadowRadius:  12,
+        shadowColor:   '#d4a050',
+        shadowOffset:  { width: 0, height: 0 },
+        shadowOpacity: 0.42,
+        shadowRadius:  26,
       },
-      android: { elevation: 4 },
+      android: { elevation: 7 },
       default: {},
     }),
   },
-  flameArea: { height: 32, width: 22, alignItems: 'center', justifyContent: 'flex-end' },
-  // PWA: width 20, height 31, border-radius 55% 55% 55% 10%
-  flame: {
-    width:                18,
-    height:               28,
-    borderTopLeftRadius:  10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 10,
-    backgroundColor:      '#d69b48',
+
+  flameArea: {
+    height:         54,
+    width:          34,
+    alignItems:     'center',
+    justifyContent: 'flex-end',
   },
-  wick: { width: 2, height: 9, backgroundColor: '#3b2700', borderRadius: 1 },
+
+  // Outer diffuse flame — wide teardrop, soft amber glow
+  flameSoft: {
+    position:                'absolute',
+    width:                   30,
+    height:                  50,
+    borderTopLeftRadius:     17,
+    borderTopRightRadius:    17,
+    borderBottomLeftRadius:  4,
+    borderBottomRightRadius: 4,
+    backgroundColor:         'rgba(232, 138, 22, 0.45)',
+    bottom:                  0,
+  },
+
+  // Inner bright flame core — narrow, golden-yellow
+  flameCore: {
+    position:                'absolute',
+    width:                   16,
+    height:                  33,
+    borderTopLeftRadius:     10,
+    borderTopRightRadius:    10,
+    borderBottomLeftRadius:  2,
+    borderBottomRightRadius: 2,
+    backgroundColor:         '#f2c030',
+    bottom:                  0,
+  },
+
+  wick: {
+    width:           2,
+    height:          11,
+    backgroundColor: '#3b2700',
+    borderRadius:    1,
+    marginBottom:    -1,
+  },
+  wickLit: { backgroundColor: '#c87820' },
+
+  // Tall cream wax body
   body: {
-    width:           36,
-    height:          54,
-    borderRadius:    4,
-    backgroundColor: '#f7f3ea',
+    width:           46,
+    height:          82,
+    borderRadius:    6,
+    backgroundColor: '#f4ede0',
     borderWidth:     1,
     borderColor:     'rgba(160, 140, 100, 0.22)',
     overflow:        'hidden',
+    marginTop:       1,
   },
+
+  // Vertical highlight on the body
   shine: {
-    position: 'absolute',
-    left: 7, top: 5,
-    width: 4, height: 38,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.46)',
+    position:        'absolute',
+    left:            10,
+    top:             6,
+    width:           5,
+    height:          66,
+    borderRadius:    3,
+    backgroundColor: 'rgba(255, 255, 255, 0.52)',
+  },
+
+  // Wax drip detail near the top
+  drip: {
+    position:                'absolute',
+    top:                     -3,
+    left:                    14,
+    width:                   10,
+    height:                  20,
+    borderBottomLeftRadius:  5,
+    borderBottomRightRadius: 5,
+    backgroundColor:         'rgba(236, 216, 180, 0.82)',
+  },
+
+  // Soft elliptical shadow under the candle base
+  baseShadow: {
+    width:           38,
+    height:          7,
+    borderRadius:    14,
+    backgroundColor: 'rgba(80, 55, 15, 0.14)',
+    marginTop:       3,
   },
 });
 
@@ -299,8 +391,9 @@ export default function MemorialDayScreen() {
 
   const candle = activeMemorial.candleLit;
 
-  // PWA dynamic colours for dark (night/evening) vs light (morning/day) skies
-  const eyebrowColor = isDark ? 'rgba(255, 247, 231, 0.82)' : colors.textSoft;
+  // PWA dynamic colours for dark (night/evening) vs light (morning/day) skies.
+  // On warm day/morning skies use colors.brown — richer warm tone than textSoft.
+  const eyebrowColor = isDark ? 'rgba(255, 247, 231, 0.82)' : colors.brown;
   const titleColor   = isDark ? '#fff7e7' : themeColors.textPrimary;
 
   return (
@@ -330,25 +423,40 @@ export default function MemorialDayScreen() {
 
           {/* PWA `.memorial-card.card`: padding 16, gap 14, text-align center,
               bg rgba(255,250,240,.96), box-shadow 0 22px 60px rgba(55,48,35,.2) */}
-          <View style={styles.cardShadow}>
-            <View style={[styles.card, candle && styles.cardLit, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.cardShadow, candle && styles.cardShadowLit]}>
+            <View style={[styles.card, {
+              backgroundColor: candle ? themeColors.surfaceWarm : themeColors.card,
+              borderColor: candle ? 'rgba(212, 160, 80, 0.38)' : themeColors.borderWarm,
+            }]}>
 
               {/* PWA `.memorial-image { min-height: 280; border-radius: 22 }`.
-                  `cardPosition` forces aspectRatio:'fill' so the 280-tall
-                  card always cover-fits — fixes the previous "weird zoom"
-                  where a numeric aspectRatio metadata fought the fixed
-                  height. Tap toggles the floating ImageControls. */}
+                  When the user picked a specific aspectRatio in the cropper,
+                  the card adopts that shape. Otherwise the card falls back
+                  to the PWA 280-tall slot. */}
+              {(() => {
+                const memorialAspect = displayImage
+                  ? resolveCardAspectRatio(activeMemorial.memorialImagePosition)
+                  : null;
+                const memorialAspectStyle = memorialAspect
+                  ? { aspectRatio: memorialAspect, height: undefined }
+                  : null;
+                return (
               <Pressable
                 onPress={() => setImageControlsVisible((v) => !v)}
                 accessibilityRole="button"
                 style={styles.memorialImageTap}
               >
                 {displayImage ? (
-                  <PositionedImage
-                    uri={displayImage}
-                    position={cardPosition(activeMemorial.memorialImagePosition)}
-                    style={styles.memorialImage}
-                  />
+                  <>
+                    <PositionedImage
+                      uri={displayImage}
+                      position={activeMemorial.memorialImagePosition}
+                      style={[styles.memorialImage, memorialAspectStyle]}
+                    />
+                    {/* Very subtle warm amber tint — lifts cold blues, unifies
+                        the portrait with the golden meadow background. */}
+                    <View style={styles.imageWarmOverlay} pointerEvents="none" />
+                  </>
                 ) : (
                   <View style={[styles.memorialImage, styles.memorialImagePlaceholder]}>
                     <Feather name="user" size={52} color="rgba(80, 95, 62, 0.35)" />
@@ -366,6 +474,8 @@ export default function MemorialDayScreen() {
                   removeLabel={t('creation.removePortrait')}
                 />
               </Pressable>
+                );
+              })()}
 
               {/* PWA `.candle { margin: -54px auto 0 }` (overlaps image bottom) */}
               <CandleView lit={candle} />
@@ -453,18 +563,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...shadows.hero,
   },
+  // When the candle is lit — soft golden ambient glow around the card
+  cardShadowLit: Platform.select({
+    ios: {
+      shadowColor:   '#d4a050',
+      shadowOffset:  { width: 0, height: 10 },
+      shadowOpacity: 0.22,
+      shadowRadius:  32,
+    },
+    android: { elevation: 10 },
+    default: {},
+  }),
   card: {
     overflow:        'hidden',
     borderRadius:    radii.card,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.96)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.97)',
     padding:         spacing.md,
     gap:             14,
     alignItems:      'center',
   },
-  // PWA `.memorial-card.is-lit { background: linear-gradient(rgba(251,247,239,.96), rgba(238,226,206,.92)) }`
-  cardLit: { backgroundColor: 'rgba(251, 247, 239, 0.96)' },
+  // PWA `.memorial-card.is-lit` — candle-lit: richer amber-cream gradient approximation
+  cardLit: { backgroundColor: 'rgba(255, 236, 200, 0.97)' },
 
   // Pressable wrapper around the portrait — its only job is to host the
   // tap-to-toggle and the floating ImageControls overlay.
@@ -479,6 +600,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   memorialImagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  // Subtle warm amber tint on the portrait — lifts cold blues, unifies the
+  // image with the golden meadow atmosphere. Opacity kept very low (≈6%).
+  imageWarmOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius:    radii.memoryImg,
+    backgroundColor: 'rgba(220, 140, 40, 0.06)',
+  },
 
   // PWA `.italic-note { color: var(--brown); font-family: var(--font-accent);
   //   font-size: 1.12rem; font-style: italic; font-weight: 500 }`
@@ -486,7 +614,7 @@ const styles = StyleSheet.create({
     fontFamily:    typography.serifItalic,
     fontSize:      typography.sizes.italicNote,
     fontStyle:     'italic',
-    color:         colors.brown,
+    color:         colors.mossDark,   // slightly darker than brown — more legible
     fontWeight:    typography.weights.medium,
     textAlign:     'center',
     lineHeight:    typography.lineHeights.italicNote,
@@ -506,7 +634,7 @@ const styles = StyleSheet.create({
     fontSize:   typography.sizes.body,
     color:      colors.textMuted,
     textAlign:  'center',
-    lineHeight: typography.lineHeights.body,
+    lineHeight: 24,   // improved: 1.6 × 15 = 24 (was 22)
   },
 
   emptyTitle: {

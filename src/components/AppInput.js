@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, inputStyles, spacing, typography } from '../theme/designSystem';
+import { useTheme } from '../state/ThemeContext';
 
 // Labelled text/textarea input.
 // Visual rules mirror styles.css inputs:
@@ -7,12 +8,19 @@ import { colors, inputStyles, spacing, typography } from '../theme/designSystem'
 //   background rgba(255,252,246,0.88), font-size max(1rem, 16px).
 // Multiline matches PWA `textarea { min-height: 108px; line-height: 1.55 }`.
 export default function AppInput({ label, style, inputStyle, multiline, ...rest }) {
+  const { themeColors } = useTheme();
   return (
     <View style={[styles.wrap, style]}>
       {label ? <Text style={inputStyles.label}>{label}</Text> : null}
       <TextInput
         style={[
           inputStyles.base,
+          // Override static Classic-only colours with per-theme values.
+          {
+            backgroundColor: themeColors.surfaceWarm,
+            borderColor:     themeColors.borderWarm,
+            color:           themeColors.textPrimary,
+          },
           multiline && styles.multiline,
           inputStyle,
         ]}

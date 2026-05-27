@@ -44,6 +44,11 @@ export const DEFAULT_CROP_VALUE = Object.freeze({
   y:             50,
   zoom:          1,
   naturalAspect: 1,
+  // Raw image dimensions — populated by Image.getSize when the picker opens.
+  // Used by lib/imageAspectRatio.js to derive 'original' aspect across
+  // reloads (when naturalAspect itself was never persisted).
+  width:         0,
+  height:        0,
 });
 
 // Aspect-ratio options match the spec: Original, 1:1, 4:5, 3:4, 4:3, 16:9,
@@ -134,6 +139,7 @@ export default function ImageCropAspectPicker({
   }, [visible, uri, initialValue, defaultAspect]);
 
   // Probe the image's real dimensions so the "Original" preset is honest
+  // and the saved metadata can derive its aspect across reloads.
   useEffect(() => {
     if (!uri) return;
     let cancelled = false;
@@ -143,7 +149,12 @@ export default function ImageCropAspectPicker({
         if (cancelled || !h) return;
         const next = w / h;
         setNaturalAspect(next);
-        setValue((current) => ({ ...current, naturalAspect: next }));
+        setValue((current) => ({
+          ...current,
+          naturalAspect: next,
+          width:  w,
+          height: h,
+        }));
       },
       () => { /* silent: fall back to 1 */ },
     );
@@ -208,6 +219,7 @@ export default function ImageCropAspectPicker({
                   onPress={() => update({ aspectRatio: option.value })}
                   style={({ pressed }) => [
                     styles.pill,
+                    { backgroundColor: themeColors.overlayWarm },
                     active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                     pressed && styles.pressed,
                   ]}
@@ -231,6 +243,7 @@ export default function ImageCropAspectPicker({
                   onPress={() => update({ fitMode: option.key })}
                   style={({ pressed }) => [
                     styles.pill,
+                    { backgroundColor: themeColors.overlayWarm },
                     active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                     pressed && styles.pressed,
                   ]}
@@ -256,6 +269,7 @@ export default function ImageCropAspectPicker({
                       onPress={() => update({ y: option.value })}
                       style={({ pressed }) => [
                         styles.iconPill,
+                        { backgroundColor: themeColors.overlayWarm },
                         active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                         pressed && styles.pressed,
                       ]}
@@ -282,6 +296,7 @@ export default function ImageCropAspectPicker({
                       onPress={() => update({ x: option.value })}
                       style={({ pressed }) => [
                         styles.iconPill,
+                        { backgroundColor: themeColors.overlayWarm },
                         active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                         pressed && styles.pressed,
                       ]}
@@ -310,6 +325,7 @@ export default function ImageCropAspectPicker({
                       onPress={() => update({ zoom })}
                       style={({ pressed }) => [
                         styles.zoomPill,
+                        { backgroundColor: themeColors.overlayWarm },
                         active && { backgroundColor: themeColors.moss, borderColor: themeColors.moss },
                         pressed && styles.pressed,
                       ]}
@@ -408,7 +424,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     overflow:     'hidden',
     borderWidth:  1,
-    borderColor:  colors.divider,
+    borderColor:  colors.warmBorder,
   },
 
   // Section labels — PWA `<label> > span` styling
@@ -430,8 +446,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius:      999,
     borderWidth:       1,
-    borderColor:       colors.divider,
-    backgroundColor:   'rgba(255, 250, 240, 0.82)',
+    borderColor:       colors.warmBorder,
+    backgroundColor:   'rgba(255, 244, 222, 0.82)',
     alignItems:        'center',
     justifyContent:    'center',
   },
@@ -443,8 +459,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius:      999,
     borderWidth:       1,
-    borderColor:       colors.divider,
-    backgroundColor:   'rgba(255, 250, 240, 0.82)',
+    borderColor:       colors.warmBorder,
+    backgroundColor:   'rgba(255, 244, 222, 0.82)',
   },
   zoomPill: {
     minHeight:       34,
@@ -453,8 +469,8 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
     borderRadius:    999,
     borderWidth:     1,
-    borderColor:     colors.divider,
-    backgroundColor: 'rgba(255, 250, 240, 0.82)',
+    borderColor:     colors.warmBorder,
+    backgroundColor: 'rgba(255, 244, 222, 0.82)',
   },
   pillText: {
     fontSize:   typography.sizes.label,
@@ -484,7 +500,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius:      radii.secondary,
     borderWidth:       1,
-    borderColor:       colors.divider,
+    borderColor:       colors.warmBorder,
     backgroundColor:   colors.card,
   },
   actionBtnSecondaryText: {
