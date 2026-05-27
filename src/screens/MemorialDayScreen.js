@@ -119,37 +119,42 @@ function formatMemorialDate(dateStr, language, recurringText) {
 const PET_TYPES = ['human','horse','dog','cat','rabbit','bird',
                    'guineaPig','hamster','ferret','turtle','other'];
 
-// Larger, more atmospheric candle — teardrop flame with soft outer glow,
-// tall cream body with drip detail, and a warm ambient halo when lit.
-function CandleView({ lit }) {
+function MemorialCandle({ lit }) {
   return (
     <View style={cStyles.outerWrap}>
-      {/* Ambient warm halo — visible only when lit */}
-      {lit ? <View style={cStyles.halo} /> : null}
+      {lit ? <View style={cStyles.cardGlow} /> : null}
 
       <View style={cStyles.candleStack}>
-        {/* Flame area: soft outer + bright core teardrop */}
         <View style={cStyles.flameArea}>
           {lit ? (
             <>
-              <View style={cStyles.flameSoft} />
-              <View style={cStyles.flameCore} />
+              <View style={cStyles.flameAura} />
+              <View style={cStyles.flameOuter} />
+              <View style={cStyles.flameInner} />
             </>
           ) : null}
         </View>
 
-        {/* Wick */}
-        <View style={[cStyles.wick, lit && cStyles.wickLit]} />
+        <View style={cStyles.wick} />
 
-        {/* Wax body with shine and drip */}
-        <View style={cStyles.body}>
-          <View style={cStyles.shine} />
-          <View style={cStyles.drip} />
+        <View style={cStyles.waxWrap}>
+          <View style={cStyles.waxBody}>
+            <View style={cStyles.sideShadeLeft} />
+            <View style={cStyles.sideShadeRight} />
+            <View style={cStyles.bodyWarmth} />
+            <View style={cStyles.bodyHighlight} />
+            <View style={[cStyles.waxDrip, cStyles.waxDripLong]} />
+            <View style={[cStyles.waxDrip, cStyles.waxDripRound]} />
+            <View style={[cStyles.waxDrip, cStyles.waxDripShort]} />
+          </View>
+          <View style={cStyles.topLip}>
+            <View style={cStyles.topBowl} />
+            <View style={cStyles.topHighlight} />
+          </View>
         </View>
       </View>
 
-      {/* Soft shadow ellipse under the base */}
-      <View style={[cStyles.baseShadow, !lit && { opacity: 0.40 }]} />
+      <View style={[cStyles.baseShadow, !lit && cStyles.baseShadowDim]} />
     </View>
   );
 }
@@ -158,120 +163,203 @@ const cStyles = StyleSheet.create({
   outerWrap: {
     alignSelf:    'center',
     alignItems:   'center',
-    marginTop:    -76,   // deeper overlap with the image bottom
-    marginBottom: 4,
+    marginTop:    -47,
+    marginBottom: 6,
     zIndex:       1,
   },
 
-  // Diffuse warm glow behind the candle (lit state only)
-  halo: {
+  cardGlow: {
     position:        'absolute',
-    width:           150,
-    height:          120,
-    borderRadius:    75,
-    backgroundColor: 'rgba(255, 155, 25, 0.09)',
-    top:             -6,
-    alignSelf:       'center',
+    top:             10,
+    width:           82,
+    height:          54,
+    borderRadius:    41,
+    backgroundColor: 'rgba(214, 146, 48, 0.11)',
   },
 
   candleStack: {
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor:   '#d4a050',
+        shadowColor:   '#a86e29',
         shadowOffset:  { width: 0, height: 0 },
-        shadowOpacity: 0.42,
-        shadowRadius:  26,
+        shadowOpacity: 0.13,
+        shadowRadius:  11,
       },
-      android: { elevation: 7 },
+      android: { elevation: 3 },
       default: {},
     }),
   },
 
   flameArea: {
-    height:         54,
-    width:          34,
+    height:         30,
+    width:          26,
     alignItems:     'center',
     justifyContent: 'flex-end',
+    marginBottom:   -2,
   },
 
-  // Outer diffuse flame — wide teardrop, soft amber glow
-  flameSoft: {
-    position:                'absolute',
-    width:                   30,
-    height:                  50,
-    borderTopLeftRadius:     17,
-    borderTopRightRadius:    17,
-    borderBottomLeftRadius:  4,
-    borderBottomRightRadius: 4,
-    backgroundColor:         'rgba(232, 138, 22, 0.45)',
-    bottom:                  0,
+  flameAura: {
+    position:        'absolute',
+    bottom:          0,
+    width:           28,
+    height:          28,
+    borderRadius:    14,
+    backgroundColor: 'rgba(235, 150, 42, 0.15)',
   },
-
-  // Inner bright flame core — narrow, golden-yellow
-  flameCore: {
+  flameOuter: {
     position:                'absolute',
-    width:                   16,
-    height:                  33,
+    bottom:                  2,
+    width:                   13,
+    height:                  24,
     borderTopLeftRadius:     10,
     borderTopRightRadius:    10,
-    borderBottomLeftRadius:  2,
-    borderBottomRightRadius: 2,
-    backgroundColor:         '#f2c030',
-    bottom:                  0,
+    borderBottomRightRadius: 7,
+    borderBottomLeftRadius:  7,
+    backgroundColor:         '#e58c28',
+    transform:               [{ rotate: '3deg' }],
+  },
+
+  flameInner: {
+    position:                'absolute',
+    bottom:                  6,
+    width:                   6,
+    height:                  14,
+    borderTopLeftRadius:     5,
+    borderTopRightRadius:    5,
+    borderBottomRightRadius: 4,
+    borderBottomLeftRadius:  4,
+    backgroundColor:         '#fff0ad',
+    transform:               [{ rotate: '-2deg' }],
   },
 
   wick: {
     width:           2,
-    height:          11,
-    backgroundColor: '#3b2700',
-    borderRadius:    1,
-    marginBottom:    -1,
-  },
-  wickLit: { backgroundColor: '#c87820' },
-
-  // Tall cream wax body
-  body: {
-    width:           46,
-    height:          82,
-    borderRadius:    6,
-    backgroundColor: '#f4ede0',
-    borderWidth:     1,
-    borderColor:     'rgba(160, 140, 100, 0.22)',
-    overflow:        'hidden',
-    marginTop:       1,
+    height:          10,
+    backgroundColor: '#3d2b18',
+    borderRadius:    2,
+    marginBottom:    -6,
+    zIndex:          3,
+    transform:       [{ rotate: '-4deg' }],
   },
 
-  // Vertical highlight on the body
-  shine: {
+  waxWrap: {
+    width:      58,
+    height:     56,
+    alignItems: 'center',
+  },
+  waxBody: {
     position:        'absolute',
-    left:            10,
-    top:             6,
-    width:           5,
-    height:          66,
-    borderRadius:    3,
-    backgroundColor: 'rgba(255, 255, 255, 0.52)',
+    top:             9,
+    width:           52,
+    height:          43,
+    borderRadius:    17,
+    backgroundColor: '#f3e8d1',
+    borderWidth:     1,
+    borderColor:     'rgba(156, 117, 57, 0.16)',
+    overflow:        'hidden',
   },
-
-  // Wax drip detail near the top
-  drip: {
+  sideShadeLeft: {
+    position:        'absolute',
+    left:            0,
+    top:             0,
+    bottom:          0,
+    width:           13,
+    backgroundColor: 'rgba(170, 125, 66, 0.08)',
+  },
+  sideShadeRight: {
     position:                'absolute',
-    top:                     -3,
-    left:                    14,
-    width:                   10,
-    height:                  20,
+    right:                   -2,
+    top:                     0,
+    bottom:                  0,
+    width:                   16,
+    borderTopLeftRadius:     13,
+    borderBottomLeftRadius:  13,
+    backgroundColor:         'rgba(112, 79, 35, 0.06)',
+  },
+  bodyWarmth: {
+    position:        'absolute',
+    left:            9,
+    right:           7,
+    bottom:          -8,
+    height:          22,
+    borderRadius:    18,
+    backgroundColor: 'rgba(225, 181, 104, 0.10)',
+  },
+  bodyHighlight: {
+    position:        'absolute',
+    left:            12,
+    top:             8,
+    width:           6,
+    height:          28,
+    borderRadius:    5,
+    backgroundColor: 'rgba(255, 255, 246, 0.42)',
+  },
+  waxDrip: {
+    position:        'absolute',
+    top:             -1,
+    backgroundColor: '#eadbbd',
+    borderColor:     'rgba(255, 255, 248, 0.26)',
+    borderWidth:     1,
+  },
+  waxDripLong: {
+    left:                    19,
+    width:                   7,
+    height:                  19,
     borderBottomLeftRadius:  5,
     borderBottomRightRadius: 5,
-    backgroundColor:         'rgba(236, 216, 180, 0.82)',
+  },
+  waxDripRound: {
+    left:         32,
+    width:        9,
+    height:       11,
+    borderRadius: 6,
+  },
+  waxDripShort: {
+    left:                    9,
+    width:                   6,
+    height:                  12,
+    borderBottomLeftRadius:  4,
+    borderBottomRightRadius: 4,
+  },
+  topLip: {
+    position:        'absolute',
+    top:             2,
+    width:           56,
+    height:          17,
+    borderRadius:    28,
+    backgroundColor: '#f8eed8',
+    borderWidth:     1,
+    borderColor:     'rgba(145, 105, 48, 0.16)',
+    alignItems:      'center',
+    justifyContent:  'center',
+    zIndex:          2,
+  },
+  topBowl: {
+    width:           40,
+    height:          8,
+    borderRadius:    20,
+    backgroundColor: 'rgba(204, 166, 96, 0.15)',
+  },
+  topHighlight: {
+    position:        'absolute',
+    top:             3,
+    left:            12,
+    width:           21,
+    height:          3,
+    borderRadius:    10,
+    backgroundColor: 'rgba(255, 255, 248, 0.48)',
   },
 
-  // Soft elliptical shadow under the candle base
   baseShadow: {
-    width:           38,
-    height:          7,
-    borderRadius:    14,
-    backgroundColor: 'rgba(80, 55, 15, 0.14)',
-    marginTop:       3,
+    width:           52,
+    height:          8,
+    borderRadius:    26,
+    backgroundColor: 'rgba(105, 66, 27, 0.14)',
+    marginTop:       -3,
+  },
+  baseShadowDim: {
+    opacity: 0.52,
   },
 });
 
@@ -478,7 +566,7 @@ export default function MemorialDayScreen() {
               })()}
 
               {/* PWA `.candle { margin: -54px auto 0 }` (overlaps image bottom) */}
-              <CandleView lit={candle} />
+              <MemorialCandle lit={candle} />
 
               {/* PWA `.italic-note` — italic brown-toned date line */}
               {formattedDate ? (

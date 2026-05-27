@@ -59,22 +59,13 @@ export const colors = {
   hairline:       'rgba(48, 56, 45, 0.10)',     // section-button shadow contour
   shadowWarm:     '#7a5435',                    // warm amber shadow base (candle glow underkey)
 
-  // Hero gradient bands — warm amber-brown candle glow (replaces the original
-  // cool dark-forest-green `rgba(37,42,31,…)`).
-  // Warm dark amber `rgba(52,30,8,…)` gives the hero image a candlelight feel:
-  // barely-there golden warmth at the top, deep amber at the bottom for legible text.
-  // Opacity curve mirrors the original (0–24% constant ~0.05, then linear → 0.70).
-  heroOverlayBands: [
-    'rgba(52, 30, 8, 0.05)',
-    'rgba(52, 30, 8, 0.05)',
-    'rgba(52, 30, 8, 0.09)',
-    'rgba(52, 30, 8, 0.18)',
-    'rgba(52, 30, 8, 0.28)',
-    'rgba(52, 30, 8, 0.37)',
-    'rgba(52, 30, 8, 0.46)',
-    'rgba(52, 30, 8, 0.54)',
-    'rgba(52, 30, 8, 0.61)',
-    'rgba(52, 30, 8, 0.70)',
+  // Hero image overlay: transparent through the upper half, then a smooth
+  // warm amber-brown fade for legible white copy at the bottom.
+  heroOverlayGradient: [
+    'rgba(52, 30, 8, 0.00)',
+    'rgba(52, 30, 8, 0.00)',
+    'rgba(52, 30, 8, 0.22)',
+    'rgba(52, 30, 8, 0.56)',
   ],
 
   // Eyebrow pill — PWA .memory-of-day .eyebrow / .daily-quote .eyebrow

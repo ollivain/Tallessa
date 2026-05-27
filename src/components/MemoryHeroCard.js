@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radii, shadows, typography } from '../theme/designSystem';
 import PositionedImage from './PositionedImage';
 import { resolveCardAspectRatio } from '../lib/imageAspectRatio';
@@ -6,14 +7,9 @@ import { resolveCardAspectRatio } from '../lib/imageAspectRatio';
 // Hero card shown at the top of HomeScreen. Mirrors the web `.hero` block:
 //   - Big rounded corners (28)
 //   - Background image (memorial portrait if available, else a soft default)
-//   - Stepped dark gradient overlay so text stays readable
+//   - Smooth dark gradient overlay so text stays readable
 //   - Eyebrow + memory-line text aligned to the bottom-left, on top of the
 //     image, just like the web copy block.
-//
-// The "gradient" is approximated by 5 stacked translucent bands because the
-// project doesn't ship `expo-linear-gradient`. Without that dep, layered
-// rgba views give a near-identical visual result without adding install
-// pressure.
 export default function MemoryHeroCard({
   imageSource,
   fallbackSource,
@@ -42,7 +38,7 @@ export default function MemoryHeroCard({
             position={imagePosition}
             style={StyleSheet.absoluteFill}
           />
-          <GradientStack />
+          <HeroGradient />
           <View style={styles.copyBlock}>
             {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
             {memoryLine ? (
@@ -54,7 +50,7 @@ export default function MemoryHeroCard({
         </View>
       ) : (
         <View style={[styles.image, styles.placeholder]}>
-          <GradientStack />
+          <HeroGradient />
           <View style={styles.copyBlock}>
             {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
             {memoryLine ? (
@@ -83,27 +79,13 @@ export default function MemoryHeroCard({
   return <View style={styles.shadow}>{inner}</View>;
 }
 
-// Vertical bands approximating the CSS linear-gradient. Each band's percentage
-// size is derived from the array length so adding/removing bands just works.
-function GradientStack() {
-  const bands = colors.heroOverlayBands;
-  const pct = 100 / bands.length;
+function HeroGradient() {
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {bands.map((bg, i) => (
-        <View
-          key={i}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: `${i * pct}%`,
-            height: `${pct}%`,
-            backgroundColor: bg,
-          }}
-        />
-      ))}
-    </View>
+    <LinearGradient
+      colors={colors.heroOverlayGradient}
+      locations={[0, 0.52, 0.74, 1]}
+      style={styles.gradientOverlay}
+    />
   );
 }
 
@@ -132,6 +114,10 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
   },
   placeholder: {
     backgroundColor: '#586a49',
